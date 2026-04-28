@@ -1,70 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-
-interface OnboardingData {
-  name: string
-  age: string
-  weight: string
-  height: string
-  gender: string
-  goal: string
-  level: string
-  daysPerWeek: string
-  sessionTime: string
-  workoutType: string
-  schedule: string
-  injuries: string
-  allergies: string
-  foodPreferences: string[]
-  extraInfo: string
-}
-
-const STEPS = ['Datos básicos', 'Objetivo', 'Entrenamiento', 'Salud', 'Extra']
-
-const initialData: OnboardingData = {
-  name: '',
-  age: '',
-  weight: '',
-  height: '',
-  gender: '',
-  goal: '',
-  level: '',
-  daysPerWeek: '4',
-  sessionTime: '',
-  workoutType: '',
-  schedule: '',
-  injuries: '',
-  allergies: '',
-  foodPreferences: [],
-  extraInfo: '',
-}
+import { useOnboarding, STEPS } from '@/hooks/useOnboarding'
 
 export default function OnboardingPage() {
-  const router = useRouter()
-  const [step, setStep] = useState(0)
-  const [data, setData] = useState<OnboardingData>(initialData)
-
-  const set = (field: keyof OnboardingData, value: string) =>
-    setData((prev) => ({ ...prev, [field]: value }))
-
-  const toggleFoodPref = (pref: string) =>
-    setData((prev) => ({
-      ...prev,
-      foodPreferences: prev.foodPreferences.includes(pref)
-        ? prev.foodPreferences.filter((p) => p !== pref)
-        : [...prev.foodPreferences, pref],
-    }))
+  const { step, data, errors, isSubmitting, isHydrated, set, toggleFoodPref, goNext, goBack } =
+    useOnboarding()
 
   const isLastStep = step === STEPS.length - 1
 
-  const handleNext = () => {
-    if (isLastStep) {
-      router.push('/dashboard')
-    } else {
-      setStep((s) => s + 1)
-    }
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen bg-[#101010] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#FF471A] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -78,7 +27,7 @@ export default function OnboardingPage() {
           <span className="text-white font-bold text-xl">FitPrompt</span>
         </div>
 
-        {/* Progress */}
+        {/* Stepper progress */}
         <div className="flex items-center gap-2 mb-8">
           {STEPS.map((s, i) => (
             <div key={s} className="flex-1 flex flex-col items-center gap-1.5">
@@ -100,19 +49,23 @@ export default function OnboardingPage() {
 
         {/* Card */}
         <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-8 animate-slide-up">
-          {/* Step 1 — Basic data */}
+
+          {/* ── Step 0: Basic data ─────────────────────────────────────────── */}
           {step === 0 && (
             <div className="space-y-5">
               <div>
                 <h2 className="text-2xl font-black text-white mb-1">Cuéntanos sobre ti</h2>
                 <p className="text-[#E0E0E0] text-sm">Empecemos con tus datos básicos</p>
               </div>
-              {[
-                { id: 'name', label: 'Nombre completo', type: 'text', placeholder: 'Tu nombre' },
-                { id: 'age', label: 'Edad', type: 'number', placeholder: '25' },
-                { id: 'weight', label: 'Peso actual (kg)', type: 'number', placeholder: '75' },
-                { id: 'height', label: 'Altura (cm)', type: 'number', placeholder: '178' },
-              ].map((field) => (
+
+              {(
+                [
+                  { id: 'name', label: 'Nombre completo', type: 'text', placeholder: 'Tu nombre' },
+                  { id: 'age', label: 'Edad', type: 'number', placeholder: '25' },
+                  { id: 'weight', label: 'Peso actual (kg)', type: 'number', placeholder: '75' },
+                  { id: 'height', label: 'Altura (cm)', type: 'number', placeholder: '178' },
+                ] as const
+              ).map((field) => (
                 <div key={field.id}>
                   <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-2">
                     {field.label}
@@ -120,12 +73,18 @@ export default function OnboardingPage() {
                   <input
                     type={field.type}
                     placeholder={field.placeholder}
-                    value={data[field.id as keyof OnboardingData] as string}
-                    onChange={(e) => set(field.id as keyof OnboardingData, e.target.value)}
-                    className="w-full bg-[#242424] border border-[#2a2a2a] focus:border-[#FF471A] text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors"
+                    value={data[field.id]}
+                    onChange={(e) => set(field.id, e.target.value)}
+                    className={`w-full bg-[#242424] border text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors focus:border-[#FF471A] ${
+                      errors[field.id] ? 'border-red-500' : 'border-[#2a2a2a]'
+                    }`}
                   />
+                  {errors[field.id] && (
+                    <p className="text-red-400 text-xs mt-1">{errors[field.id]}</p>
+                  )}
                 </div>
               ))}
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-2">
                   Género
@@ -146,17 +105,21 @@ export default function OnboardingPage() {
                     </button>
                   ))}
                 </div>
+                {errors.gender && (
+                  <p className="text-red-400 text-xs mt-1">{errors.gender}</p>
+                )}
               </div>
             </div>
           )}
 
-          {/* Step 2 — Goal & level */}
+          {/* ── Step 1: Goal & level ───────────────────────────────────────── */}
           {step === 1 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-black text-white mb-1">¿Cuál es tu objetivo?</h2>
                 <p className="text-[#E0E0E0] text-sm">Define tu meta para personalizar tu plan</p>
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
                   Objetivo principal
@@ -179,13 +142,17 @@ export default function OnboardingPage() {
                       }`}
                     >
                       <div className="text-2xl mb-1">{goal.icon}</div>
-                      <div className={`text-sm font-semibold ${data.goal === goal.value ? 'text-[#FF471A]' : 'text-white'}`}>
+                      <div
+                        className={`text-sm font-semibold ${data.goal === goal.value ? 'text-[#FF471A]' : 'text-white'}`}
+                      >
                         {goal.label}
                       </div>
                     </button>
                   ))}
                 </div>
+                {errors.goal && <p className="text-red-400 text-xs mt-2">{errors.goal}</p>}
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
                   Nivel de experiencia
@@ -206,10 +173,13 @@ export default function OnboardingPage() {
                     </button>
                   ))}
                 </div>
+                {errors.level && <p className="text-red-400 text-xs mt-1">{errors.level}</p>}
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
-                  Días de entrenamiento por semana: <span className="text-[#FF471A]">{data.daysPerWeek}</span>
+                  Días de entrenamiento por semana:{' '}
+                  <span className="text-[#FF471A]">{data.daysPerWeek}</span>
                 </label>
                 <input
                   type="range"
@@ -224,6 +194,7 @@ export default function OnboardingPage() {
                   <span>7 días</span>
                 </div>
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
                   Tiempo por sesión
@@ -244,17 +215,21 @@ export default function OnboardingPage() {
                     </button>
                   ))}
                 </div>
+                {errors.sessionTime && (
+                  <p className="text-red-400 text-xs mt-1">{errors.sessionTime}</p>
+                )}
               </div>
             </div>
           )}
 
-          {/* Step 3 — Workout type */}
+          {/* ── Step 2: Workout type ───────────────────────────────────────── */}
           {step === 2 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-black text-white mb-1">Tipo de entrenamiento</h2>
                 <p className="text-[#E0E0E0] text-sm">¿Dónde y cuándo prefieres entrenar?</p>
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
                   Tipo de rutina
@@ -277,7 +252,9 @@ export default function OnboardingPage() {
                     >
                       <span className="text-3xl">{type.icon}</span>
                       <div>
-                        <div className={`font-semibold ${data.workoutType === type.value ? 'text-[#FF471A]' : 'text-white'}`}>
+                        <div
+                          className={`font-semibold ${data.workoutType === type.value ? 'text-[#FF471A]' : 'text-white'}`}
+                        >
                           {type.label}
                         </div>
                         <div className="text-[#666] text-xs">{type.desc}</div>
@@ -285,7 +262,11 @@ export default function OnboardingPage() {
                     </button>
                   ))}
                 </div>
+                {errors.workoutType && (
+                  <p className="text-red-400 text-xs mt-1">{errors.workoutType}</p>
+                )}
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
                   Horario preferido
@@ -306,20 +287,25 @@ export default function OnboardingPage() {
                     </button>
                   ))}
                 </div>
+                {errors.schedule && (
+                  <p className="text-red-400 text-xs mt-1">{errors.schedule}</p>
+                )}
               </div>
             </div>
           )}
 
-          {/* Step 4 — Health */}
+          {/* ── Step 3: Health ─────────────────────────────────────────────── */}
           {step === 3 && (
             <div className="space-y-5">
               <div>
                 <h2 className="text-2xl font-black text-white mb-1">Salud y restricciones</h2>
                 <p className="text-[#E0E0E0] text-sm">Para adaptar el plan a tus necesidades</p>
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-2">
-                  Lesiones o limitaciones físicas <span className="text-[#666] normal-case">(opcional)</span>
+                  Lesiones o limitaciones físicas{' '}
+                  <span className="text-[#666] normal-case font-normal">(opcional)</span>
                 </label>
                 <textarea
                   rows={3}
@@ -329,9 +315,11 @@ export default function OnboardingPage() {
                   className="w-full bg-[#242424] border border-[#2a2a2a] focus:border-[#FF471A] text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
                 />
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-2">
-                  Alergias o intolerancias <span className="text-[#666] normal-case">(opcional)</span>
+                  Alergias o intolerancias{' '}
+                  <span className="text-[#666] normal-case font-normal">(opcional)</span>
                 </label>
                 <textarea
                   rows={2}
@@ -341,6 +329,7 @@ export default function OnboardingPage() {
                   className="w-full bg-[#242424] border border-[#2a2a2a] focus:border-[#FF471A] text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
                 />
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
                   Preferencias alimentarias
@@ -365,15 +354,19 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 5 — Extra */}
+          {/* ── Step 4: Extra ──────────────────────────────────────────────── */}
           {step === 4 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-2xl font-black text-white mb-1">¿Algo más que debamos saber?</h2>
+                <h2 className="text-2xl font-black text-white mb-1">
+                  ¿Algo más que debamos saber?
+                </h2>
                 <p className="text-[#E0E0E0] text-sm">
-                  Medicación, condición médica, contexto personal… Todo ayuda a personalizar mejor tu plan.
+                  Medicación, condición médica, contexto personal… Todo ayuda a personalizar mejor
+                  tu plan.
                 </p>
               </div>
+
               <textarea
                 rows={6}
                 placeholder="Ej: Tomo medicación para la tensión, hace 6 meses tuve una operación de menisco…"
@@ -381,6 +374,7 @@ export default function OnboardingPage() {
                 onChange={(e) => set('extraInfo', e.target.value)}
                 className="w-full bg-[#242424] border border-[#2a2a2a] focus:border-[#FF471A] text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
               />
+
               <div className="bg-[#FF471A1A] border border-[#FF471A33] rounded-xl p-4 text-sm text-[#E0E0E0]">
                 <p className="font-semibold text-white mb-1">¡Todo listo!</p>
                 <p>
@@ -396,23 +390,33 @@ export default function OnboardingPage() {
             {step > 0 && (
               <button
                 type="button"
-                onClick={() => setStep((s) => s - 1)}
-                className="flex-1 bg-[#242424] hover:bg-[#2a2a2a] border border-[#2a2a2a] text-[#E0E0E0] py-3 rounded-xl font-semibold text-sm transition-colors"
+                onClick={goBack}
+                disabled={isSubmitting}
+                className="flex-1 bg-[#242424] hover:bg-[#2a2a2a] border border-[#2a2a2a] text-[#E0E0E0] py-3 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
               >
                 ← Atrás
               </button>
             )}
             <button
               type="button"
-              onClick={handleNext}
-              className="flex-1 bg-[#FF471A] hover:bg-[#e03d15] active:scale-95 text-white py-3 rounded-xl font-bold text-sm transition-all"
+              onClick={goNext}
+              disabled={isSubmitting}
+              className="flex-1 bg-[#FF471A] hover:bg-[#e03d15] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 text-white py-3 rounded-xl font-bold text-sm transition-all"
             >
-              {isLastStep ? '🚀 Generar mi plan' : 'Siguiente →'}
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Guardando…
+                </span>
+              ) : isLastStep ? (
+                '🚀 Generar mi plan'
+              ) : (
+                'Siguiente →'
+              )}
             </button>
           </div>
         </div>
 
-        {/* Step counter */}
         <p className="text-center text-[#666] text-xs mt-4">
           Paso {step + 1} de {STEPS.length}
         </p>
