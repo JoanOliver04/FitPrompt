@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Logo from '@/components/ui/Logo'
 
 export const metadata: Metadata = {
   title: 'FitPrompt — Tu entrenador IA personal',
@@ -66,12 +67,7 @@ export default function LandingPage() {
     <main className="min-h-screen bg-[#101010] flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] bg-[#101010]/90 backdrop-blur-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#FF471A] rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-sm">F</span>
-          </div>
-          <span className="text-white font-bold text-lg">FitPrompt</span>
-        </div>
+        <Logo height={40} />
         <nav className="flex items-center gap-3">
           <Link
             href="/login"
@@ -193,9 +189,7 @@ export default function LandingPage() {
       <footer className="px-6 py-8 border-t border-[#2a2a2a]">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[#666]">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-[#FF471A] rounded flex items-center justify-center">
-              <span className="text-white font-black text-[10px]">F</span>
-            </div>
+            <Logo variant="icon" height={20} />
             <span>© 2025 FitPrompt</span>
           </div>
           <div className="flex gap-6">

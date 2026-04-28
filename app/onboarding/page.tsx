@@ -1,6 +1,7 @@
 'use client'
 
 import { useOnboarding, STEPS } from '@/hooks/useOnboarding'
+import Logo from '@/components/ui/Logo'
 
 export default function OnboardingPage() {
   const { step, data, errors, isSubmitting, isHydrated, set, toggleFoodPref, goNext, goBack } =
@@ -20,11 +21,8 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-[#101010] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-lg">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 justify-center mb-8">
-          <div className="w-8 h-8 bg-[#FF471A] rounded-lg flex items-center justify-center">
-            <span className="text-white font-black text-sm">F</span>
-          </div>
-          <span className="text-white font-bold text-xl">FitPrompt</span>
+        <div className="flex justify-center mb-8">
+          <Logo height={48} />
         </div>
 
         {/* Stepper progress */}
