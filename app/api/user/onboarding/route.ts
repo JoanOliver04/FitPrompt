@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
 import type { UserProfile } from '@/types'
 
 type OnboardingBody = Omit<UserProfile, 'userId'> & { name: string }
@@ -18,30 +19,44 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const profile: UserProfile = {
-    userId: session.user.id,
-    age: body.age,
-    weight: body.weight,
-    height: body.height,
-    gender: body.gender,
-    goal: body.goal,
-    level: body.level,
-    daysPerWeek: body.daysPerWeek,
-    sessionTime: body.sessionTime,
-    workoutType: body.workoutType,
-    schedule: body.schedule,
-    injuries: body.injuries,
-    allergies: body.allergies,
-    foodPreferences: body.foodPreferences ?? [],
-    extraInfo: body.extraInfo,
-  }
+  const userId = session.user.id
 
-  // TODO (Phase 03): persist via Prisma
-  // await db.userProfile.upsert({
-  //   where:  { userId: profile.userId },
-  //   update: profile,
-  //   create: profile,
-  // })
+  await db.userProfile.upsert({
+    where: { userId },
+    update: {
+      age: body.age,
+      weight: body.weight,
+      height: body.height,
+      gender: body.gender,
+      goal: body.goal,
+      level: body.level,
+      daysPerWeek: body.daysPerWeek,
+      sessionTime: body.sessionTime,
+      workoutType: body.workoutType,
+      schedule: body.schedule,
+      injuries: body.injuries ?? null,
+      allergies: body.allergies ?? null,
+      foodPreferences: body.foodPreferences ?? [],
+      extraInfo: body.extraInfo ?? null,
+    },
+    create: {
+      userId,
+      age: body.age,
+      weight: body.weight,
+      height: body.height,
+      gender: body.gender,
+      goal: body.goal,
+      level: body.level,
+      daysPerWeek: body.daysPerWeek,
+      sessionTime: body.sessionTime,
+      workoutType: body.workoutType,
+      schedule: body.schedule,
+      injuries: body.injuries ?? null,
+      allergies: body.allergies ?? null,
+      foodPreferences: body.foodPreferences ?? [],
+      extraInfo: body.extraInfo ?? null,
+    },
+  })
 
-  return NextResponse.json({ success: true, profile })
+  return NextResponse.json({ success: true })
 }

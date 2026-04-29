@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Plan {
+  free
+  premium
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum Goal {
+  volume
+  definition
+  maintenance
+  weight_loss
+}
+
+enum Level {
+  beginner
+  intermediate
+  advanced
+}
+
+enum WorkoutType {
+  gym
+  home
+  bodyweight
+}
+
+enum Schedule {
+  morning
+  midday
+  afternoon
+  night
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+}
+
+enum BadgeId {
+  first_step
+  week_1
+  consistency
+  beast
+  committed
+  weigher
+  nutritionist
+  social
+  sharer
+  premium
+  challenge_done
+  group_top
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  password  String?
+  plan      Plan     @default(free)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile      UserProfile?
+  chats        Chat[]
+  workoutLogs  WorkoutLog[]
+  weightLogs   WeightLog[]
+  achievements Achievement[]
+  dailyCounts  DailyMessageCount[]
+}
+
+model UserProfile {
+  id              String      @id @default(cuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age             Int
+  weight          Float
+  height          Float
+  gender          Gender
+  goal            Goal
+  level           Level
+  daysPerWeek     Int
+  sessionTime     String      // '<30' | '30-45' | '45-60' | '>60'
+  workoutType     WorkoutType
+  schedule        Schedule
+  injuries        String?
+  allergies       String?
+  foodPreferences String[]
+  extraInfo       String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Chat {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String    @default("Nueva conversación")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  messages Message[]
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  chatId    String
+  chat      Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      MessageRole
+  content   String      @db.Text
+  createdAt DateTime    @default(now())
+}
+
+model WorkoutLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  exercises Json
+  duration  Int
+  completed Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model WeightLog {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weight Float
+  date   DateTime @default(now())
+}
+
+model Achievement {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge      BadgeId
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, badge])
+}
+
+model DailyMessageCount {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date   DateTime @db.Date
+  count  Int      @default(0)
+
+  @@unique([userId, date])
+}
