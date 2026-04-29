@@ -4,57 +4,142 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Logo from '@/components/ui/Logo'
 
+interface Props {
+  collapsed: boolean
+  mobileOpen: boolean
+  onClose: () => void
+}
+
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: '⚡' },
-  { href: '/chat', label: 'Chat IA', icon: '💬' },
-  { href: '/tracking', label: 'Tracking', icon: '📊' },
-  { href: '/social', label: 'Social', icon: '👥' },
-  { href: '/profile', label: 'Perfil', icon: '👤' },
+  {
+    href: '/dashboard',
+    label: 'Dashboard',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/chat',
+    label: 'Chat IA',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/tracking',
+    label: 'Tracking',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/profile',
+    label: 'Perfil',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    ),
+  },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   const pathname = usePathname()
 
   return (
-    <aside className="hidden md:flex flex-col w-60 bg-[#1a1a1a] border-r border-[#2a2a2a] min-h-screen shrink-0">
-      {/* Logo */}
-      <div className="flex items-center px-5 py-5 border-b border-[#2a2a2a]">
-        <Logo height={38} />
+    <aside
+      className={[
+        'fixed inset-y-0 left-0 z-50 flex flex-col bg-[#1a1a1a] border-r border-[#2a2a2a] shrink-0',
+        'transition-all duration-300 ease-in-out',
+        'md:relative md:z-auto md:translate-x-0',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        collapsed ? 'md:w-16' : 'md:w-60',
+        'w-72',
+      ].join(' ')}
+    >
+      {/* Logo bar */}
+      <div
+        className={[
+          'flex items-center h-14 shrink-0 border-b border-[#2a2a2a]',
+          collapsed ? 'md:justify-center px-4' : 'px-5',
+        ].join(' ')}
+      >
+        <div className={collapsed ? 'hidden md:flex' : 'flex'}>
+          {collapsed ? (
+            <Logo variant="icon" height={30} />
+          ) : (
+            <Logo height={34} />
+          )}
+        </div>
+        <div className={collapsed ? 'flex md:hidden' : 'hidden'}>
+          <Logo height={34} />
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="ml-auto md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-[#666] hover:text-white hover:bg-[#242424] transition-all"
+          aria-label="Cerrar menú"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 p-3 space-y-1">
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              onClick={onClose}
+              title={collapsed ? item.label : undefined}
+              className={[
+                'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 py-2.5',
+                collapsed ? 'md:justify-center md:px-2 px-3' : 'px-3',
                 isActive
-                  ? 'bg-[#FF471A1A] text-[#FF471A] border border-[#FF471A33]'
-                  : 'text-[#E0E0E0] hover:bg-[#242424] hover:text-white'
-              }`}
+                  ? 'bg-[#FF471A12] text-[#FF471A] border border-[#FF471A2A]'
+                  : 'text-[#999] hover:bg-[#242424] hover:text-white border border-transparent',
+              ].join(' ')}
             >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-              {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF471A]" />}
+              <span className="shrink-0">{item.icon}</span>
+              <span className={collapsed ? 'md:hidden' : ''}>{item.label}</span>
+              {isActive && !collapsed && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#FF471A]" />
+              )}
             </Link>
           )
         })}
       </nav>
 
-      {/* Bottom: plan badge */}
-      <div className="p-3 border-t border-[#2a2a2a]">
-        <div className="bg-[#242424] rounded-xl p-3">
-          <div className="flex items-center justify-between mb-2">
+      {/* Plan badge — hidden when collapsed */}
+      <div className={['p-3 border-t border-[#2a2a2a]', collapsed ? 'md:hidden' : ''].join(' ')}>
+        <div className="bg-[#242424] rounded-xl p-3.5">
+          <div className="flex items-center justify-between mb-2.5">
             <span className="text-xs font-semibold text-[#E0E0E0]">Plan actual</span>
-            <span className="text-xs bg-[#2a2a2a] text-[#E0E0E0] px-2 py-0.5 rounded-full">Free</span>
+            <span className="text-[10px] bg-[#2a2a2a] text-[#666] px-2 py-0.5 rounded-full font-medium">Free</span>
           </div>
-          <p className="text-xs text-[#666] mb-3">5 mensajes/día • 3 chats</p>
+          <div className="h-1 bg-[#333] rounded-full mb-2 overflow-hidden">
+            <div className="h-full w-3/5 bg-gradient-to-r from-[#FF471A] to-[#FF6B3D] rounded-full" />
+          </div>
+          <p className="text-[11px] text-[#666] mb-3">3 / 5 mensajes hoy</p>
           <Link
             href="/pricing"
-            className="block w-full text-center bg-[#FF471A] hover:bg-[#e03d15] text-white text-xs font-bold py-2 rounded-lg transition-colors"
+            className="block w-full text-center bg-[#FF471A] hover:bg-[#e03d15] active:scale-95 text-white text-xs font-bold py-2 rounded-lg transition-all"
           >
             Hazte Premium 🔥
           </Link>

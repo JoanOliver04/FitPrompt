@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import Providers from '@/components/layout/Providers'
 import './globals.css'
 
 const inter = Inter({
@@ -36,8 +37,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className="dark">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{const t=localStorage.getItem('fp-theme');if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}catch(e){}`,
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans bg-[#101010] text-white min-h-screen`}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

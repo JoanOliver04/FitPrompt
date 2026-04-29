@@ -41,7 +41,7 @@ const achievements = [
 
 export default function ProfilePage() {
   return (
-    <div className="p-6 max-w-3xl mx-auto w-full animate-fade-in">
+    <div className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full animate-fade-in">
       {/* Header */}
       <h1 className="text-3xl font-black text-white mb-8">Mi perfil</h1>
 

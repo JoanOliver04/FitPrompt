@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const todayIndex = today === 0 ? 6 : today - 1
 
   return (
-    <div className="p-6 max-w-4xl mx-auto w-full animate-fade-in">
+    <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full animate-fade-in">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>

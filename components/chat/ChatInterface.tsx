@@ -12,7 +12,7 @@ export default function ChatInterface({ chatId }: Props) {
   const { messages, isLoading, input, setInput, sendMessage } = useChat(chatId)
 
   return (
-    <div className="flex flex-col h-screen max-h-screen bg-bg-primary">
+    <div className="flex-1 flex flex-col bg-bg-primary overflow-hidden">
       <header className="flex items-center gap-3 px-5 py-4 border-b border-border-default bg-bg-secondary shrink-0">
         <div className="w-9 h-9 bg-accent-muted border border-accent/20 rounded-xl flex items-center justify-center">
           <span className="text-base">🤖</span>
