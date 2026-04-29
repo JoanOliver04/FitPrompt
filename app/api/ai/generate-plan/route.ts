@@ -35,7 +35,7 @@ function validateProfile(body: unknown): UserProfile | string {
   if (typeof b.daysPerWeek !== 'number' || b.daysPerWeek < 1 || b.daysPerWeek > 7) return 'daysPerWeek must be between 1 and 7'
 
   return {
-    ...(b as UserProfile),
+    ...(b as unknown as UserProfile),
     foodPreferences: Array.isArray(b.foodPreferences) ? b.foodPreferences : [],
   }
 }
