@@ -33,12 +33,21 @@ app/
 │   ├── profile/
 │   └── settings/
 ├── onboarding/       → formulario inicial post-registro
+├── favicon.ico       → favicon especial de Next.js (servido automáticamente)
+├── icon.png          → icono especial de Next.js (Apple/OpenGraph)
 └── api/              → API Routes de Next.js
     ├── auth/
     ├── user/
     ├── chat/
     ├── ai/
     └── stripe/
+assets/               → TODOS los recursos estáticos (imágenes, iconos, SVGs…)
+├── logo/             → logotipos e iconos de marca
+│   ├── logo.png          (solo icono)
+│   ├── logocompleto.png  (logo + texto)
+│   ├── logo.ico
+│   └── icon.png
+└── <nueva-categoria>/ → añadir subcarpeta por tipo (p.ej. icons/, illustrations/)
 components/
 ├── ui/               → Button, Input, Card, Modal…
 ├── layout/           → Sidebar, Header, BottomNav
@@ -50,6 +59,13 @@ hooks/                → useAuth, useLocalStorage…
 store/                → estado global
 prisma/               → schema.prisma
 ```
+
+## Convención de Assets
+- **Todos los recursos estáticos** (imágenes, iconos, SVGs) van en `assets/<subcarpeta>/`
+- Importar siempre con import estático: `import logo from '@/assets/logo/logo.png'`
+- **Nunca** poner imágenes en `public/` ni referenciarlas como rutas absolutas (`/imagen.png`)
+- Excepción: `app/favicon.ico` y `app/icon.png` son archivos especiales de Next.js y deben permanecer en `app/`
+- Subcarpetas sugeridas: `logo/`, `icons/`, `illustrations/`, `backgrounds/`
 
 ## Convenciones de Código
 - Componentes en PascalCase, archivos en kebab-case para utilidades

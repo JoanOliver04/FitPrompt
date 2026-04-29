@@ -1,4 +1,6 @@
 import Image from 'next/image'
+import logoIcon from '@/assets/logo/logo.png'
+import logoFull from '@/assets/logo/logocompleto.png'
 
 interface LogoProps {
   /** 'full' = logocompleto.png (logo + texto), 'icon' = logo.png (solo icono) */
@@ -11,7 +13,7 @@ export default function Logo({ variant = 'full', height = 44, className }: LogoP
   if (variant === 'icon') {
     return (
       <Image
-        src="/logo.png"
+        src={logoIcon}
         alt="FitPrompt"
         height={height}
         width={height}
@@ -24,7 +26,7 @@ export default function Logo({ variant = 'full', height = 44, className }: LogoP
 
   return (
     <Image
-      src="/logocompleto.png"
+      src={logoFull}
       alt="FitPrompt"
       height={height}
       width={height * 5}
