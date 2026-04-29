@@ -56,8 +56,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { rutina, dieta } = await generatePlan(profileOrError)
-    return NextResponse.json({ rutina, dieta })
+    const { rutina, dieta, recuperacion, hojaDeRuta, faq } = await generatePlan(profileOrError)
+    return NextResponse.json({ rutina, dieta, recuperacion, hojaDeRuta, faq })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error'
     return NextResponse.json({ error: message }, { status: 500 })

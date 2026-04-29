@@ -6,6 +6,9 @@ import type { UserProfile } from '@/types'
 export interface GeneratePlanResult {
   rutina: string
   dieta: string
+  recuperacion: string
+  hojaDeRuta: string
+  faq: string
 }
 
 interface GroqMessage {
@@ -56,9 +59,15 @@ async function callGroq(messages: GroqMessage[]): Promise<string> {
 function parsePlanSections(fullPlan: string): GeneratePlanResult {
   const parte1 = fullPlan.match(/## PARTE 1[\s\S]*?(?=## PARTE 2|$)/)?.[0]?.trim()
   const parte2 = fullPlan.match(/## PARTE 2[\s\S]*?(?=## PARTE 3|$)/)?.[0]?.trim()
+  const parte3 = fullPlan.match(/## PARTE 3[\s\S]*?(?=## PARTE 4|$)/)?.[0]?.trim()
+  const parte4 = fullPlan.match(/## PARTE 4[\s\S]*?(?=## PARTE 5|$)/)?.[0]?.trim()
+  const parte5 = fullPlan.match(/## PARTE 5[\s\S]*$/)?.[0]?.trim()
   return {
-    rutina: parte1 ?? fullPlan,
-    dieta: parte2 ?? fullPlan,
+    rutina:       parte1 ?? fullPlan,
+    dieta:        parte2 ?? '',
+    recuperacion: parte3 ?? '',
+    hojaDeRuta:   parte4 ?? '',
+    faq:          parte5 ?? '',
   }
 }
 
