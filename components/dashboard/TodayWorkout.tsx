@@ -1,25 +1,24 @@
 import Link from 'next/link'
 import Button from '@/components/ui/Button'
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/Card'
 import { MOCK_TODAY_WORKOUT } from './mock-data'
 
 export default function TodayWorkout() {
   const { dayName, tag, exercises } = MOCK_TODAY_WORKOUT
 
   return (
-    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-5 mb-8">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-[#666] text-xs font-semibold uppercase tracking-wide mb-1">
-            Tu entrenamiento de hoy
-          </p>
-          <h2 className="text-white font-black text-xl">{dayName}</h2>
-        </div>
-        <span className="text-xs bg-[#FF471A1A] text-[#FF471A] px-3 py-1.5 rounded-full font-bold border border-[#FF471A33] shrink-0">
-          {tag}
-        </span>
-      </div>
+    <Card className="mb-8">
+      <CardHeader
+        title={dayName}
+        description="Tu entrenamiento de hoy"
+        action={
+          <span className="text-xs bg-[#FF471A1A] text-[#FF471A] px-3 py-1.5 rounded-full font-bold border border-[#FF471A33]">
+            {tag}
+          </span>
+        }
+      />
 
-      <div className="space-y-2.5 mb-5">
+      <CardContent className="pt-3 space-y-2.5">
         {exercises.map((ex, i) => (
           <div
             key={ex.id}
@@ -35,9 +34,9 @@ export default function TodayWorkout() {
             </div>
           </div>
         ))}
-      </div>
+      </CardContent>
 
-      <div className="flex gap-3">
+      <CardFooter bordered className="flex gap-3">
         <Link href="/chat" className="flex-1">
           <Button variant="primary" size="lg" className="w-full">
             💬 Ir al chat
@@ -46,7 +45,7 @@ export default function TodayWorkout() {
         <Button variant="secondary" size="lg" className="flex-1">
           📋 Ver plan completo
         </Button>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   )
 }

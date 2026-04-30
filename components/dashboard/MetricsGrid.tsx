@@ -1,3 +1,5 @@
+import { Card } from '@/components/ui/Card'
+
 interface Props {
   streak: number
   weight: number | null
@@ -53,14 +55,7 @@ export default function MetricsGrid({
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {metrics.map((m) => (
-        <div
-          key={m.label}
-          className={`rounded-2xl p-4 transition-all hover:scale-[1.02] hover:-translate-y-0.5 ${
-            m.accent
-              ? 'bg-gradient-to-b from-[#FF471A12] to-[#1a1a1a] border border-[#FF471A33]'
-              : 'bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#FF471A33]'
-          }`}
-        >
+        <Card key={m.label} accent={m.accent} hoverable className="p-4">
           <div className="text-2xl mb-2">{m.icon}</div>
           <div className="text-2xl font-black text-white">{m.value}</div>
           <div className="text-xs text-[#E0E0E0]">{m.unit}</div>
@@ -79,7 +74,7 @@ export default function MetricsGrid({
               </div>
             </div>
           )}
-        </div>
+        </Card>
       ))}
     </div>
   )
