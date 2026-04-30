@@ -109,6 +109,42 @@ export type BadgeId =
   | 'challenge_done'
   | 'group_top'
 
+// ─── Exercises ────────────────────────────────────────────────────────────────
+
+export type MuscleGroup =
+  | 'chest'
+  | 'back'
+  | 'legs'
+  | 'shoulders'
+  | 'arms'
+  | 'core'
+  | 'glutes'
+  | 'full_body'
+
+export type ExerciseType = 'strength' | 'cardio' | 'hiit' | 'flexibility'
+
+export type Equipment =
+  | 'barbell'
+  | 'dumbbell'
+  | 'machine'
+  | 'bodyweight'
+  | 'cables'
+  | 'kettlebell'
+  | 'bands'
+
+export interface Exercise {
+  id: string
+  name: string
+  muscleGroup: MuscleGroup
+  secondaryMuscles: string[]
+  type: ExerciseType
+  equipment: Equipment[]
+  level: 'beginner' | 'intermediate' | 'advanced'
+  instructions: string[]
+  muscles: string[]
+  tips: string[]
+}
+
 // ─── API Responses ────────────────────────────────────────────────────────────
 
 export interface ApiError {

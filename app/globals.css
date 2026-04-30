@@ -103,6 +103,15 @@ body {
     text-wrap: balance;
   }
 
+  /* Hide scrollbar while keeping scroll functionality */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Staggered animation delays for list/grid entrance */
   .stagger-1 { animation-delay: 80ms; }
   .stagger-2 { animation-delay: 160ms; }
