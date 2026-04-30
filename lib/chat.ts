@@ -207,3 +207,17 @@ export async function incrementDailyCount(userId: string): Promise<number> {
   })
   return record.count
 }
+
+export async function deleteChat(chatId: string, userId: string): Promise<boolean> {
+  const row = await db.chat.findFirst({ where: { id: chatId, userId }, select: { id: true } })
+  if (!row) return false
+  await db.chat.delete({ where: { id: chatId } })
+  return true
+}
+
+export async function renameChat(chatId: string, userId: string, title: string): Promise<boolean> {
+  const row = await db.chat.findFirst({ where: { id: chatId, userId }, select: { id: true } })
+  if (!row) return false
+  await db.chat.update({ where: { id: chatId }, data: { title } })
+  return true
+}
