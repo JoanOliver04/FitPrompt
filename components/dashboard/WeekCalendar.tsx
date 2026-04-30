@@ -23,17 +23,17 @@ export default function WeekCalendar({ completedDays }: Props) {
 
             return (
               <div key={day.short} className="flex flex-col items-center gap-1.5">
-                <span className="text-xs text-[#666] font-semibold uppercase">{day.short}</span>
+                <span className="text-xs text-text-muted font-semibold uppercase">{day.short}</span>
 
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
                     isToday
-                      ? 'bg-[#FF471A] text-white ring-2 ring-[#FF471A44] ring-offset-1 ring-offset-[#1a1a1a]'
+                      ? 'bg-[#FF471A] text-white ring-2 ring-[#FF471A44] ring-offset-1 ring-offset-bg-secondary'
                       : isDone
                       ? 'bg-[#1DB95420] text-[#1DB954] border border-[#1DB95440]'
                       : isRest
-                      ? 'bg-[#242424] text-[#3a3a3a]'
-                      : 'bg-[#242424] text-[#555]'
+                      ? 'bg-bg-tertiary text-text-muted'
+                      : 'bg-bg-tertiary text-text-subtle'
                   }`}
                 >
                   {isDone && !isToday ? '✓' : isRest ? '—' : i + 1}
@@ -41,7 +41,7 @@ export default function WeekCalendar({ completedDays }: Props) {
 
                 <span
                   className={`text-[10px] text-center leading-tight ${
-                    isToday ? 'text-[#FF471A] font-semibold' : 'text-[#555]'
+                    isToday ? 'text-[#FF471A] font-semibold' : 'text-text-muted'
                   }`}
                 >
                   {isRest ? 'Desc.' : day.muscle}

@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${inter.variable} font-sans bg-[#101010] text-white min-h-screen`}>
+      <body className={`${inter.variable} font-sans bg-bg-primary text-text-primary min-h-screen`}>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -57,19 +57,19 @@ export default function MetricsGrid({
       {metrics.map((m) => (
         <Card key={m.label} accent={m.accent} hoverable className="p-4">
           <div className="text-2xl mb-2">{m.icon}</div>
-          <div className="text-2xl font-black text-white">{m.value}</div>
-          <div className="text-xs text-[#E0E0E0]">{m.unit}</div>
-          <div className="text-xs text-[#666] mt-0.5">{m.label}</div>
+          <div className="text-2xl font-black text-text-primary">{m.value}</div>
+          <div className="text-xs text-text-secondary">{m.unit}</div>
+          <div className="text-xs text-text-muted mt-0.5">{m.label}</div>
 
           {m.progress && (
             <div className="mt-2.5">
-              <div className="h-1.5 bg-[#242424] rounded-full overflow-hidden">
+              <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
                 <div
                   className="h-full bg-[#FF471A] rounded-full"
                   style={{ width: `${(m.progress.current / m.progress.max) * 100}%` }}
                 />
               </div>
-              <div className="text-[10px] text-[#555] mt-1">
+              <div className="text-[10px] text-text-muted mt-1">
                 {m.progress.current} / {m.progress.max}
               </div>
             </div>

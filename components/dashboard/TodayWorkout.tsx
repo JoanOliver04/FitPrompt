@@ -22,15 +22,15 @@ export default function TodayWorkout() {
         {exercises.map((ex, i) => (
           <div
             key={ex.id}
-            className="flex items-center gap-3 bg-[#242424] hover:bg-[#2a2a2a] rounded-xl px-4 py-3 transition-colors"
+            className="flex items-center gap-3 bg-bg-tertiary hover:bg-border-default rounded-xl px-4 py-3 transition-colors"
           >
             <span className="text-[#FF471A] font-black text-sm w-5 shrink-0">{i + 1}</span>
-            <span className="text-white font-medium text-sm flex-1">{ex.name}</span>
+            <span className="text-text-primary font-medium text-sm flex-1">{ex.name}</span>
             <div className="flex items-center gap-2.5 text-xs shrink-0">
-              <span className="text-[#E0E0E0] bg-[#1a1a1a] px-2 py-0.5 rounded-md font-medium">
+              <span className="text-text-secondary bg-bg-secondary px-2 py-0.5 rounded-md font-medium border border-border-default">
                 {ex.sets}×{ex.reps}
               </span>
-              <span className="text-[#555] w-8 text-right">{ex.rest}</span>
+              <span className="text-text-muted w-8 text-right">{ex.rest}</span>
             </div>
           </div>
         ))}

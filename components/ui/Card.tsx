@@ -13,16 +13,16 @@ export function Card({ accent, hoverable, shadow, className, children, ...props 
   return (
     <div
       className={cn(
-        'bg-[#1a1a1a] border rounded-2xl',
+        'bg-bg-secondary border rounded-2xl transition-colors duration-300',
         accent
-          ? 'border-[#FF471A33] bg-gradient-to-b from-[#FF471A08] to-[#1a1a1a]'
-          : 'border-[#2a2a2a]',
+          ? 'border-[#FF471A33] bg-gradient-to-b from-[#FF471A08] to-bg-secondary'
+          : 'border-border-default',
         hoverable && [
           'cursor-pointer transition-all duration-200',
           'hover:scale-[1.02] hover:-translate-y-0.5',
           accent ? 'hover:border-[#FF471A66]' : 'hover:border-[#FF471A44]',
         ],
-        shadow && 'shadow-lg shadow-black/30',
+        shadow && 'shadow-lg shadow-black/10',
         className,
       )}
       {...props}
@@ -53,10 +53,10 @@ export function CardHeader({
       {(title || description || children) && (
         <div className="min-w-0 flex-1">
           {title && (
-            <h3 className="text-white font-bold text-base leading-tight">{title}</h3>
+            <h3 className="text-text-primary font-bold text-base leading-tight">{title}</h3>
           )}
           {description && (
-            <p className="text-[#666] text-xs mt-0.5">{description}</p>
+            <p className="text-text-muted text-xs mt-0.5">{description}</p>
           )}
           {children}
         </div>
@@ -85,7 +85,7 @@ interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
 export function CardFooter({ bordered, className, children, ...props }: CardFooterProps) {
   return (
     <div
-      className={cn('px-5 pb-5', bordered && 'border-t border-[#2a2a2a] pt-4', className)}
+      className={cn('px-5 pb-5', bordered && 'border-t border-border-default pt-4', className)}
       {...props}
     >
       {children}

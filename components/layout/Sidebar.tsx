@@ -59,7 +59,7 @@ export default function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   return (
     <aside
       className={[
-        'fixed inset-y-0 left-0 z-50 flex flex-col bg-[#1a1a1a] border-r border-[#2a2a2a] shrink-0',
+        'fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-secondary border-r border-border-default shrink-0',
         'transition-all duration-300 ease-in-out',
         'md:relative md:z-auto md:translate-x-0',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
@@ -70,7 +70,7 @@ export default function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
       {/* Logo bar */}
       <div
         className={[
-          'flex items-center h-14 shrink-0 border-b border-[#2a2a2a]',
+          'flex items-center h-14 shrink-0 border-b border-border-default',
           collapsed ? 'md:justify-center px-4' : 'px-5',
         ].join(' ')}
       >
@@ -88,7 +88,7 @@ export default function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-[#666] hover:text-white hover:bg-[#242424] transition-all"
+          className="ml-auto md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-all"
           aria-label="Cerrar menú"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -113,7 +113,7 @@ export default function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
                 collapsed ? 'md:justify-center md:px-2 px-3' : 'px-3',
                 isActive
                   ? 'bg-[#FF471A12] text-[#FF471A] border border-[#FF471A2A]'
-                  : 'text-[#999] hover:bg-[#242424] hover:text-white border border-transparent',
+                  : 'text-text-subtle hover:bg-bg-tertiary hover:text-text-primary border border-transparent',
               ].join(' ')}
             >
               <span className="shrink-0">{item.icon}</span>
@@ -126,17 +126,19 @@ export default function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
         })}
       </nav>
 
-      {/* Plan badge — hidden when collapsed */}
-      <div className={['p-3 border-t border-[#2a2a2a]', collapsed ? 'md:hidden' : ''].join(' ')}>
-        <div className="bg-[#242424] rounded-xl p-3.5">
+      {/* Plan badge */}
+      <div className={['p-3 border-t border-border-default', collapsed ? 'md:hidden' : ''].join(' ')}>
+        <div className="bg-bg-tertiary rounded-xl p-3.5">
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-xs font-semibold text-[#E0E0E0]">Plan actual</span>
-            <span className="text-[10px] bg-[#2a2a2a] text-[#666] px-2 py-0.5 rounded-full font-medium">Free</span>
+            <span className="text-xs font-semibold text-text-secondary">Plan actual</span>
+            <span className="text-[10px] bg-bg-primary text-text-muted px-2 py-0.5 rounded-full font-medium border border-border-default">
+              Free
+            </span>
           </div>
-          <div className="h-1 bg-[#333] rounded-full mb-2 overflow-hidden">
+          <div className="h-1 bg-bg-primary rounded-full mb-2 overflow-hidden">
             <div className="h-full w-3/5 bg-gradient-to-r from-[#FF471A] to-[#FF6B3D] rounded-full" />
           </div>
-          <p className="text-[11px] text-[#666] mb-3">3 / 5 mensajes hoy</p>
+          <p className="text-[11px] text-text-muted mb-3">3 / 5 mensajes hoy</p>
           <Link
             href="/pricing"
             className="block w-full text-center bg-[#FF471A] hover:bg-[#e03d15] active:scale-95 text-white text-xs font-bold py-2 rounded-lg transition-all"

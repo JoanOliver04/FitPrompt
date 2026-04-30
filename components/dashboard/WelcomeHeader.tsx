@@ -15,11 +15,11 @@ export default function WelcomeHeader({ name, streak }: Props) {
   return (
     <div className="flex items-start justify-between mb-8">
       <div>
-        <p className="text-[#666] text-sm mb-1 capitalize">{today}</p>
-        <h1 className="text-3xl font-black text-white">
+        <p className="text-text-muted text-sm mb-1 capitalize">{today}</p>
+        <h1 className="text-3xl font-black text-text-primary">
           ¡Hola, {name}! 💪
         </h1>
-        <p className="text-[#E0E0E0] text-sm mt-1">
+        <p className="text-text-secondary text-sm mt-1">
           {streak > 0 ? (
             <>
               Llevas{' '}
@@ -36,7 +36,7 @@ export default function WelcomeHeader({ name, streak }: Props) {
         <div className="text-[#FF471A] text-3xl font-black leading-none">
           🔥 {streak}
         </div>
-        <div className="text-[#E0E0E0] text-xs mt-1 font-medium">días racha</div>
+        <div className="text-text-secondary text-xs mt-1 font-medium">días racha</div>
       </div>
     </div>
   )
