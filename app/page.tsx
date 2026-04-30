@@ -64,14 +64,14 @@ const plans = [
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#101010] flex flex-col">
+    <main className="min-h-screen bg-bg-primary flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] bg-[#101010]/90 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b border-border-default bg-[var(--bg-glass)] backdrop-blur-sm">
         <Logo height={40} />
         <nav className="flex items-center gap-3">
           <Link
             href="/login"
-            className="text-[#E0E0E0] hover:text-white transition-colors text-sm px-3 py-1.5"
+            className="text-text-secondary hover:text-text-primary transition-colors text-sm px-3 py-1.5"
           >
             Iniciar sesión
           </Link>
@@ -90,11 +90,11 @@ export default function LandingPage() {
           <span>✨</span>
           <span>Powered by IA — Groq & Claude</span>
         </div>
-        <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-none tracking-tight text-balance">
+        <h1 className="text-5xl md:text-7xl font-black text-text-primary mb-6 leading-none tracking-tight text-balance">
           Tu entrenador personal
           <span className="block text-[#FF471A]">con IA real</span>
         </h1>
-        <p className="text-[#E0E0E0] text-lg md:text-xl max-w-2xl mb-10 leading-relaxed">
+        <p className="text-text-secondary text-lg md:text-xl max-w-2xl mb-10 leading-relaxed">
           Rutinas y dietas 100% personalizadas según tu cuerpo, objetivos y disponibilidad.
           Habla con tu entrenador IA cuando quieras.
         </p>
@@ -107,29 +107,29 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/login"
-            className="border border-[#2a2a2a] hover:border-[#FF471A] text-[#E0E0E0] hover:text-white px-8 py-4 rounded-xl text-base font-semibold transition-all"
+            className="border border-border-default hover:border-[#FF471A] text-text-secondary hover:text-text-primary px-8 py-4 rounded-xl text-base font-semibold transition-all"
           >
             Ya tengo cuenta
           </Link>
         </div>
-        <p className="text-[#666] text-xs mt-4">Sin tarjeta de crédito • Gratis para siempre</p>
+        <p className="text-text-muted text-xs mt-4">Sin tarjeta de crédito • Gratis para siempre</p>
       </section>
 
       {/* Features */}
-      <section className="px-6 py-20 border-t border-[#2a2a2a]">
+      <section className="px-6 py-20 border-t border-border-default">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-black text-white text-center mb-12">
+          <h2 className="text-3xl font-black text-text-primary text-center mb-12">
             Todo lo que necesitas para transformarte
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#FF471A44] rounded-2xl p-6 transition-all hover:-translate-y-0.5"
+                className="bg-bg-secondary border border-border-default hover:border-[#FF471A44] rounded-2xl p-6 transition-all hover:-translate-y-0.5"
               >
                 <div className="text-4xl mb-4">{f.icon}</div>
-                <h3 className="text-white font-bold text-lg mb-2">{f.title}</h3>
-                <p className="text-[#E0E0E0] text-sm leading-relaxed">{f.description}</p>
+                <h3 className="text-text-primary font-bold text-lg mb-2">{f.title}</h3>
+                <p className="text-text-secondary text-sm leading-relaxed">{f.description}</p>
               </div>
             ))}
           </div>
@@ -137,10 +137,10 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="px-6 py-20 border-t border-[#2a2a2a]">
+      <section className="px-6 py-20 border-t border-border-default">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-black text-white text-center mb-4">Planes simples</h2>
-          <p className="text-[#E0E0E0] text-center mb-12">Sin sorpresas. Sin contratos.</p>
+          <h2 className="text-3xl font-black text-text-primary text-center mb-4">Planes simples</h2>
+          <p className="text-text-secondary text-center mb-12">Sin sorpresas. Sin contratos.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {plans.map((plan) => (
               <div
@@ -148,7 +148,7 @@ export default function LandingPage() {
                 className={`rounded-2xl p-8 border transition-all ${
                   plan.highlighted
                     ? 'bg-[#FF471A0D] border-[#FF471A] shadow-lg shadow-[#FF471A1A]'
-                    : 'bg-[#1a1a1a] border-[#2a2a2a]'
+                    : 'bg-bg-secondary border-border-default'
                 }`}
               >
                 {plan.highlighted && (
@@ -156,14 +156,14 @@ export default function LandingPage() {
                     RECOMENDADO
                   </div>
                 )}
-                <h3 className="text-white font-black text-2xl mb-1">{plan.name}</h3>
+                <h3 className="text-text-primary font-black text-2xl mb-1">{plan.name}</h3>
                 <div className="flex items-end gap-1 mb-6">
-                  <span className="text-4xl font-black text-white">{plan.price}</span>
-                  <span className="text-[#E0E0E0] text-sm mb-1">{plan.period}</span>
+                  <span className="text-4xl font-black text-text-primary">{plan.price}</span>
+                  <span className="text-text-secondary text-sm mb-1">{plan.period}</span>
                 </div>
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feat) => (
-                    <li key={feat} className="flex items-center gap-2.5 text-sm text-[#E0E0E0]">
+                    <li key={feat} className="flex items-center gap-2.5 text-sm text-text-secondary">
                       <span className="text-[#FF471A] shrink-0">✓</span>
                       {feat}
                     </li>
@@ -174,7 +174,7 @@ export default function LandingPage() {
                   className={`block w-full text-center py-3 rounded-xl font-bold transition-all active:scale-95 ${
                     plan.highlighted
                       ? 'bg-[#FF471A] hover:bg-[#e03d15] text-white'
-                      : 'border border-[#2a2a2a] hover:border-[#FF471A] text-white'
+                      : 'border border-border-default hover:border-[#FF471A] text-text-primary'
                   }`}
                 >
                   {plan.cta}
@@ -186,17 +186,17 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-8 border-t border-[#2a2a2a]">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[#666]">
+      <footer className="px-6 py-8 border-t border-border-default">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-text-muted">
           <div className="flex items-center gap-2">
             <Logo variant="icon" height={20} />
             <span>© 2025 FitPrompt</span>
           </div>
           <div className="flex gap-6">
-            <Link href="/privacy" className="hover:text-white transition-colors">
+            <Link href="/privacy" className="hover:text-text-primary transition-colors">
               Privacidad
             </Link>
-            <Link href="/terms" className="hover:text-white transition-colors">
+            <Link href="/terms" className="hover:text-text-primary transition-colors">
               Términos
             </Link>
           </div>
