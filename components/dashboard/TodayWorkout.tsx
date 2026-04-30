@@ -1,0 +1,52 @@
+import Link from 'next/link'
+import Button from '@/components/ui/Button'
+import { MOCK_TODAY_WORKOUT } from './mock-data'
+
+export default function TodayWorkout() {
+  const { dayName, tag, exercises } = MOCK_TODAY_WORKOUT
+
+  return (
+    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-5 mb-8">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="text-[#666] text-xs font-semibold uppercase tracking-wide mb-1">
+            Tu entrenamiento de hoy
+          </p>
+          <h2 className="text-white font-black text-xl">{dayName}</h2>
+        </div>
+        <span className="text-xs bg-[#FF471A1A] text-[#FF471A] px-3 py-1.5 rounded-full font-bold border border-[#FF471A33] shrink-0">
+          {tag}
+        </span>
+      </div>
+
+      <div className="space-y-2.5 mb-5">
+        {exercises.map((ex, i) => (
+          <div
+            key={ex.id}
+            className="flex items-center gap-3 bg-[#242424] hover:bg-[#2a2a2a] rounded-xl px-4 py-3 transition-colors"
+          >
+            <span className="text-[#FF471A] font-black text-sm w-5 shrink-0">{i + 1}</span>
+            <span className="text-white font-medium text-sm flex-1">{ex.name}</span>
+            <div className="flex items-center gap-2.5 text-xs shrink-0">
+              <span className="text-[#E0E0E0] bg-[#1a1a1a] px-2 py-0.5 rounded-md font-medium">
+                {ex.sets}×{ex.reps}
+              </span>
+              <span className="text-[#555] w-8 text-right">{ex.rest}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-3">
+        <Link href="/chat" className="flex-1">
+          <Button variant="primary" size="lg" className="w-full">
+            💬 Ir al chat
+          </Button>
+        </Link>
+        <Button variant="secondary" size="lg" className="flex-1">
+          📋 Ver plan completo
+        </Button>
+      </div>
+    </div>
+  )
+}
