@@ -1,39 +1,55 @@
-import { MOCK_USER } from './mock-data'
+interface Props {
+  streak: number
+  weight: number | null
+  completionRate: number
+  xpLevel: number
+  xpLevelName: string
+  xpCurrent: number
+  xpMax: number
+}
 
-const metrics = [
-  {
-    label: 'Racha actual',
-    value: `${MOCK_USER.streak}`,
-    unit: 'días',
-    icon: '🔥',
-    accent: true,
-  },
-  {
-    label: 'Peso actual',
-    value: `${MOCK_USER.weight}`,
-    unit: MOCK_USER.weightUnit,
-    icon: '⚖️',
-    accent: false,
-  },
-  {
-    label: 'Nivel',
-    value: `${MOCK_USER.xpLevel}`,
-    unit: MOCK_USER.xpLevelName,
-    icon: '⭐',
-    accent: false,
-    progress: { current: MOCK_USER.xpCurrent, max: MOCK_USER.xpMax },
-  },
-  {
-    label: 'Cumplimiento',
-    value: `${MOCK_USER.completionRate}`,
-    unit: '%',
-    icon: '✅',
-    accent: false,
-    progress: { current: MOCK_USER.completionRate, max: 100 },
-  },
-]
+export default function MetricsGrid({
+  streak,
+  weight,
+  completionRate,
+  xpLevel,
+  xpLevelName,
+  xpCurrent,
+  xpMax,
+}: Props) {
+  const metrics = [
+    {
+      label: 'Racha actual',
+      value: `${streak}`,
+      unit: 'días',
+      icon: '🔥',
+      accent: true,
+    },
+    {
+      label: 'Peso actual',
+      value: weight !== null ? `${weight}` : '—',
+      unit: weight !== null ? 'kg' : 'sin registro',
+      icon: '⚖️',
+      accent: false,
+    },
+    {
+      label: 'Nivel',
+      value: `${xpLevel}`,
+      unit: xpLevelName,
+      icon: '⭐',
+      accent: false,
+      progress: { current: xpCurrent, max: xpMax },
+    },
+    {
+      label: 'Cumplimiento',
+      value: `${completionRate}`,
+      unit: '%',
+      icon: '✅',
+      accent: false,
+      progress: { current: completionRate, max: 100 },
+    },
+  ]
 
-export default function MetricsGrid() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {metrics.map((m) => (

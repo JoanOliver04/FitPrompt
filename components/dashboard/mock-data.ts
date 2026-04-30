@@ -1,16 +1,5 @@
-// TODO: replace with real API calls when backend is ready
-
-export const MOCK_USER = {
-  name: 'Joan',
-  streak: 5,
-  weight: 75,
-  weightUnit: 'kg',
-  xpLevel: 3,
-  xpLevelName: 'Consistente',
-  xpCurrent: 340,
-  xpMax: 500,
-  completionRate: 80,
-}
+// Mock data for sections that have no backend model yet.
+// Replace each export when the corresponding API is ready.
 
 export const MOCK_TODAY_WORKOUT = {
   dayName: 'Día de Pecho',
@@ -24,6 +13,7 @@ export const MOCK_TODAY_WORKOUT = {
   ],
 }
 
+// Weekly plan structure — replace when Plan model exists in DB
 export const MOCK_WEEK_PLAN = [
   { short: 'L', name: 'Lunes', muscle: 'Pecho' },
   { short: 'M', name: 'Martes', muscle: 'Espalda' },

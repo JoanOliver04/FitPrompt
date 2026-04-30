@@ -2,9 +2,13 @@
 
 import { MOCK_WEEK_PLAN } from './mock-data'
 
-export default function WeekCalendar() {
-  const rawDay = new Date().getDay() // 0=Sun … 6=Sat
-  const todayIndex = rawDay === 0 ? 6 : rawDay - 1 // Mon=0 … Sun=6
+interface Props {
+  completedDays: number[] // day indices completed this week (0=Mon … 6=Sun)
+}
+
+export default function WeekCalendar({ completedDays }: Props) {
+  const rawDay = new Date().getDay()
+  const todayIndex = rawDay === 0 ? 6 : rawDay - 1
 
   return (
     <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-5 mb-8">
@@ -12,7 +16,7 @@ export default function WeekCalendar() {
       <div className="grid grid-cols-7 gap-2">
         {MOCK_WEEK_PLAN.map((day, i) => {
           const isToday = i === todayIndex
-          const isDone = i < todayIndex
+          const isDone = completedDays.includes(i)
           const isRest = day.muscle === 'Descanso'
 
           return (
@@ -30,7 +34,7 @@ export default function WeekCalendar() {
                     : 'bg-[#242424] text-[#555]'
                 }`}
               >
-                {isDone ? '✓' : isRest ? '—' : i + 1}
+                {isDone && !isToday ? '✓' : isRest ? '—' : i + 1}
               </div>
 
               <span
