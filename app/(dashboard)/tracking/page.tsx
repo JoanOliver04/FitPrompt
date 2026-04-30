@@ -27,8 +27,8 @@ export default function TrackingPage() {
     <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full animate-fade-in">
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white">Tracking</h1>
-          <p className="text-[#E0E0E0] text-sm mt-1">Tu progreso de la semana</p>
+          <h1 className="text-3xl font-black text-text-primary">Tracking</h1>
+          <p className="text-text-secondary text-sm mt-1">Tu progreso de la semana</p>
         </div>
         <Link
           href="/chat"
@@ -43,28 +43,28 @@ export default function TrackingPage() {
         {metrics.map((m) => (
           <div
             key={m.label}
-            className="bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#FF471A33] rounded-2xl p-4 transition-colors"
+            className="bg-bg-secondary border border-border-default hover:border-[#FF471A33] rounded-2xl p-4 transition-colors"
           >
             <div className="text-2xl mb-2">{m.icon}</div>
             <div className="flex items-end gap-1.5 mb-0.5">
-              <span className="text-2xl font-black text-white">{m.value}</span>
-              <span className="text-xs text-[#666] mb-1">{m.unit}</span>
+              <span className="text-2xl font-black text-text-primary">{m.value}</span>
+              <span className="text-xs text-text-muted mb-1">{m.unit}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className={`text-xs font-semibold ${m.positive ? 'text-green-400' : 'text-[#FF471A]'}`}>
                 {m.delta}
               </span>
-              <span className="text-xs text-[#666]">{m.label}</span>
+              <span className="text-xs text-text-muted">{m.label}</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Weekly weight chart placeholder */}
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-5 mb-6">
+      {/* Weekly weight chart */}
+      <div className="bg-bg-secondary border border-border-default rounded-2xl p-5 mb-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-white font-bold">Peso esta semana</h2>
-          <span className="text-xs text-[#666]">kg</span>
+          <h2 className="text-text-primary font-bold">Peso esta semana</h2>
+          <span className="text-xs text-text-muted">kg</span>
         </div>
         <div className="flex items-end justify-between gap-2 h-24">
           {weekData.map((d) => {
@@ -75,16 +75,16 @@ export default function TrackingPage() {
               <div key={d.day} className="flex-1 flex flex-col items-center gap-2">
                 {d.weight ? (
                   <div className="flex flex-col items-center gap-1 w-full">
-                    <span className="text-[10px] text-[#E0E0E0] font-medium">{d.weight}</span>
+                    <span className="text-[10px] text-text-secondary font-medium">{d.weight}</span>
                     <div
                       className="w-full bg-[#FF471A] rounded-t-lg transition-all"
                       style={{ height: `${Math.max(barH, 20)}%`, minHeight: '12px' }}
                     />
                   </div>
                 ) : (
-                  <div className="flex-1 w-full bg-[#242424] rounded-t-lg opacity-30" style={{ minHeight: '24px' }} />
+                  <div className="flex-1 w-full bg-bg-tertiary rounded-t-lg opacity-30" style={{ minHeight: '24px' }} />
                 )}
-                <span className="text-xs text-[#666] font-medium">{d.day}</span>
+                <span className="text-xs text-text-muted font-medium">{d.day}</span>
               </div>
             )
           })}
@@ -92,32 +92,32 @@ export default function TrackingPage() {
       </div>
 
       {/* Weekly workouts */}
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-5 mb-6">
-        <h2 className="text-white font-bold mb-4">Entrenamientos de la semana</h2>
+      <div className="bg-bg-secondary border border-border-default rounded-2xl p-5 mb-6">
+        <h2 className="text-text-primary font-bold mb-4">Entrenamientos de la semana</h2>
         <div className="space-y-2">
           {[
-            { day: 'Lunes', name: 'Pecho + Tríceps', duration: '55 min', done: true },
-            { day: 'Martes', name: 'Espalda + Bíceps', duration: '50 min', done: true },
-            { day: 'Miércoles', name: 'Piernas', duration: '60 min', done: true },
-            { day: 'Jueves', name: 'Hombros + Core', duration: '45 min', done: false },
-            { day: 'Viernes', name: 'Full Body', duration: '50 min', done: false },
+            { day: 'Lunes',     name: 'Pecho + Tríceps',   duration: '55 min', done: true },
+            { day: 'Martes',    name: 'Espalda + Bíceps',  duration: '50 min', done: true },
+            { day: 'Miércoles', name: 'Piernas',            duration: '60 min', done: true },
+            { day: 'Jueves',    name: 'Hombros + Core',    duration: '45 min', done: false },
+            { day: 'Viernes',   name: 'Full Body',          duration: '50 min', done: false },
           ].map((w) => (
             <div
               key={w.day}
               className={`flex items-center gap-4 rounded-xl px-4 py-3 text-sm ${
-                w.done ? 'bg-[#242424]' : 'bg-[#1e1e1e] opacity-50'
+                w.done ? 'bg-bg-tertiary' : 'bg-bg-primary opacity-50'
               }`}
             >
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                w.done ? 'bg-green-400/20 text-green-400' : 'bg-[#2a2a2a] text-[#666]'
+                w.done ? 'bg-green-400/20 text-green-400' : 'bg-border-default text-text-muted'
               }`}>
                 {w.done ? '✓' : '○'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-medium truncate">{w.name}</p>
-                <p className="text-[#666] text-xs">{w.day}</p>
+                <p className="text-text-primary font-medium truncate">{w.name}</p>
+                <p className="text-text-muted text-xs">{w.day}</p>
               </div>
-              <span className="text-[#666] text-xs shrink-0">{w.duration}</span>
+              <span className="text-text-muted text-xs shrink-0">{w.duration}</span>
             </div>
           ))}
         </div>
@@ -127,8 +127,8 @@ export default function TrackingPage() {
       <div className="bg-[#FF471A0D] border border-[#FF471A33] rounded-2xl p-5 flex items-center gap-4">
         <div className="text-3xl">📊</div>
         <div className="flex-1">
-          <p className="text-white font-bold text-sm">Gráficas detalladas en Premium</p>
-          <p className="text-[#E0E0E0] text-xs mt-0.5">Evolución mensual, % grasa, IMC y mucho más</p>
+          <p className="text-text-primary font-bold text-sm">Gráficas detalladas en Premium</p>
+          <p className="text-text-secondary text-xs mt-0.5">Evolución mensual, % grasa, IMC y mucho más</p>
         </div>
         <Link
           href="/pricing"

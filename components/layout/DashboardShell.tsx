@@ -18,7 +18,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   }, [])
 
   return (
-    <div className="flex h-screen bg-[#101010] overflow-hidden">
+    <div className="flex h-screen bg-bg-primary overflow-hidden">
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"

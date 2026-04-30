@@ -11,32 +11,31 @@ export default function OnboardingPage() {
 
   if (!isHydrated) {
     return (
-      <div className="min-h-screen bg-[#101010] flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#FF471A] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#101010] flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-lg">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
           <Logo height={48} />
         </div>
 
-        {/* Stepper progress */}
+        {/* Stepper */}
         <div className="flex items-center gap-2 mb-8">
           {STEPS.map((s, i) => (
             <div key={s} className="flex-1 flex flex-col items-center gap-1.5">
               <div
                 className={`w-full h-1.5 rounded-full transition-all ${
-                  i <= step ? 'bg-[#FF471A]' : 'bg-[#2a2a2a]'
+                  i <= step ? 'bg-[#FF471A]' : 'bg-border-default'
                 }`}
               />
               <span
                 className={`text-xs font-medium transition-colors hidden md:block ${
-                  i === step ? 'text-[#FF471A]' : i < step ? 'text-[#E0E0E0]' : 'text-[#666]'
+                  i === step ? 'text-[#FF471A]' : i < step ? 'text-text-secondary' : 'text-text-muted'
                 }`}
               >
                 {s}
@@ -46,26 +45,26 @@ export default function OnboardingPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-8 animate-slide-up">
+        <div className="bg-bg-secondary border border-border-default rounded-2xl p-8 animate-slide-up">
 
           {/* ── Step 0: Basic data ─────────────────────────────────────────── */}
           {step === 0 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-2xl font-black text-white mb-1">Cuéntanos sobre ti</h2>
-                <p className="text-[#E0E0E0] text-sm">Empecemos con tus datos básicos</p>
+                <h2 className="text-2xl font-black text-text-primary mb-1">Cuéntanos sobre ti</h2>
+                <p className="text-text-secondary text-sm">Empecemos con tus datos básicos</p>
               </div>
 
               {(
                 [
-                  { id: 'name', label: 'Nombre completo', type: 'text', placeholder: 'Tu nombre' },
-                  { id: 'age', label: 'Edad', type: 'number', placeholder: '25' },
-                  { id: 'weight', label: 'Peso actual (kg)', type: 'number', placeholder: '75' },
-                  { id: 'height', label: 'Altura (cm)', type: 'number', placeholder: '178' },
+                  { id: 'name',   label: 'Nombre completo',    type: 'text',   placeholder: 'Tu nombre' },
+                  { id: 'age',    label: 'Edad',                type: 'number', placeholder: '25' },
+                  { id: 'weight', label: 'Peso actual (kg)',    type: 'number', placeholder: '75' },
+                  { id: 'height', label: 'Altura (cm)',         type: 'number', placeholder: '178' },
                 ] as const
               ).map((field) => (
                 <div key={field.id}>
-                  <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-2">
+                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
                     {field.label}
                   </label>
                   <input
@@ -73,8 +72,8 @@ export default function OnboardingPage() {
                     placeholder={field.placeholder}
                     value={data[field.id]}
                     onChange={(e) => set(field.id, e.target.value)}
-                    className={`w-full bg-[#242424] border text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors focus:border-[#FF471A] ${
-                      errors[field.id] ? 'border-red-500' : 'border-[#2a2a2a]'
+                    className={`w-full bg-bg-tertiary border text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors focus:border-[#FF471A] ${
+                      errors[field.id] ? 'border-red-500' : 'border-border-default'
                     }`}
                   />
                   {errors[field.id] && (
@@ -84,7 +83,7 @@ export default function OnboardingPage() {
               ))}
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-2">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
                   Género
                 </label>
                 <div className="flex gap-3">
@@ -96,7 +95,7 @@ export default function OnboardingPage() {
                       className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all border ${
                         data.gender === g
                           ? 'bg-[#FF471A1A] border-[#FF471A] text-[#FF471A]'
-                          : 'bg-[#242424] border-[#2a2a2a] text-[#E0E0E0] hover:border-[#3a3a3a]'
+                          : 'bg-bg-tertiary border-border-default text-text-secondary hover:border-text-subtle'
                       }`}
                     >
                       {g}
@@ -114,20 +113,20 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-black text-white mb-1">¿Cuál es tu objetivo?</h2>
-                <p className="text-[#E0E0E0] text-sm">Define tu meta para personalizar tu plan</p>
+                <h2 className="text-2xl font-black text-text-primary mb-1">¿Cuál es tu objetivo?</h2>
+                <p className="text-text-secondary text-sm">Define tu meta para personalizar tu plan</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
                   Objetivo principal
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { value: 'volumen', icon: '💪', label: 'Ganar músculo' },
-                    { value: 'definicion', icon: '🔥', label: 'Perder grasa' },
+                    { value: 'volumen',     icon: '💪', label: 'Ganar músculo' },
+                    { value: 'definicion',  icon: '🔥', label: 'Perder grasa' },
                     { value: 'mantenimiento', icon: '⚖️', label: 'Mantenimiento' },
-                    { value: 'perderpeso', icon: '📉', label: 'Perder peso' },
+                    { value: 'perderpeso',  icon: '📉', label: 'Perder peso' },
                   ].map((goal) => (
                     <button
                       key={goal.value}
@@ -136,13 +135,11 @@ export default function OnboardingPage() {
                       className={`p-4 rounded-xl text-left transition-all border ${
                         data.goal === goal.value
                           ? 'bg-[#FF471A1A] border-[#FF471A]'
-                          : 'bg-[#242424] border-[#2a2a2a] hover:border-[#3a3a3a]'
+                          : 'bg-bg-tertiary border-border-default hover:border-text-subtle'
                       }`}
                     >
                       <div className="text-2xl mb-1">{goal.icon}</div>
-                      <div
-                        className={`text-sm font-semibold ${data.goal === goal.value ? 'text-[#FF471A]' : 'text-white'}`}
-                      >
+                      <div className={`text-sm font-semibold ${data.goal === goal.value ? 'text-[#FF471A]' : 'text-text-primary'}`}>
                         {goal.label}
                       </div>
                     </button>
@@ -152,7 +149,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
                   Nivel de experiencia
                 </label>
                 <div className="flex gap-3">
@@ -164,7 +161,7 @@ export default function OnboardingPage() {
                       className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all border ${
                         data.level === lvl
                           ? 'bg-[#FF471A1A] border-[#FF471A] text-[#FF471A]'
-                          : 'bg-[#242424] border-[#2a2a2a] text-[#E0E0E0] hover:border-[#3a3a3a]'
+                          : 'bg-bg-tertiary border-border-default text-text-secondary hover:border-text-subtle'
                       }`}
                     >
                       {lvl}
@@ -175,7 +172,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
                   Días de entrenamiento por semana:{' '}
                   <span className="text-[#FF471A]">{data.daysPerWeek}</span>
                 </label>
@@ -187,14 +184,14 @@ export default function OnboardingPage() {
                   onChange={(e) => set('daysPerWeek', e.target.value)}
                   className="w-full accent-[#FF471A]"
                 />
-                <div className="flex justify-between text-xs text-[#666] mt-1">
+                <div className="flex justify-between text-xs text-text-muted mt-1">
                   <span>1 día</span>
                   <span>7 días</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
                   Tiempo por sesión
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -206,7 +203,7 @@ export default function OnboardingPage() {
                       className={`py-2.5 rounded-xl text-sm font-medium transition-all border ${
                         data.sessionTime === t
                           ? 'bg-[#FF471A1A] border-[#FF471A] text-[#FF471A]'
-                          : 'bg-[#242424] border-[#2a2a2a] text-[#E0E0E0] hover:border-[#3a3a3a]'
+                          : 'bg-bg-tertiary border-border-default text-text-secondary hover:border-text-subtle'
                       }`}
                     >
                       {t}
@@ -224,19 +221,19 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-black text-white mb-1">Tipo de entrenamiento</h2>
-                <p className="text-[#E0E0E0] text-sm">¿Dónde y cuándo prefieres entrenar?</p>
+                <h2 className="text-2xl font-black text-text-primary mb-1">Tipo de entrenamiento</h2>
+                <p className="text-text-secondary text-sm">¿Dónde y cuándo prefieres entrenar?</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
                   Tipo de rutina
                 </label>
                 <div className="space-y-3">
                   {[
-                    { value: 'gym', icon: '🏋️', label: 'Gimnasio', desc: 'Con máquinas y pesas' },
-                    { value: 'home', icon: '🏠', label: 'Casa', desc: 'Con poco material' },
-                    { value: 'bodyweight', icon: '🤸', label: 'Peso corporal', desc: 'Sin material' },
+                    { value: 'gym',        icon: '🏋️', label: 'Gimnasio',      desc: 'Con máquinas y pesas' },
+                    { value: 'home',       icon: '🏠', label: 'Casa',           desc: 'Con poco material' },
+                    { value: 'bodyweight', icon: '🤸', label: 'Peso corporal',  desc: 'Sin material' },
                   ].map((type) => (
                     <button
                       key={type.value}
@@ -245,17 +242,15 @@ export default function OnboardingPage() {
                       className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all border ${
                         data.workoutType === type.value
                           ? 'bg-[#FF471A1A] border-[#FF471A]'
-                          : 'bg-[#242424] border-[#2a2a2a] hover:border-[#3a3a3a]'
+                          : 'bg-bg-tertiary border-border-default hover:border-text-subtle'
                       }`}
                     >
                       <span className="text-3xl">{type.icon}</span>
                       <div>
-                        <div
-                          className={`font-semibold ${data.workoutType === type.value ? 'text-[#FF471A]' : 'text-white'}`}
-                        >
+                        <div className={`font-semibold ${data.workoutType === type.value ? 'text-[#FF471A]' : 'text-text-primary'}`}>
                           {type.label}
                         </div>
-                        <div className="text-[#666] text-xs">{type.desc}</div>
+                        <div className="text-text-muted text-xs">{type.desc}</div>
                       </div>
                     </button>
                   ))}
@@ -266,7 +261,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
                   Horario preferido
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -278,7 +273,7 @@ export default function OnboardingPage() {
                       className={`py-3 rounded-xl text-sm font-medium transition-all border ${
                         data.schedule === s
                           ? 'bg-[#FF471A1A] border-[#FF471A] text-[#FF471A]'
-                          : 'bg-[#242424] border-[#2a2a2a] text-[#E0E0E0] hover:border-[#3a3a3a]'
+                          : 'bg-bg-tertiary border-border-default text-text-secondary hover:border-text-subtle'
                       }`}
                     >
                       {s}
@@ -296,40 +291,40 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-2xl font-black text-white mb-1">Salud y restricciones</h2>
-                <p className="text-[#E0E0E0] text-sm">Para adaptar el plan a tus necesidades</p>
+                <h2 className="text-2xl font-black text-text-primary mb-1">Salud y restricciones</h2>
+                <p className="text-text-secondary text-sm">Para adaptar el plan a tus necesidades</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-2">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
                   Lesiones o limitaciones físicas{' '}
-                  <span className="text-[#666] normal-case font-normal">(opcional)</span>
+                  <span className="text-text-muted normal-case font-normal">(opcional)</span>
                 </label>
                 <textarea
                   rows={3}
                   placeholder="Ej: rodilla derecha, lumbalgia…"
                   value={data.injuries}
                   onChange={(e) => set('injuries', e.target.value)}
-                  className="w-full bg-[#242424] border border-[#2a2a2a] focus:border-[#FF471A] text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
+                  className="w-full bg-bg-tertiary border border-border-default focus:border-[#FF471A] text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-2">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
                   Alergias o intolerancias{' '}
-                  <span className="text-[#666] normal-case font-normal">(opcional)</span>
+                  <span className="text-text-muted normal-case font-normal">(opcional)</span>
                 </label>
                 <textarea
                   rows={2}
                   placeholder="Ej: lactosa, gluten, frutos secos…"
                   value={data.allergies}
                   onChange={(e) => set('allergies', e.target.value)}
-                  className="w-full bg-[#242424] border border-[#2a2a2a] focus:border-[#FF471A] text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
+                  className="w-full bg-bg-tertiary border border-border-default focus:border-[#FF471A] text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#E0E0E0] uppercase tracking-wide mb-3">
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-3">
                   Preferencias alimentarias
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -341,7 +336,7 @@ export default function OnboardingPage() {
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                         data.foodPreferences.includes(pref)
                           ? 'bg-[#FF471A1A] border-[#FF471A] text-[#FF471A]'
-                          : 'bg-[#242424] border-[#2a2a2a] text-[#E0E0E0] hover:border-[#3a3a3a]'
+                          : 'bg-bg-tertiary border-border-default text-text-secondary hover:border-text-subtle'
                       }`}
                     >
                       {pref}
@@ -356,12 +351,11 @@ export default function OnboardingPage() {
           {step === 4 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-2xl font-black text-white mb-1">
+                <h2 className="text-2xl font-black text-text-primary mb-1">
                   ¿Algo más que debamos saber?
                 </h2>
-                <p className="text-[#E0E0E0] text-sm">
-                  Medicación, condición médica, contexto personal… Todo ayuda a personalizar mejor
-                  tu plan.
+                <p className="text-text-secondary text-sm">
+                  Medicación, condición médica, contexto personal… Todo ayuda a personalizar mejor tu plan.
                 </p>
               </div>
 
@@ -370,11 +364,11 @@ export default function OnboardingPage() {
                 placeholder="Ej: Tomo medicación para la tensión, hace 6 meses tuve una operación de menisco…"
                 value={data.extraInfo}
                 onChange={(e) => set('extraInfo', e.target.value)}
-                className="w-full bg-[#242424] border border-[#2a2a2a] focus:border-[#FF471A] text-white placeholder-[#555] rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
+                className="w-full bg-bg-tertiary border border-border-default focus:border-[#FF471A] text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
               />
 
-              <div className="bg-[#FF471A1A] border border-[#FF471A33] rounded-xl p-4 text-sm text-[#E0E0E0]">
-                <p className="font-semibold text-white mb-1">¡Todo listo!</p>
+              <div className="bg-[#FF471A1A] border border-[#FF471A33] rounded-xl p-4 text-sm text-text-secondary">
+                <p className="font-semibold text-text-primary mb-1">¡Todo listo!</p>
                 <p>
                   Con estos datos, FitPrompt generará tu rutina y dieta personalizadas al instante.
                   Podrás ajustarlas en cualquier momento desde el chat.
@@ -390,7 +384,7 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={goBack}
                 disabled={isSubmitting}
-                className="flex-1 bg-[#242424] hover:bg-[#2a2a2a] border border-[#2a2a2a] text-[#E0E0E0] py-3 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
+                className="flex-1 bg-bg-tertiary hover:bg-border-default border border-border-default text-text-secondary py-3 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
               >
                 ← Atrás
               </button>
@@ -415,7 +409,7 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <p className="text-center text-[#666] text-xs mt-4">
+        <p className="text-center text-text-muted text-xs mt-4">
           Paso {step + 1} de {STEPS.length}
         </p>
       </div>

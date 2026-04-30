@@ -14,11 +14,10 @@ const mockChats = [
 export default function ChatListPage() {
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full animate-fade-in">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white">Chat IA</h1>
-          <p className="text-[#E0E0E0] text-sm mt-1">Tu entrenador personal siempre disponible</p>
+          <h1 className="text-3xl font-black text-text-primary">Chat IA</h1>
+          <p className="text-text-secondary text-sm mt-1">Tu entrenador personal siempre disponible</p>
         </div>
         <Link
           href="/chat/new"
@@ -29,14 +28,14 @@ export default function ChatListPage() {
       </div>
 
       {/* Message limit banner */}
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-4 mb-6 flex items-center justify-between">
+      <div className="bg-bg-secondary border border-border-default rounded-2xl p-4 mb-6 flex items-center justify-between">
         <div>
-          <p className="text-[#E0E0E0] text-sm font-medium">Mensajes usados hoy</p>
+          <p className="text-text-secondary text-sm font-medium">Mensajes usados hoy</p>
           <div className="flex items-center gap-3 mt-2">
-            <div className="flex-1 max-w-40 h-2 bg-[#242424] rounded-full overflow-hidden">
+            <div className="flex-1 max-w-40 h-2 bg-bg-tertiary rounded-full overflow-hidden">
               <div className="h-full w-3/5 bg-[#FF471A] rounded-full" />
             </div>
-            <span className="text-white text-sm font-bold">3 / 5</span>
+            <span className="text-text-primary text-sm font-bold">3 / 5</span>
           </div>
         </div>
         <Link
@@ -53,26 +52,25 @@ export default function ChatListPage() {
           <Link
             key={chat.id}
             href={`/chat/${chat.id}`}
-            className="flex items-start gap-4 bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#FF471A44] rounded-2xl p-4 transition-all group"
+            className="flex items-start gap-4 bg-bg-secondary border border-border-default hover:border-[#FF471A44] rounded-2xl p-4 transition-all group"
           >
             <div className="w-10 h-10 bg-[#FF471A1A] border border-[#FF471A33] rounded-xl flex items-center justify-center shrink-0">
               <span className="text-[#FF471A] text-lg">💬</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <p className="text-white font-semibold text-sm truncate group-hover:text-[#FF471A] transition-colors">
+                <p className="text-text-primary font-semibold text-sm truncate group-hover:text-[#FF471A] transition-colors">
                   {chat.title}
                 </p>
-                <span className="text-[#666] text-xs shrink-0">{chat.date}</span>
+                <span className="text-text-muted text-xs shrink-0">{chat.date}</span>
               </div>
-              <p className="text-[#666] text-xs truncate">{chat.preview}</p>
+              <p className="text-text-muted text-xs truncate">{chat.preview}</p>
             </div>
           </Link>
         ))}
       </div>
 
-      {/* Plan Free limit note */}
-      <p className="text-center text-[#666] text-xs mt-6">
+      <p className="text-center text-text-muted text-xs mt-6">
         Plan Free: máximo 3 chats guardados.{' '}
         <Link href="/pricing" className="text-[#FF471A] hover:underline">
           Hazte Premium
