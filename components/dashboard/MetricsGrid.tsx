@@ -52,10 +52,18 @@ export default function MetricsGrid({
     },
   ]
 
+  const staggerDelays = [0, 80, 160, 240]
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      {metrics.map((m) => (
-        <Card key={m.label} accent={m.accent} hoverable className="p-4">
+      {metrics.map((m, i) => (
+        <Card
+          key={m.label}
+          accent={m.accent}
+          hoverable
+          className="p-4 animate-enter"
+          style={{ animationDelay: `${staggerDelays[i]}ms` }}
+        >
           <div className="text-2xl mb-2">{m.icon}</div>
           <div className="text-2xl font-black text-text-primary">{m.value}</div>
           <div className="text-xs text-text-secondary">{m.unit}</div>
@@ -65,7 +73,7 @@ export default function MetricsGrid({
             <div className="mt-2.5">
               <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#FF471A] rounded-full"
+                  className="h-full bg-[#FF471A] rounded-full transition-all duration-700 ease-out"
                   style={{ width: `${(m.progress.current / m.progress.max) * 100}%` }}
                 />
               </div>

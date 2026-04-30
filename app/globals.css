@@ -80,10 +80,40 @@ body {
   border-radius: 4px;
 }
 
+/* ─── Skeleton loader ─────────────────────────────────────────────────────── */
+
+@layer components {
+  .skeleton {
+    border-radius: 0.5rem;
+    background: linear-gradient(
+      90deg,
+      var(--bg-tertiary) 25%,
+      var(--bg-secondary) 50%,
+      var(--bg-tertiary) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite linear;
+  }
+}
+
 /* ─── Utilities ───────────────────────────────────────────────────────────── */
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Staggered animation delays for list/grid entrance */
+  .stagger-1 { animation-delay: 80ms; }
+  .stagger-2 { animation-delay: 160ms; }
+  .stagger-3 { animation-delay: 240ms; }
+  .stagger-4 { animation-delay: 320ms; }
+  .stagger-5 { animation-delay: 400ms; }
+  .stagger-6 { animation-delay: 480ms; }
+  .stagger-7 { animation-delay: 560ms; }
+
+  /* Prevent flash-of-invisible on animated elements with delay */
+  .animate-enter {
+    animation-fill-mode: both;
   }
 }

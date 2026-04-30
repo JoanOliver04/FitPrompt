@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full animate-fade-in">
+    <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full animate-enter">
       <WelcomeHeader name={data.name} streak={data.streak} />
       <MetricsGrid
         streak={data.streak}

@@ -17,7 +17,7 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const base =
-    'inline-flex items-center justify-center font-semibold rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF471A] focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary'
+    'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 active:scale-[0.97] active:duration-75 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF471A] focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary'
 
   const variants = {
     primary:   'bg-[#FF471A] hover:bg-[#e03d15] text-white',

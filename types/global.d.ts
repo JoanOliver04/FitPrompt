@@ -1,5 +1,23 @@
 // types/global.d.ts — Declaraciones globales de tipos
 
+// ─── Static asset imports ─────────────────────────────────────────────────────
+declare module '*.png' {
+  const src: string
+  export default src
+}
+declare module '*.jpg' {
+  const src: string
+  export default src
+}
+declare module '*.svg' {
+  const src: string
+  export default src
+}
+declare module '*.webp' {
+  const src: string
+  export default src
+}
+
 // ─── Variables de entorno tipadas ─────────────────────────────────────────────
 declare namespace NodeJS {
   interface ProcessEnv {

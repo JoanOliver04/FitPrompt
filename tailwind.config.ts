@@ -38,6 +38,8 @@ const config: Config = {
         'fade-in':   'fadeIn 0.3s ease-in-out',
         'slide-up':  'slideUp 0.3s ease-out',
         'pulse-dot': 'pulseDot 1.4s infinite ease-in-out',
+        'enter':     'enter 0.4s ease-out both',
+        'shimmer':   'shimmer 1.6s infinite linear',
       },
       keyframes: {
         fadeIn: {
@@ -51,6 +53,14 @@ const config: Config = {
         pulseDot: {
           '0%, 80%, 100%': { transform: 'scale(0)', opacity: '0.5' },
           '40%':           { transform: 'scale(1)', opacity: '1'   },
+        },
+        enter: {
+          '0%':   { opacity: '0', transform: 'translateY(14px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        shimmer: {
+          '0%':   { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
         },
       },
       boxShadow: {

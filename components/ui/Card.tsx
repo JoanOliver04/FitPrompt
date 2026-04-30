@@ -20,6 +20,7 @@ export function Card({ accent, hoverable, shadow, className, children, ...props 
         hoverable && [
           'cursor-pointer transition-all duration-200',
           'hover:scale-[1.02] hover:-translate-y-0.5',
+          'hover:shadow-[0_4px_20px_rgba(0,0,0,0.15)]',
           accent ? 'hover:border-[#FF471A66]' : 'hover:border-[#FF471A44]',
         ],
         shadow && 'shadow-lg shadow-black/10',
