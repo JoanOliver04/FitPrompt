@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getHistory, pushMessages, getDailyCount, incrementDailyCount } from '@/lib/chat-store'
+import {
+  getHistory,
+  saveMessages,
+  getDailyCount,
+  incrementDailyCount,
+  autoTitle,
+  verifyChatOwnership,
+} from '@/lib/chat'
 import type { Plan } from '@/types'
 
 const FREE_DAILY_LIMIT = 5
-const GROQ_MODEL = 'llama3-70b-8192'
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
 const FITCOACH_SYSTEM = `Eres FitCoach, entrenador personal y nutricionista deportivo de élite con 15 años de experiencia.
 Respondes en español. Eres motivador, preciso y pedagógico.
@@ -27,7 +34,11 @@ async function callGroq(messages: { role: string; content: string }[]): Promise<
     body: JSON.stringify({ model: GROQ_MODEL, messages, temperature: 0.7, max_tokens: 1024 }),
   })
 
-  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
+  if (!res.ok) {
+    const body = await res.text()
+    console.error(`[Groq] ${res.status}:`, body)
+    throw new Error(`Groq ${res.status}: ${body}`)
+  }
 
   const data: GroqResponse = await res.json()
   const content = data.choices[0]?.message?.content
@@ -49,11 +60,21 @@ export async function POST(req: NextRequest, { params }: Params) {
   const userId = session.user.id
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'
 
+  // Verify the chat belongs to this user
+  const owns = await verifyChatOwnership(chatId, userId)
+  if (!owns) {
+    return NextResponse.json({ error: 'Chat not found' }, { status: 404 })
+  }
+
+  // Enforce daily message limit for free plan
   if (plan === 'free') {
     const count = await getDailyCount(userId)
     if (count >= FREE_DAILY_LIMIT) {
       return NextResponse.json(
-        { error: 'Daily message limit reached. Upgrade to Fit Premium for unlimited messages.', upgradeUrl: '/settings' },
+        {
+          error: 'Has alcanzado el límite de mensajes diarios del plan Free.',
+          upgradeUrl: '/settings',
+        },
         { status: 429 },
       )
     }
@@ -73,6 +94,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const userMessage = { role: 'user' as const, content: content.trim() }
   const history = await getHistory(chatId)
+  const isFirstMessage = history.length === 0
 
   const messages = [
     { role: 'system' as const, content: FITCOACH_SYSTEM },
@@ -88,7 +110,14 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: message }, { status: 502 })
   }
 
-  await pushMessages(chatId, userMessage, { role: 'assistant', content: aiContent })
+  // Persist messages and bump updatedAt in one transaction
+  await saveMessages(chatId, userMessage, { role: 'assistant', content: aiContent })
+
+  // Auto-title from first user message
+  if (isFirstMessage) {
+    await autoTitle(chatId, userMessage.content)
+  }
+
   const messagesUsed = await incrementDailyCount(userId)
 
   return NextResponse.json({
