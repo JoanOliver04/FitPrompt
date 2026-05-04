@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getChatWithMessages } from '@/lib/chat'
+import { getChatWithMessages, getDailyCount } from '@/lib/chat'
 import ChatInterface from '@/components/chat/ChatInterface'
-import type { Message } from '@/types'
+import type { Message, Plan } from '@/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -24,10 +24,18 @@ export default async function ChatPage({ params }: Props) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/login')
 
-  const chat = await getChatWithMessages(id, session.user.id)
+  const userId = session.user.id
+  const plan = (session.user as { plan?: Plan }).plan ?? 'free'
+  const isFree = plan === 'free'
+
+  // Fetch chat + daily count in parallel; only count for free users.
+  const [chat, messagesUsedToday] = await Promise.all([
+    getChatWithMessages(id, userId),
+    isFree ? getDailyCount(userId) : Promise.resolve(undefined),
+  ])
+
   if (!chat) redirect('/chat')
 
-  // Map DB rows to the Message type used by the client
   const initialMessages: Message[] = chat.messages.map((m) => ({
     id: m.id,
     chatId: id,
@@ -41,6 +49,8 @@ export default async function ChatPage({ params }: Props) {
       chatId={id}
       title={chat.title}
       initialMessages={initialMessages}
+      isFree={isFree}
+      messagesUsedToday={messagesUsedToday}
     />
   )
 }

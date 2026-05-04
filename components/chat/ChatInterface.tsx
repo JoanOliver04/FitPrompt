@@ -8,29 +8,49 @@ import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import type { Message } from '@/types'
 
+const FREE_DAILY_LIMIT = 5
+
 interface Props {
   chatId: string
   title?: string
   initialMessages?: Message[]
+  /** Messages already used today. Passed from the server for accurate initial state. */
+  messagesUsedToday?: number
+  /** True when the user is on the Free plan. Controls counter visibility. */
+  isFree?: boolean
 }
 
-export default function ChatInterface({ chatId, title, initialMessages }: Props) {
+export default function ChatInterface({
+  chatId,
+  title,
+  initialMessages,
+  messagesUsedToday,
+  isFree,
+}: Props) {
   const router = useRouter()
 
-  // After the first successful exchange the backend auto-titles the chat.
-  // router.refresh() re-fetches the server layout so the sidebar and header
-  // show the new title without a full page reload.
+  // After the first exchange the backend auto-titles the chat.
+  // router.refresh() re-fetches the server layout (sidebar + header title) without a full reload.
   const handleTitleGenerated = useCallback(() => {
     router.refresh()
   }, [router])
 
+  const initialMessagesLeft =
+    isFree && messagesUsedToday !== undefined
+      ? Math.max(0, FREE_DAILY_LIMIT - messagesUsedToday)
+      : undefined
+
   const { messages, isLoading, error, input, setInput, sendMessage, messagesLeft, clearError } =
-    useChat(chatId, initialMessages, handleTitleGenerated)
+    useChat(chatId, { initialMessages, initialMessagesLeft, onTitleGenerated: handleTitleGenerated })
+
+  // For the counter display we need "used" not "remaining".
+  const messagesUsed =
+    messagesLeft !== null ? FREE_DAILY_LIMIT - messagesLeft : (messagesUsedToday ?? null)
 
   return (
     <div className="flex-1 flex flex-col bg-bg-primary overflow-hidden">
 
-      {/* Header */}
+      {/* ── Header ──────────────────────────────────────────────── */}
       <header className="flex items-center gap-3 px-4 py-3.5 border-b border-border-default bg-bg-secondary shrink-0">
         <Link
           href="/chat"
@@ -60,10 +80,10 @@ export default function ChatInterface({ chatId, title, initialMessages }: Props)
         </div>
       </header>
 
-      {/* Messages */}
+      {/* ── Messages ────────────────────────────────────────────── */}
       <MessageList messages={messages} isLoading={isLoading} />
 
-      {/* Error banner — shown when API returns an error or network fails */}
+      {/* ── Error banner ────────────────────────────────────────── */}
       {error && (
         <div
           role="alert"
@@ -83,20 +103,68 @@ export default function ChatInterface({ chatId, title, initialMessages }: Props)
         </div>
       )}
 
-      {/* Messages-left warning (free plan) */}
-      {messagesLeft !== null && messagesLeft <= 2 && (
-        <div className="px-4 py-2 bg-[#FF471A08] border-t border-[#FF471A22] text-center shrink-0">
-          <p className="text-xs text-[#FF471A]">
-            {messagesLeft === 0
-              ? 'Has alcanzado el límite diario. '
-              : `Te quedan ${messagesLeft} mensaje${messagesLeft !== 1 ? 's' : ''} hoy. `}
-            <Link href="/settings" className="font-bold underline underline-offset-2">
-              Hazte Premium
-            </Link>
-          </p>
+      {/* ── Daily limit counter (Free plan only) ─────────────────
+          Shown when we know the user is on Free AND have a count.
+          Three visual states:
+            · Normal  (>2 left): subtle orange bar
+            · Warning (≤2 left): yellow bar + upgrade link
+            · Blocked (0 left) : red bar + full message
+      ──────────────────────────────────────────────────────────── */}
+      {isFree && messagesLeft !== null && messagesUsed !== null && (
+        <div className="px-4 py-2.5 border-t border-border-default bg-bg-secondary shrink-0">
+          <div className="flex items-center gap-2.5">
+            {/* Progress bar */}
+            <div className="flex-1 h-1 bg-bg-tertiary rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  messagesLeft === 0
+                    ? 'bg-red-500'
+                    : messagesLeft <= 2
+                    ? 'bg-yellow-500'
+                    : 'bg-[#FF471A]'
+                }`}
+                style={{ width: `${(messagesUsed / FREE_DAILY_LIMIT) * 100}%` }}
+              />
+            </div>
+
+            {/* Counter */}
+            <span
+              className={`text-xs font-medium tabular-nums shrink-0 ${
+                messagesLeft === 0
+                  ? 'text-red-400'
+                  : messagesLeft <= 2
+                  ? 'text-yellow-500'
+                  : 'text-text-muted'
+              }`}
+            >
+              {messagesUsed}/{FREE_DAILY_LIMIT} mensajes hoy
+            </span>
+
+            {/* Upgrade nudge — only when approaching the limit */}
+            {messagesLeft <= 2 && (
+              <Link
+                href="/settings"
+                className="text-[10px] font-bold text-[#FF471A] hover:underline underline-offset-2 shrink-0"
+              >
+                Premium
+              </Link>
+            )}
+          </div>
+
+          {/* Blocked message */}
+          {messagesLeft === 0 && (
+            <p className="text-xs text-red-400 mt-1.5">
+              Has alcanzado el límite del plan Free.{' '}
+              <Link href="/settings" className="font-bold underline underline-offset-2 hover:text-red-300">
+                Hazte Premium
+              </Link>{' '}
+              para mensajes ilimitados.
+            </p>
+          )}
         </div>
       )}
 
+      {/* ── Input ───────────────────────────────────────────────── */}
       <ChatInput
         value={input}
         onChange={setInput}

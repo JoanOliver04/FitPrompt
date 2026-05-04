@@ -12,6 +12,21 @@ const WELCOME_MESSAGE = (chatId: string): Message => ({
   createdAt: new Date(),
 })
 
+export interface UseChatOptions {
+  /** Pre-loaded messages from the server. Empty/undefined → welcome message (new chat). */
+  initialMessages?: Message[]
+  /**
+   * Server-side remaining messages for today (FREE_DAILY_LIMIT − used).
+   * Undefined for premium users or when the plan is unknown.
+   */
+  initialMessagesLeft?: number
+  /**
+   * Called once after the first successful exchange, when the backend
+   * has auto-titled the chat. Use router.refresh() here to sync the sidebar.
+   */
+  onTitleGenerated?: () => void
+}
+
 export interface UseChatReturn {
   messages: Message[]
   isLoading: boolean
@@ -19,24 +34,14 @@ export interface UseChatReturn {
   input: string
   setInput: (v: string) => void
   sendMessage: () => Promise<void>
+  /** Remaining messages today. null = premium / unknown. 0 = limit reached. */
   messagesLeft: number | null
   clearError: () => void
 }
 
-/**
- * @param chatId           - Chat ID used in the API call.
- * @param initialMessages  - Pre-loaded messages from the server.
- *                           Empty/undefined → show welcome message (new chat).
- *                           Non-empty → restore full history.
- * @param onTitleGenerated - Called once after the first successful exchange,
- *                           when the backend has auto-titled the chat.
- *                           Use router.refresh() here to sync the sidebar.
- */
-export function useChat(
-  chatId: string,
-  initialMessages?: Message[],
-  onTitleGenerated?: () => void,
-): UseChatReturn {
+export function useChat(chatId: string, options: UseChatOptions = {}): UseChatReturn {
+  const { initialMessages, initialMessagesLeft, onTitleGenerated } = options
+
   const [messages, setMessages] = useState<Message[]>(() =>
     initialMessages && initialMessages.length > 0
       ? initialMessages
@@ -45,7 +50,7 @@ export function useChat(
   const [input, setInput] = useState('')
   const [isLoading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [messagesLeft, setLeft] = useState<number | null>(null)
+  const [messagesLeft, setLeft] = useState<number | null>(initialMessagesLeft ?? null)
 
   // Fires onTitleGenerated exactly once — on the first successful exchange.
   const titleFired = useRef(!!(initialMessages && initialMessages.length > 0))
@@ -93,7 +98,7 @@ export function useChat(
           setError(
             typeof data.error === 'string'
               ? data.error
-              : 'Has alcanzado el límite diario de mensajes.',
+              : 'Has alcanzado el límite del plan Free.',
           )
           return
         }
