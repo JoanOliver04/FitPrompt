@@ -3,11 +3,13 @@ import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { getDashboardData, FALLBACK_DASHBOARD } from '@/lib/dashboard'
+import { getUserChats } from '@/lib/chat'
 import WelcomeHeader from '@/components/dashboard/WelcomeHeader'
 import MetricsGrid from '@/components/dashboard/MetricsGrid'
 import WeekCalendar from '@/components/dashboard/WeekCalendar'
 import TodayWorkout from '@/components/dashboard/TodayWorkout'
 import QuickActions from '@/components/dashboard/QuickActions'
+import { PlanDownloadCard } from '@/components/dashboard/PlanDownloadCard'
 
 export const metadata: Metadata = {
   title: 'Dashboard — FitPrompt',
@@ -18,8 +20,17 @@ export default async function DashboardPage() {
   if (!session?.user?.id) redirect('/login')
 
   let data = FALLBACK_DASHBOARD
+  let latestChat: { id: string; title: string } | null = null
+
   try {
-    data = await getDashboardData(session.user.id, session.user.name ?? '')
+    const [dashboardData, chats] = await Promise.all([
+      getDashboardData(session.user.id, session.user.name ?? ''),
+      getUserChats(session.user.id),
+    ])
+    data = dashboardData
+    // getUserChats orders by updatedAt desc — first entry is most recent.
+    const first = chats[0]
+    if (first) latestChat = { id: first.id, title: first.title }
   } catch {
     // DB unreachable — render with fallback values
   }
@@ -37,8 +48,17 @@ export default async function DashboardPage() {
         xpMax={data.xpMax}
       />
       <WeekCalendar completedDays={data.completedDaysThisWeek} />
-      <TodayWorkout />
       <QuickActions />
+
+      {/* Plan download — only shown when the user has at least one chat */}
+      {latestChat && (
+        <div className="mt-6">
+          <h2 className="text-text-primary font-bold mb-4">Tu plan</h2>
+          <PlanDownloadCard chatId={latestChat.id} chatTitle={latestChat.title} />
+        </div>
+      )}
+
+      <TodayWorkout />
     </div>
   )
 }
