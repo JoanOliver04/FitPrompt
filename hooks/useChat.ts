@@ -1,16 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { Message } from '@/types'
-
-const MOCK_RESPONSES = [
-  'Claro, puedo ayudarte con eso. Cuéntame más sobre tu situación actual y te daré una respuesta personalizada. 💪',
-  'Buena pregunta. Basándome en los principios de periodización, lo más importante aquí es la progresión gradual. ¿Llevas registro de tus cargas?',
-  'Para ese objetivo, la clave está en la combinación correcta de estímulo y recuperación. Sin descanso no hay adaptación.',
-  'Depende mucho de tu contexto. ¿Estás en fase de volumen, definición o mantenimiento? Así puedo darte una respuesta más precisa.',
-  'Eso es completamente normal en esa etapa del entrenamiento. Aquí te explico cómo ajustarlo:\n\n1. **Reduce la carga** un 10% esta semana\n2. **Prioriza el sueño** — mínimo 7-8h\n3. Vuelve a progresar la semana siguiente con base sólida.',
-  'La nutrición y el entrenamiento son un sistema integrado. No puedes optimizar uno ignorando el otro. ¿Tienes controlados tus macros actualmente?',
-]
 
 const WELCOME_MESSAGE = (chatId: string): Message => ({
   id: 'welcome',
@@ -24,33 +15,51 @@ const WELCOME_MESSAGE = (chatId: string): Message => ({
 export interface UseChatReturn {
   messages: Message[]
   isLoading: boolean
+  error: string | null
   input: string
   setInput: (v: string) => void
   sendMessage: () => Promise<void>
   messagesLeft: number | null
+  clearError: () => void
 }
 
 /**
- * @param chatId     - The chat ID (used in the API call).
- * @param initialMessages - Messages pre-loaded from the server.
- *   - undefined or [] → show welcome message (new/empty chat)
- *   - non-empty array  → restore history (existing chat)
+ * @param chatId           - Chat ID used in the API call.
+ * @param initialMessages  - Pre-loaded messages from the server.
+ *                           Empty/undefined → show welcome message (new chat).
+ *                           Non-empty → restore full history.
+ * @param onTitleGenerated - Called once after the first successful exchange,
+ *                           when the backend has auto-titled the chat.
+ *                           Use router.refresh() here to sync the sidebar.
  */
-export function useChat(chatId: string, initialMessages?: Message[]): UseChatReturn {
-  const [messages, setMessages] = useState<Message[]>(() => {
-    if (initialMessages && initialMessages.length > 0) return initialMessages
-    return [WELCOME_MESSAGE(chatId)]
-  })
-  const [input, setInput]       = useState('')
+export function useChat(
+  chatId: string,
+  initialMessages?: Message[],
+  onTitleGenerated?: () => void,
+): UseChatReturn {
+  const [messages, setMessages] = useState<Message[]>(() =>
+    initialMessages && initialMessages.length > 0
+      ? initialMessages
+      : [WELCOME_MESSAGE(chatId)],
+  )
+  const [input, setInput] = useState('')
   const [isLoading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [messagesLeft, setLeft] = useState<number | null>(null)
+
+  // Fires onTitleGenerated exactly once — on the first successful exchange.
+  const titleFired = useRef(!!(initialMessages && initialMessages.length > 0))
+
+  const clearError = useCallback(() => setError(null), [])
 
   const sendMessage = useCallback(async () => {
     const text = input.trim()
     if (!text || isLoading) return
 
+    // Optimistic update — immediately show the user message.
+    const optimisticId = `optimistic-${Date.now()}`
     const userMsg: Message = {
-      id: `user-${Date.now()}`,
+      id: optimisticId,
       chatId,
       role: 'user',
       content: text,
@@ -60,6 +69,12 @@ export function useChat(chatId: string, initialMessages?: Message[]): UseChatRet
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     setLoading(true)
+    setError(null)
+
+    const rollback = () => {
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
+      setInput(text)
+    }
 
     try {
       const res = await fetch(`/api/chat/${chatId}/message`, {
@@ -68,18 +83,31 @@ export function useChat(chatId: string, initialMessages?: Message[]): UseChatRet
         body: JSON.stringify({ content: text }),
       })
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'api_error')
-      }
+      const data: Record<string, unknown> = await res.json().catch(() => ({}))
 
-      const data = await res.json()
+      if (!res.ok) {
+        rollback()
+
+        if (res.status === 429) {
+          setLeft(0)
+          setError(
+            typeof data.error === 'string'
+              ? data.error
+              : 'Has alcanzado el límite diario de mensajes.',
+          )
+          return
+        }
+
+        throw new Error(
+          typeof data.error === 'string' ? data.error : `Error del servidor (${res.status})`,
+        )
+      }
 
       const aiMsg: Message = {
         id: `ai-${Date.now()}`,
         chatId,
         role: 'assistant',
-        content: data.content,
+        content: typeof data.content === 'string' ? data.content : '',
         createdAt: new Date(),
       }
       setMessages((prev) => [...prev, aiMsg])
@@ -87,18 +115,23 @@ export function useChat(chatId: string, initialMessages?: Message[]): UseChatRet
       if (typeof data.messagesLeft === 'number') {
         setLeft(data.messagesLeft)
       }
-    } catch {
-      // Fallback to a mock response when the API is unavailable
-      await new Promise((r) => setTimeout(r, 800 + Math.random() * 500))
-      const content = MOCK_RESPONSES[Math.floor(Math.random() * MOCK_RESPONSES.length)]
-      setMessages((prev) => [
-        ...prev,
-        { id: `mock-${Date.now()}`, chatId, role: 'assistant', content, createdAt: new Date() },
-      ])
+
+      // Notify caller that the backend has auto-titled the chat (first exchange only).
+      if (!titleFired.current) {
+        titleFired.current = true
+        onTitleGenerated?.()
+      }
+    } catch (err) {
+      rollback()
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+      )
     } finally {
       setLoading(false)
     }
-  }, [chatId, input, isLoading])
+  }, [chatId, input, isLoading, onTitleGenerated])
 
-  return { messages, isLoading, input, setInput, sendMessage, messagesLeft }
+  return { messages, isLoading, error, input, setInput, sendMessage, messagesLeft, clearError }
 }

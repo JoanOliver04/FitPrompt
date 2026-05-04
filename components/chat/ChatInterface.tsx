@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useCallback } from 'react'
 import { useChat } from '@/hooks/useChat'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
@@ -13,10 +15,17 @@ interface Props {
 }
 
 export default function ChatInterface({ chatId, title, initialMessages }: Props) {
-  const { messages, isLoading, input, setInput, sendMessage, messagesLeft } = useChat(
-    chatId,
-    initialMessages,
-  )
+  const router = useRouter()
+
+  // After the first successful exchange the backend auto-titles the chat.
+  // router.refresh() re-fetches the server layout so the sidebar and header
+  // show the new title without a full page reload.
+  const handleTitleGenerated = useCallback(() => {
+    router.refresh()
+  }, [router])
+
+  const { messages, isLoading, error, input, setInput, sendMessage, messagesLeft, clearError } =
+    useChat(chatId, initialMessages, handleTitleGenerated)
 
   return (
     <div className="flex-1 flex flex-col bg-bg-primary overflow-hidden">
@@ -29,8 +38,8 @@ export default function ChatInterface({ chatId, title, initialMessages }: Props)
           aria-label="Volver a chats"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"/>
-            <polyline points="12 19 5 12 12 5"/>
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
           </svg>
         </Link>
 
@@ -54,9 +63,29 @@ export default function ChatInterface({ chatId, title, initialMessages }: Props)
       {/* Messages */}
       <MessageList messages={messages} isLoading={isLoading} />
 
+      {/* Error banner — shown when API returns an error or network fails */}
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 px-4 py-2.5 bg-red-950/40 border-t border-red-800/30 shrink-0"
+        >
+          <p className="text-xs text-red-400 leading-relaxed">{error}</p>
+          <button
+            onClick={clearError}
+            aria-label="Cerrar error"
+            className="text-red-500 hover:text-red-300 transition-colors shrink-0 p-0.5"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="1" y1="1" x2="11" y2="11" />
+              <line x1="11" y1="1" x2="1" y2="11" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Messages-left warning (free plan) */}
       {messagesLeft !== null && messagesLeft <= 2 && (
-        <div className="px-4 py-2 bg-[#FF471A08] border-t border-[#FF471A22] text-center">
+        <div className="px-4 py-2 bg-[#FF471A08] border-t border-[#FF471A22] text-center shrink-0">
           <p className="text-xs text-[#FF471A]">
             {messagesLeft === 0
               ? 'Has alcanzado el límite diario. '
