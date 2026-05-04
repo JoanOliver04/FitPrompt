@@ -10,6 +10,18 @@ interface Props {
   xpMax: number
 }
 
+function complianceColor(rate: number): string {
+  if (rate >= 80) return '#22c55e' // green
+  if (rate >= 50) return '#eab308' // yellow
+  return '#ef4444'                 // red
+}
+
+function complianceLabel(rate: number): string {
+  if (rate >= 80) return '¡Genial!'
+  if (rate >= 50) return 'Mejora posible'
+  return 'Necesitas más'
+}
+
 export default function MetricsGrid({
   streak,
   weight,
@@ -19,6 +31,8 @@ export default function MetricsGrid({
   xpCurrent,
   xpMax,
 }: Props) {
+  const color = complianceColor(completionRate)
+
   const metrics = [
     {
       label: 'Racha actual',
@@ -40,7 +54,7 @@ export default function MetricsGrid({
       unit: xpLevelName,
       icon: '⭐',
       accent: false,
-      progress: { current: xpCurrent, max: xpMax },
+      progress: { current: xpCurrent, max: xpMax, barColor: '#FF471A' },
     },
     {
       label: 'Cumplimiento',
@@ -48,7 +62,9 @@ export default function MetricsGrid({
       unit: '%',
       icon: '✅',
       accent: false,
-      progress: { current: completionRate, max: 100 },
+      progress: { current: completionRate, max: 100, barColor: color },
+      statusLabel: complianceLabel(completionRate),
+      statusColor: color,
     },
   ]
 
@@ -73,13 +89,22 @@ export default function MetricsGrid({
             <div className="mt-2.5">
               <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#FF471A] rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${(m.progress.current / m.progress.max) * 100}%` }}
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${(m.progress.current / m.progress.max) * 100}%`,
+                    backgroundColor: m.progress.barColor,
+                  }}
                 />
               </div>
-              <div className="text-[10px] text-text-muted mt-1">
-                {m.progress.current} / {m.progress.max}
-              </div>
+              {'statusLabel' in m ? (
+                <div className="text-[10px] mt-1 font-semibold" style={{ color: m.statusColor }}>
+                  {m.statusLabel}
+                </div>
+              ) : (
+                <div className="text-[10px] text-text-muted mt-1">
+                  {m.progress.current} / {m.progress.max}
+                </div>
+              )}
             </div>
           )}
         </Card>
