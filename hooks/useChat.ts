@@ -8,7 +8,7 @@ const WELCOME_MESSAGE = (chatId: string): Message => ({
   chatId,
   role: 'assistant',
   content:
-    '¡Hola! Soy **FitPrompt**, tu entrenador personal y nutricionista IA 💪\n\nPuedo ayudarte con:\n- **Ajustar tu rutina** de entrenamiento\n- **Resolver dudas** sobre ejercicios o técnica\n- **Adaptar tu dieta** según tus necesidades\n- **Reorganizar la semana** si te saltas algún día\n\n¿En qué puedo ayudarte hoy?',
+    '¡Hola! Soy **FitPrompt**, tu entrenador personal y nutricionista IA 💪\n\nPuedo ayudarte con:\n- **Ajustar tu rutina** de entrenamiento\n- **Resolver dudas** sobre ejercicios o técnica\n- **Adaptar tu dieta** según tus necesidades\n- **Reorganizar la semana** si te saltas algún día\n- **Generar tu lista de la compra** semanal personalizada 🛒\n\n¿En qué puedo ayudarte hoy?',
   createdAt: new Date(),
 })
 

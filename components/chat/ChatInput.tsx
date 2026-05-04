@@ -2,6 +2,12 @@
 
 import { useRef } from 'react'
 
+const QUICK_ACTIONS = [
+  { label: '🛒 Lista de la compra', text: 'Dame la lista de la compra' },
+  { label: '💪 Mi rutina',          text: 'Dame mi rutina de entrenamiento' },
+  { label: '🥗 Mi dieta',           text: 'Dame un plan de dieta personalizado' },
+] as const
+
 interface Props {
   value: string
   onChange: (v: string) => void
@@ -19,8 +25,31 @@ export default function ChatInput({ value, onChange, onSend, disabled }: Props) 
     }
   }
 
+  const handleQuickAction = (text: string) => {
+    onChange(text)
+    textareaRef.current?.focus()
+  }
+
   return (
     <div className="p-4 border-t border-border-default bg-bg-secondary shrink-0">
+
+      {/* Quick-action chips — only when input is empty */}
+      {!value && (
+        <div className="flex gap-2 mb-3 flex-wrap">
+          {QUICK_ACTIONS.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={() => handleQuickAction(action.text)}
+              disabled={disabled}
+              className="text-xs px-3 py-1.5 rounded-full border border-border-default text-text-secondary bg-bg-tertiary hover:border-accent/50 hover:text-accent hover:bg-accent/5 transition-all disabled:opacity-40 disabled:pointer-events-none"
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-end gap-3 bg-bg-tertiary border border-border-default focus-within:border-accent rounded-2xl px-4 py-3 transition-colors">
         <textarea
           ref={textareaRef}

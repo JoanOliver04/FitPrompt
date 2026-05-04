@@ -19,7 +19,7 @@ export default function MessageBubble({ message }: Props) {
   return (
     <div className={`flex gap-3 animate-slide-up ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       {!isUser && (
-        <div className="w-8 h-8 bg-accent-muted border border-accent/20 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+        <div className="w-8 h-8 bg-[#FF471A1A] border border-[#FF471A33] rounded-xl flex items-center justify-center shrink-0 mt-0.5">
           <span className="text-sm">🤖</span>
         </div>
       )}
