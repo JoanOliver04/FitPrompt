@@ -488,6 +488,58 @@ Genera el plan AHORA. Los gramajes deben ser precisos, los macros deben cuadrar 
  * Prompt to generate a full 4-week integrated plan: training + nutrition + recovery.
  * Use when you want a comprehensive onboarding response or a complete program reset.
  */
+/**
+ * Prompt to generate a weekly shopping list as structured JSON.
+ * The AI must respond with only a valid JSON object — no markdown fences, no prose.
+ */
+export function generarPromptListaCompra(profile: UserProfile): string {
+  const macros = calcMacros(profile)
+
+  const allergyNote = profile.allergies
+    ? `⚠️ ALÉRGENOS — EXCLUIR ABSOLUTAMENTE: "${profile.allergies}". Ningún ítem puede contener estos alérgenos ni sus derivados.`
+    : ''
+
+  const prefNote =
+    profile.foodPreferences.length > 0
+      ? `Preferencias alimentarias: ${profile.foodPreferences.join(', ')}. Adapta todos los alimentos a estas preferencias.`
+      : ''
+
+  return `Eres un nutricionista deportivo de élite. Genera una lista de la compra semanal personalizada.
+
+PERFIL DEL USUARIO:
+- Objetivo: ${GOAL_LABEL[profile.goal]}
+- Calorías diarias: ${macros.calories} kcal
+- Proteína: ${macros.protein}g/día | Carbohidratos: ${macros.carbs}g/día | Grasa: ${macros.fat}g/día
+- Días de entrenamiento: ${profile.daysPerWeek}/semana
+${allergyNote}
+${prefNote}
+
+Responde ÚNICAMENTE con un objeto JSON válido (sin bloques de código, sin texto adicional):
+
+{
+  "categories": [
+    {
+      "name": "Proteínas",
+      "emoji": "🥩",
+      "items": [
+        { "name": "Pechuga de pollo", "amount": "800g" }
+      ]
+    },
+    { "name": "Carbohidratos", "emoji": "🌾", "items": [...] },
+    { "name": "Verduras", "emoji": "🥦", "items": [...] },
+    { "name": "Frutas", "emoji": "🍎", "items": [...] },
+    { "name": "Otros", "emoji": "🛒", "items": [...] }
+  ]
+}
+
+Reglas:
+- Exactamente estas 5 categorías en este orden
+- 4–7 ítems por categoría, todos diferentes y reales
+- Cantidades para 1 semana (gramos, litros o unidades)
+- Adapta los alimentos al objetivo: ${GOAL_LABEL[profile.goal]}
+- SOLO JSON, nada más`.trim()
+}
+
 export function generarPromptCombinado(profile: UserProfile): string {
   const macros = calcMacros(profile)
   const split = getTrainingSplit(profile)

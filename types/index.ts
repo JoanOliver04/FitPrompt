@@ -145,6 +145,28 @@ export interface Exercise {
   tips: string[]
 }
 
+// ─── Shopping List ────────────────────────────────────────────────────────────
+
+/** Marker prefix stored in the content field of shopping-list assistant messages. */
+export const SHOPPING_LIST_SENTINEL = '__SHOPPING_LIST__:'
+
+export interface ShoppingListItem {
+  name: string
+  amount: string
+}
+
+export interface ShoppingListCategory {
+  name: string
+  emoji: string
+  items: ShoppingListItem[]
+}
+
+export interface ShoppingList {
+  categories: ShoppingListCategory[]
+  /** Human-readable markdown used as AI history context. */
+  summary: string
+}
+
 // ─── API Responses ────────────────────────────────────────────────────────────
 
 export interface ApiError {

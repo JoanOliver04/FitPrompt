@@ -1,4 +1,6 @@
 import type { Message } from '@/types'
+import { SHOPPING_LIST_SENTINEL } from '@/types'
+import { ShoppingListCard } from './ShoppingListCard'
 
 interface Props {
   message: Message
@@ -12,6 +14,7 @@ function renderContent(content: string): string {
 
 export default function MessageBubble({ message }: Props) {
   const isUser = message.role === 'user'
+  const isShoppingList = !isUser && message.content.startsWith(SHOPPING_LIST_SENTINEL)
 
   return (
     <div className={`flex gap-3 animate-slide-up ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -21,14 +24,18 @@ export default function MessageBubble({ message }: Props) {
         </div>
       )}
 
-      <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-          isUser
-            ? 'bg-accent text-white rounded-tr-sm'
-            : 'bg-bg-secondary border border-border-default text-text-secondary rounded-tl-sm'
-        }`}
-        dangerouslySetInnerHTML={{ __html: renderContent(message.content) }}
-      />
+      {isShoppingList ? (
+        <ShoppingListCard content={message.content} />
+      ) : (
+        <div
+          className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+            isUser
+              ? 'bg-accent text-white rounded-tr-sm'
+              : 'bg-bg-secondary border border-border-default text-text-secondary rounded-tl-sm'
+          }`}
+          dangerouslySetInnerHTML={{ __html: renderContent(message.content) }}
+        />
+      )}
     </div>
   )
 }
