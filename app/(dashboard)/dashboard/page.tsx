@@ -37,9 +37,16 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full animate-enter">
-      <WelcomeHeader name={data.name} streak={data.streak} />
+      <WelcomeHeader
+        name={data.name}
+        streak={data.streak}
+        bestStreak={data.bestStreak}
+        weekComplete={data.weekComplete}
+      />
       <MetricsGrid
         streak={data.streak}
+        bestStreak={data.bestStreak}
+        weekComplete={data.weekComplete}
         weight={data.weight}
         completionRate={data.completionRate}
         xpLevel={data.xpLevel}

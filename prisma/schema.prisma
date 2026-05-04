@@ -84,6 +84,7 @@ model User {
   weightLogs   WeightLog[]
   achievements Achievement[]
   dailyCounts  DailyMessageCount[]
+  streak       Streak?
 }
 
 model UserProfile {
@@ -166,4 +167,14 @@ model DailyMessageCount {
   count  Int      @default(0)
 
   @@unique([userId, date])
+}
+
+model Streak {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak     Int      @default(0)
+  bestStreak        Int      @default(0)
+  lastCompletedWeek String?  // ISO week: "YYYY-Www"
+  updatedAt         DateTime @updatedAt
 }

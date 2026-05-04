@@ -1,13 +1,15 @@
 import { Card } from '@/components/ui/Card'
 
 interface Props {
-  streak: number
-  weight: number | null
+  streak:        number
+  bestStreak:    number
+  weekComplete:  boolean
+  weight:        number | null
   completionRate: number
-  xpLevel: number
-  xpLevelName: string
-  xpCurrent: number
-  xpMax: number
+  xpLevel:       number
+  xpLevelName:   string
+  xpCurrent:     number
+  xpMax:         number
 }
 
 function complianceColor(rate: number): string {
@@ -24,6 +26,8 @@ function complianceLabel(rate: number): string {
 
 export default function MetricsGrid({
   streak,
+  bestStreak,
+  weekComplete,
   weight,
   completionRate,
   xpLevel,
@@ -31,15 +35,17 @@ export default function MetricsGrid({
   xpCurrent,
   xpMax,
 }: Props) {
-  const color = complianceColor(completionRate)
+  const color        = complianceColor(completionRate)
+  const streakColor  = weekComplete ? '#22c55e' : '#FF471A'
 
   const metrics = [
     {
-      label: 'Racha actual',
-      value: `${streak}`,
-      unit: 'días',
-      icon: '🔥',
-      accent: true,
+      label:     'Racha actual',
+      value:     `${streak}`,
+      unit:      'semanas',
+      icon:      '🔥',
+      accent:    false,
+      streakBadge: { best: bestStreak, complete: weekComplete, color: streakColor },
     },
     {
       label: 'Peso actual',
@@ -81,9 +87,22 @@ export default function MetricsGrid({
           style={{ animationDelay: `${staggerDelays[i]}ms` }}
         >
           <div className="text-2xl mb-2">{m.icon}</div>
-          <div className="text-2xl font-black text-text-primary">{m.value}</div>
+          <div
+            className="text-2xl font-black"
+            style={{ color: 'streakBadge' in m ? m.streakBadge.color : 'inherit' }}
+          >
+            {m.value}
+          </div>
           <div className="text-xs text-text-secondary">{m.unit}</div>
           <div className="text-xs text-text-muted mt-0.5">{m.label}</div>
+
+          {'streakBadge' in m && (
+            <div className="mt-2 text-[10px] text-text-muted">
+              {m.streakBadge.best > 0
+                ? `Mejor: ${m.streakBadge.best} sem`
+                : 'Sin racha aún'}
+            </div>
+          )}
 
           {m.progress && (
             <div className="mt-2.5">
