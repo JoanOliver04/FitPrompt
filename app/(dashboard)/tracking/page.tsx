@@ -88,11 +88,11 @@ export default async function TrackingPage() {
 
       {/* Premium upsell */}
       <div className="bg-[#FF471A0D] border border-[#FF471A33] rounded-2xl p-5 flex items-center gap-4">
-        <span className="text-3xl shrink-0" aria-hidden="true">📊</span>
+        <span className="text-3xl shrink-0" aria-hidden="true">📈</span>
         <div className="flex-1 min-w-0">
-          <p className="text-text-primary font-bold text-sm">Gráficas detalladas en Premium</p>
+          <p className="text-text-primary font-bold text-sm">Métricas avanzadas en Premium</p>
           <p className="text-text-secondary text-xs mt-0.5">
-            Evolución mensual, % grasa corporal, IMC y mucho más
+            % grasa corporal, IMC, evolución mensual y análisis detallado
           </p>
         </div>
       </div>

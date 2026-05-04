@@ -13,6 +13,11 @@ export interface DashboardData {
   xpCurrent:             number
   xpMax:                 number
   completedDaysThisWeek: number[] // 0=Mon … 6=Sun
+  // Progress stats
+  totalWorkouts:         number
+  activeDays:            number
+  avgDuration:           number | null // minutes
+  weightInitial:         number | null
 }
 
 const XP_PER_WORKOUT     = 10
@@ -91,7 +96,7 @@ export async function getDashboardData(
 ): Promise<DashboardData> {
   const thirtyDaysAgo = subDays(new Date(), 30)
 
-  const [latestWeight, workoutLogs, achievementCount, profile] = await Promise.all([
+  const [latestWeight, workoutLogs, achievementCount, profile, oldestWeight, allWorkouts] = await Promise.all([
     db.weightLog.findFirst({
       where:   { userId },
       orderBy: { date: 'desc' },
@@ -107,6 +112,15 @@ export async function getDashboardData(
       where:  { userId },
       select: { daysPerWeek: true, weight: true },
     }),
+    db.weightLog.findFirst({
+      where:   { userId },
+      orderBy: { date: 'asc' },
+      select:  { weight: true },
+    }),
+    db.workoutLog.findMany({
+      where:  { userId, completed: true },
+      select: { date: true, duration: true },
+    }),
   ])
 
   const daysPerWeek    = profile?.daysPerWeek ?? 4
@@ -116,6 +130,13 @@ export async function getDashboardData(
 
   // Prefer logged weight over profile weight (onboarding value)
   const weight = latestWeight?.weight ?? profile?.weight ?? null
+
+  // Progress stats (all-time)
+  const totalWorkouts = allWorkouts.length
+  const activeDays    = new Set(allWorkouts.map(w => w.date.toISOString().split('T')[0])).size
+  const avgDuration   = totalWorkouts > 0
+    ? Math.round(allWorkouts.reduce((sum, w) => sum + w.duration, 0) / totalWorkouts)
+    : null
 
   return {
     name:                  userName.split(' ')[0] || 'Atleta',
@@ -129,6 +150,10 @@ export async function getDashboardData(
     xpCurrent:             xp.current,
     xpMax:                 xp.max,
     completedDaysThisWeek: getCompletedDaysThisWeek(completedDates),
+    totalWorkouts,
+    activeDays,
+    avgDuration,
+    weightInitial:         oldestWeight?.weight ?? null,
   }
 }
 
@@ -144,4 +169,8 @@ export const FALLBACK_DASHBOARD: DashboardData = {
   xpCurrent:             0,
   xpMax:                 XP_PER_LEVEL,
   completedDaysThisWeek: [],
+  totalWorkouts:         0,
+  activeDays:            0,
+  avgDuration:           null,
+  weightInitial:         null,
 }

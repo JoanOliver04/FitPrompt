@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { WeightChart } from './WeightChart'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,9 @@ export function WeightTracker({ initialLogs }: Props) {
           <StatCard label="Diferencia"   value={diff} signed />
         </div>
       )}
+
+      {/* Chart — visible from 2 entries */}
+      <WeightChart logs={logs} />
 
       {/* Form */}
       <form

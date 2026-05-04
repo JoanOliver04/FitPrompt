@@ -10,6 +10,7 @@ import WeekCalendar from '@/components/dashboard/WeekCalendar'
 import TodayWorkout from '@/components/dashboard/TodayWorkout'
 import QuickActions from '@/components/dashboard/QuickActions'
 import { PlanDownloadCard } from '@/components/dashboard/PlanDownloadCard'
+import ProgressCards from '@/components/dashboard/ProgressCards'
 
 export const metadata: Metadata = {
   title: 'Dashboard — FitPrompt',
@@ -55,6 +56,13 @@ export default async function DashboardPage() {
         xpMax={data.xpMax}
       />
       <WeekCalendar completedDays={data.completedDaysThisWeek} />
+      <ProgressCards
+        weightCurrent={data.weight}
+        weightInitial={data.weightInitial}
+        totalWorkouts={data.totalWorkouts}
+        activeDays={data.activeDays}
+        avgDuration={data.avgDuration}
+      />
       <QuickActions />
 
       {/* Plan download — only shown when the user has at least one chat */}
