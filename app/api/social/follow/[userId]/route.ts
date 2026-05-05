@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { notifyNewFollower } from '@/lib/notifications'
 
 // ─── POST — follow ────────────────────────────────────────────────────────────
 
@@ -31,6 +32,9 @@ export async function POST(
     create: { followerId, followingId },
     update: {},
   })
+
+  // Notify the followed user (fire-and-forget)
+  notifyNewFollower(followerId, followingId).catch(() => undefined)
 
   const followersCount = await db.follow.count({ where: { followingId } })
   return NextResponse.json({ ok: true, followersCount })

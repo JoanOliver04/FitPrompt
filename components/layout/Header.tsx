@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Logo from '@/components/ui/Logo'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 
 interface Props {
   onMenuClick: () => void
@@ -53,6 +54,8 @@ export default function Header({ onMenuClick }: Props) {
       </div>
 
       <div className="flex-1" />
+
+      <NotificationBell />
 
       <button
         type="button"

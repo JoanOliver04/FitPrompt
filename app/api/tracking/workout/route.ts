@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { updateStreakIfWeekComplete } from '@/lib/streak'
 import { addXP, XP_REWARDS, type LevelUpInfo } from '@/lib/xp'
 import { checkAndAwardConsistency } from '@/lib/badges'
+import { notifyRankSurpassed } from '@/lib/notifications'
 import type { WorkoutExercise } from '@/components/tracking/WorkoutLogger'
 
 // ─── GET — last 50 workout logs ───────────────────────────────────────────────
@@ -107,6 +108,7 @@ export async function POST(req: NextRequest) {
     const daysPerWeek = profile?.daysPerWeek ?? 4
     levelUp = await addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => null)
     updateStreakIfWeekComplete(session.user.id, daysPerWeek).catch(() => undefined)
+    notifyRankSurpassed(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => undefined)
     const badge = await checkAndAwardConsistency(session.user.id).catch(() => null)
     if (badge) newBadge = { id: badge.id, name: badge.name, icon: badge.icon }
   }

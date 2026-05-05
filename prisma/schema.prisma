@@ -66,6 +66,12 @@ enum BadgeId {
   group_top
 }
 
+enum NotificationType {
+  new_follower
+  group_invite
+  rank_surpassed
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -92,6 +98,7 @@ model User {
   following    Follow[]        @relation("UserFollowing")
   groupsCreated Group[]        @relation("GroupCreator")
   groupMembers  GroupMember[]  @relation("GroupMemberships")
+  notifications Notification[]
 }
 
 model UserProfile {
@@ -239,6 +246,22 @@ model GroupMember {
   @@unique([groupId, userId])
   @@index([groupId])
   @@index([userId])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  body       String?
+  href       String?
+  fromUserId String?
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, read])
 }
 
 model WeeklyCheckIn {
