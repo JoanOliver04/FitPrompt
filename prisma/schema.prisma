@@ -86,6 +86,7 @@ model User {
   dailyCounts  DailyMessageCount[]
   streak       Streak?
   checkIns     WeeklyCheckIn[]
+  xp           UserXP?
 }
 
 model UserProfile {
@@ -178,6 +179,13 @@ model Streak {
   bestStreak        Int      @default(0)
   lastCompletedWeek String?  // ISO week: "YYYY-Www"
   updatedAt         DateTime @updatedAt
+}
+
+model UserXP {
+  id      String @id @default(cuid())
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalXP Int    @default(0)
 }
 
 model WeeklyCheckIn {

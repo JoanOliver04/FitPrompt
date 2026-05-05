@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { resolveStreak } from '@/lib/streak'
+import { getXP, XP_PER_LEVEL } from '@/lib/xp'
 
 export interface DashboardData {
   name:                  string
@@ -20,10 +21,6 @@ export interface DashboardData {
   weightInitial:         number | null
 }
 
-const XP_PER_WORKOUT     = 10
-const XP_PER_ACHIEVEMENT = 50
-const XP_PER_LEVEL       = 200
-const LEVEL_NAMES        = ['Novato', 'Activo', 'Consistente', 'Atleta', 'Beast', 'Elite']
 
 function startOfDay(d: Date): Date {
   const c = new Date(d)
@@ -76,19 +73,6 @@ function getCompletedDaysThisWeek(dates: Date[]): number[] {
   return Array.from(indices)
 }
 
-function calculateXP(
-  workoutCount:     number,
-  achievementCount: number,
-): { level: number; levelName: string; current: number; max: number } {
-  const totalXP = workoutCount * XP_PER_WORKOUT + achievementCount * XP_PER_ACHIEVEMENT
-  const level   = Math.max(1, Math.floor(totalXP / XP_PER_LEVEL) + 1)
-  return {
-    level,
-    levelName: LEVEL_NAMES[Math.min(level - 1, LEVEL_NAMES.length - 1)],
-    current:   totalXP % XP_PER_LEVEL,
-    max:       XP_PER_LEVEL,
-  }
-}
 
 export async function getDashboardData(
   userId:   string,
@@ -96,7 +80,7 @@ export async function getDashboardData(
 ): Promise<DashboardData> {
   const thirtyDaysAgo = subDays(new Date(), 30)
 
-  const [latestWeight, workoutLogs, achievementCount, profile, oldestWeight, allWorkouts] = await Promise.all([
+  const [latestWeight, workoutLogs, profile, oldestWeight, allWorkouts, xp] = await Promise.all([
     db.weightLog.findFirst({
       where:   { userId },
       orderBy: { date: 'desc' },
@@ -107,7 +91,6 @@ export async function getDashboardData(
       select:  { date: true },
       orderBy: { date: 'desc' },
     }),
-    db.achievement.count({ where: { userId } }),
     db.userProfile.findUnique({
       where:  { userId },
       select: { daysPerWeek: true, weight: true },
@@ -121,11 +104,11 @@ export async function getDashboardData(
       where:  { userId, completed: true },
       select: { date: true, duration: true },
     }),
+    getXP(userId),
   ])
 
   const daysPerWeek    = profile?.daysPerWeek ?? 4
   const completedDates = workoutLogs.map(l => l.date)
-  const xp             = calculateXP(workoutLogs.length, achievementCount)
   const streakData     = await resolveStreak(userId, daysPerWeek)
 
   // Prefer logged weight over profile weight (onboarding value)

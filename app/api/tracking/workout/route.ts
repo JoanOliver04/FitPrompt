@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { updateStreakIfWeekComplete } from '@/lib/streak'
+import { addXP, XP_REWARDS } from '@/lib/xp'
 import type { WorkoutExercise } from '@/components/tracking/WorkoutLogger'
 
 // ─── GET — last 50 workout logs ───────────────────────────────────────────────
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
 
   if (completed) {
     const daysPerWeek = profile?.daysPerWeek ?? 4
-    // fire-and-forget — streak failure must not block the workout response
+    addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => undefined)
     updateStreakIfWeekComplete(session.user.id, daysPerWeek).catch(() => undefined)
   }
 

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { addXP, XP_REWARDS } from '@/lib/xp'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -124,9 +125,12 @@ export async function updateStreakIfWeekComplete(
     : 1
   const newBest = Math.max(newCurrent, streak?.bestStreak ?? 0)
 
-  await db.streak.upsert({
-    where:  { userId },
-    update: { currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
-    create: { userId, currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
-  })
+  await Promise.all([
+    db.streak.upsert({
+      where:  { userId },
+      update: { currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
+      create: { userId, currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
+    }),
+    addXP(userId, XP_REWARDS.WEEK_COMPLETE),
+  ])
 }
