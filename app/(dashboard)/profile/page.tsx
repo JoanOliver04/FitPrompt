@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { BadgesGrid } from '@/components/profile/BadgesGrid'
 
 export const metadata: Metadata = {
   title: 'Perfil',
@@ -32,14 +35,8 @@ const profileSections = [
   },
 ]
 
-const achievements = [
-  { icon: '🏆', label: 'Primer Paso', unlocked: true },
-  { icon: '📅', label: 'Semana 1', unlocked: true },
-  { icon: '🔥', label: 'Constancia', unlocked: false },
-  { icon: '💪', label: 'Bestia', unlocked: false },
-]
-
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  const session = await getServerSession(authOptions)
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full animate-fade-in">
       <h1 className="text-3xl font-black text-text-primary mb-8">Mi perfil</h1>
@@ -105,19 +102,10 @@ export default function ProfilePage() {
       {/* Achievements */}
       <div className="bg-bg-secondary border border-border-default rounded-2xl p-5 mb-6">
         <h3 className="text-text-primary font-bold mb-4">Logros</h3>
-        <div className="grid grid-cols-4 gap-3">
-          {achievements.map((a) => (
-            <div
-              key={a.label}
-              className={`flex flex-col items-center gap-2 p-3 rounded-xl ${
-                a.unlocked ? 'bg-[#FF471A1A] border border-[#FF471A33]' : 'bg-bg-tertiary opacity-40'
-              }`}
-            >
-              <span className="text-2xl">{a.icon}</span>
-              <span className="text-xs text-center text-text-secondary font-medium leading-tight">{a.label}</span>
-            </div>
-          ))}
-        </div>
+        {session?.user?.id
+          ? <BadgesGrid userId={session.user.id} />
+          : <p className="text-text-muted text-sm">Inicia sesión para ver tus logros.</p>
+        }
       </div>
 
       {/* Actions */}

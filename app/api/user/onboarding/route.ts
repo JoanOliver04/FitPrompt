@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { awardBadge } from '@/lib/badges'
+import { BadgeId } from '@prisma/client'
 import type { UserProfile } from '@/types'
 
 type OnboardingBody = Omit<UserProfile, 'userId'> & { name: string }
@@ -57,6 +59,8 @@ export async function POST(req: Request) {
       extraInfo: body.extraInfo ?? null,
     },
   })
+
+  awardBadge(userId, BadgeId.first_step).catch(() => undefined)
 
   return NextResponse.json({ success: true })
 }

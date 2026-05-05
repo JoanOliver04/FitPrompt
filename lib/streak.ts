@@ -1,5 +1,7 @@
 import { db } from '@/lib/db'
 import { addXP, XP_REWARDS } from '@/lib/xp'
+import { awardBadge } from '@/lib/badges'
+import { BadgeId } from '@prisma/client'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,5 +134,6 @@ export async function updateStreakIfWeekComplete(
       create: { userId, currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
     }),
     addXP(userId, XP_REWARDS.WEEK_COMPLETE),
+    awardBadge(userId, BadgeId.week_1), // idempotent — only fires once
   ])
 }
