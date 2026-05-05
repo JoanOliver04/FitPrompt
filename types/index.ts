@@ -179,6 +179,27 @@ export interface WeeklyCheckIn {
   updatedAt: Date
 }
 
+// ─── Groups ───────────────────────────────────────────────────────────────────
+
+export interface Group {
+  id: string
+  name: string
+  createdBy: string
+  createdAt: Date
+  memberCount: number
+}
+
+export interface GroupWithMembers extends Group {
+  members: GroupMemberInfo[]
+}
+
+export interface GroupMemberInfo {
+  id: string
+  name: string | null
+  image: string | null
+  joinedAt: Date
+}
+
 // ─── API Responses ────────────────────────────────────────────────────────────
 
 export interface ApiError {
