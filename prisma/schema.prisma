@@ -87,6 +87,7 @@ model User {
   streak       Streak?
   checkIns     WeeklyCheckIn[]
   xp           UserXP?
+  challenges   UserChallenge[]
 }
 
 model UserProfile {
@@ -186,6 +187,19 @@ model UserXP {
   userId  String @unique
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   totalXP Int    @default(0)
+}
+
+model UserChallenge {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  weekStart   DateTime  @db.Date
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, challengeId, weekStart])
 }
 
 model WeeklyCheckIn {
