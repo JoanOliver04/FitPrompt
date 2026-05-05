@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { resolveStreak } from '@/lib/streak'
-import { getXP, XP_PER_LEVEL } from '@/lib/xp'
+import { getXP, LEVEL_THRESHOLDS } from '@/lib/xp'
 
 export interface DashboardData {
   name:                  string
@@ -150,7 +150,7 @@ export const FALLBACK_DASHBOARD: DashboardData = {
   xpLevel:               1,
   xpLevelName:           'Novato',
   xpCurrent:             0,
-  xpMax:                 XP_PER_LEVEL,
+  xpMax:                 LEVEL_THRESHOLDS[1], // 300 — XP needed for level 2
   completedDaysThisWeek: [],
   totalWorkouts:         0,
   activeDays:            0,

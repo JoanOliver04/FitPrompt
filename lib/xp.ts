@@ -9,9 +9,10 @@ export const XP_REWARDS = {
   WEEK_COMPLETE:    200,
 } as const
 
-export const XP_PER_LEVEL = 1000
+// XP required to reach each level (index = levelIndex, value = threshold)
+export const LEVEL_THRESHOLDS = [0, 300, 700, 1500, 3000, 6000, 12000, 24000, 48000, 96000] as const
 
-const LEVEL_NAMES = ['Novato', 'Activo', 'Consistente', 'Atleta', 'Beast', 'Elite']
+const LEVEL_NAMES = ['Novato', 'Activo', 'Consistente', 'Atleta', 'Guerrero', 'Élite', 'Culturista', 'Olimpia', 'Hulk', 'Superman'] as const
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -24,12 +25,20 @@ export interface LevelInfo {
 
 /** Derives level, levelName and progress bar values from a raw XP total. */
 export function deriveLevel(totalXP: number): LevelInfo {
-  const level = Math.floor(totalXP / XP_PER_LEVEL) + 1
+  let levelIndex = LEVEL_THRESHOLDS.length - 1
+  for (let i = 1; i < LEVEL_THRESHOLDS.length; i++) {
+    if (totalXP < LEVEL_THRESHOLDS[i]) { levelIndex = i - 1; break }
+  }
+
+  const threshold     = LEVEL_THRESHOLDS[levelIndex]
+  const isMax         = levelIndex === LEVEL_THRESHOLDS.length - 1
+  const nextThreshold = isMax ? threshold + 1000 : LEVEL_THRESHOLDS[levelIndex + 1]
+
   return {
-    level,
-    levelName: LEVEL_NAMES[Math.min(level - 1, LEVEL_NAMES.length - 1)],
-    current:   totalXP % XP_PER_LEVEL,
-    max:       XP_PER_LEVEL,
+    level:     levelIndex + 1,
+    levelName: LEVEL_NAMES[levelIndex],
+    current:   totalXP - threshold,
+    max:       nextThreshold - threshold,
   }
 }
 
