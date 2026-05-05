@@ -10,6 +10,7 @@ import {
   verifyChatOwnership,
 } from '@/lib/chat'
 import { generarPromptListaCompra } from '@/lib/prompts'
+import { getLastCheckIn } from '@/lib/checkin'
 import { db } from '@/lib/db'
 import type { Plan, UserProfile, ShoppingList } from '@/types'
 import { SHOPPING_LIST_SENTINEL } from '@/types'
@@ -206,8 +207,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   // ─── Normal AI flow ───────────────────────────────────────────────────────
 
+  const lastCheckIn = await getLastCheckIn(userId)
+  const checkInContext = lastCheckIn
+    ? `\n\n---\n\n**Último check-in del usuario** (semana del ${lastCheckIn.weekStart.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}):\n> "${lastCheckIn.response}"\n\nTen en cuenta este contexto para personalizar tus respuestas.`
+    : ''
+
   const messages = [
-    { role: 'system' as const, content: FITCOACH_SYSTEM },
+    { role: 'system' as const, content: FITCOACH_SYSTEM + checkInContext },
     ...sanitizeForGroq(history),
     userMessage,
   ]

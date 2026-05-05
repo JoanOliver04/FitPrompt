@@ -85,6 +85,7 @@ model User {
   achievements Achievement[]
   dailyCounts  DailyMessageCount[]
   streak       Streak?
+  checkIns     WeeklyCheckIn[]
 }
 
 model UserProfile {
@@ -177,4 +178,17 @@ model Streak {
   bestStreak        Int      @default(0)
   lastCompletedWeek String?  // ISO week: "YYYY-Www"
   updatedAt         DateTime @updatedAt
+}
+
+model WeeklyCheckIn {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart     DateTime @db.Date
+  response      String   @db.Text
+  aiSuggestions String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, weekStart])
 }

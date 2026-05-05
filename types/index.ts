@@ -167,6 +167,18 @@ export interface ShoppingList {
   summary: string
 }
 
+// ─── Check-in ─────────────────────────────────────────────────────────────────
+
+export interface WeeklyCheckIn {
+  id: string
+  userId: string
+  weekStart: Date
+  response: string
+  aiSuggestions: string[] | null
+  createdAt: Date
+  updatedAt: Date
+}
+
 // ─── API Responses ────────────────────────────────────────────────────────────
 
 export interface ApiError {

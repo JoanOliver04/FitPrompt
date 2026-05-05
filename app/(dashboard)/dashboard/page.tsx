@@ -11,6 +11,7 @@ import TodayWorkout from '@/components/dashboard/TodayWorkout'
 import QuickActions from '@/components/dashboard/QuickActions'
 import { PlanDownloadCard } from '@/components/dashboard/PlanDownloadCard'
 import ProgressCards from '@/components/dashboard/ProgressCards'
+import WeeklyCheckIn from '@/components/dashboard/WeeklyCheckIn'
 
 export const metadata: Metadata = {
   title: 'Dashboard — FitPrompt',
@@ -44,6 +45,7 @@ export default async function DashboardPage() {
         bestStreak={data.bestStreak}
         weekComplete={data.weekComplete}
       />
+      <WeeklyCheckIn />
       <MetricsGrid
         streak={data.streak}
         bestStreak={data.bestStreak}
