@@ -21,7 +21,7 @@ export default function ChatInput({ value, onChange, onSend, disabled }: Props) 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      onSend()
+      if (!disabled) onSend()
     }
   }
 
@@ -50,7 +50,7 @@ export default function ChatInput({ value, onChange, onSend, disabled }: Props) 
         </div>
       )}
 
-      <div className="flex items-end gap-3 bg-bg-tertiary border border-border-default focus-within:border-accent rounded-2xl px-4 py-3 transition-colors">
+      <div className="flex items-end gap-3 bg-bg-tertiary border border-border-default rounded-2xl px-4 py-3 transition-colors">
         <textarea
           ref={textareaRef}
           rows={1}
