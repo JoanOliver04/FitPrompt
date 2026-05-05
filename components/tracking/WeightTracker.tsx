@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { WeightChart } from './WeightChart'
 import { useLevelUp } from '@/context/LevelUpContext'
+import { useToast } from '@/context/ToastContext'
 import type { LevelUpInfo } from '@/lib/xp'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -71,6 +72,7 @@ function StatCard({
 export function WeightTracker({ initialLogs }: Props) {
   const router             = useRouter()
   const { triggerLevelUp } = useLevelUp()
+  const { addToast }       = useToast()
 
   const [logs,   setLogs]   = useState<WeightEntry[]>(initialLogs)
   const [weight, setWeight] = useState('')
@@ -111,7 +113,12 @@ export function WeightTracker({ initialLogs }: Props) {
       return
     }
 
-    const { log, levelUp } = (await res.json()) as { log: WeightEntry; levelUp?: LevelUpInfo | null }
+    const { log, levelUp, xpGained, newBadge } = (await res.json()) as {
+      log:      WeightEntry
+      levelUp?: LevelUpInfo | null
+      xpGained?: number
+      newBadge?: { id: string; name: string; icon: string } | null
+    }
 
     // Insert and re-sort to keep desc order by date
     setLogs((prev) =>
@@ -120,7 +127,9 @@ export function WeightTracker({ initialLogs }: Props) {
       ),
     )
 
-    if (levelUp) triggerLevelUp(levelUp)
+    if (levelUp)  triggerLevelUp(levelUp)
+    if (xpGained) addToast({ variant: 'xp',   title: `+${xpGained} XP`, icon: '⚖️' })
+    if (newBadge) addToast({ variant: 'badge', title: 'Logro desbloqueado', subtitle: newBadge.name, icon: newBadge.icon })
 
     setWeight('')
     setDate(todayISO())

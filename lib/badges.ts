@@ -96,14 +96,18 @@ async function hasConsecutiveWeightDays(userId: string, days: number): Promise<b
 
 // ─── Check-and-award triggers ─────────────────────────────────────────────────
 
-export async function checkAndAwardConsistency(userId: string): Promise<void> {
+export async function checkAndAwardConsistency(userId: string): Promise<BadgeDefinition | null> {
   if (await hasConsecutiveWorkoutDays(userId, 7)) {
-    await awardBadge(userId, BadgeId.consistency)
+    const awarded = await awardBadge(userId, BadgeId.consistency)
+    return awarded ? (BADGE_DEFINITIONS.find(b => b.id === BadgeId.consistency) ?? null) : null
   }
+  return null
 }
 
-export async function checkAndAwardWeigher(userId: string): Promise<void> {
+export async function checkAndAwardWeigher(userId: string): Promise<BadgeDefinition | null> {
   if (await hasConsecutiveWeightDays(userId, 7)) {
-    await awardBadge(userId, BadgeId.weigher)
+    const awarded = await awardBadge(userId, BadgeId.weigher)
+    return awarded ? (BADGE_DEFINITIONS.find(b => b.id === BadgeId.weigher) ?? null) : null
   }
+  return null
 }

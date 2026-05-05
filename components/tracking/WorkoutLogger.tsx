@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLevelUp } from '@/context/LevelUpContext'
+import { useToast } from '@/context/ToastContext'
 import type { LevelUpInfo } from '@/lib/xp'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -205,8 +206,9 @@ function WorkoutCard({ log }: { log: WorkoutEntry }) {
 // ─── WorkoutLogger ────────────────────────────────────────────────────────────
 
 export function WorkoutLogger({ initialLogs }: Props) {
-  const router       = useRouter()
+  const router             = useRouter()
   const { triggerLevelUp } = useLevelUp()
+  const { addToast }       = useToast()
 
   // History
   const [logs, setLogs] = useState<WorkoutEntry[]>(initialLogs)
@@ -268,7 +270,12 @@ export function WorkoutLogger({ initialLogs }: Props) {
       return
     }
 
-    const { log, levelUp } = (await res.json()) as { log: WorkoutEntry; levelUp?: LevelUpInfo | null }
+    const { log, levelUp, xpGained, newBadge } = (await res.json()) as {
+      log:      WorkoutEntry
+      levelUp?: LevelUpInfo | null
+      xpGained?: number
+      newBadge?: { id: string; name: string; icon: string } | null
+    }
 
     setLogs((prev) =>
       [log, ...prev].sort(
@@ -276,7 +283,9 @@ export function WorkoutLogger({ initialLogs }: Props) {
       ),
     )
 
-    if (levelUp) triggerLevelUp(levelUp)
+    if (levelUp)  triggerLevelUp(levelUp)
+    if (xpGained) addToast({ variant: 'xp',    title: `+${xpGained} XP`, icon: '💪' })
+    if (newBadge) addToast({ variant: 'badge',  title: 'Logro desbloqueado', subtitle: newBadge.name, icon: newBadge.icon })
 
     // Reset form
     setExercises([{ ...BLANK_EXERCISE }])

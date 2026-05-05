@@ -100,14 +100,18 @@ export async function POST(req: NextRequest) {
   ])
 
   let levelUp: LevelUpInfo | null = null
+  let newBadge: { id: string; name: string; icon: string } | null = null
+  const xpGained = completed ? XP_REWARDS.WORKOUT_COMPLETE : 0
+
   if (completed) {
     const daysPerWeek = profile?.daysPerWeek ?? 4
     levelUp = await addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => null)
     updateStreakIfWeekComplete(session.user.id, daysPerWeek).catch(() => undefined)
-    checkAndAwardConsistency(session.user.id).catch(() => undefined)
+    const badge = await checkAndAwardConsistency(session.user.id).catch(() => null)
+    if (badge) newBadge = { id: badge.id, name: badge.name, icon: badge.icon }
   }
 
-  return NextResponse.json({ log: serialize(row), levelUp }, { status: 201 })
+  return NextResponse.json({ log: serialize(row), levelUp, xpGained, newBadge }, { status: 201 })
 }
 
 // ─── Serializer ───────────────────────────────────────────────────────────────

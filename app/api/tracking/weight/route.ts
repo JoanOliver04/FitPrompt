@@ -55,10 +55,12 @@ export async function POST(req: NextRequest) {
   })
 
   const levelUp: LevelUpInfo | null = await addXP(session.user.id, XP_REWARDS.WEIGHT_LOG).catch(() => null)
-  checkAndAwardWeigher(session.user.id).catch(() => undefined)
+  const xpGained = XP_REWARDS.WEIGHT_LOG
+  const badge = await checkAndAwardWeigher(session.user.id).catch(() => null)
+  const newBadge = badge ? { id: badge.id, name: badge.name, icon: badge.icon } : null
 
   return NextResponse.json(
-    { log: { id: log.id, weight: log.weight, date: log.date.toISOString() }, levelUp },
+    { log: { id: log.id, weight: log.weight, date: log.date.toISOString() }, levelUp, xpGained, newBadge },
     { status: 201 },
   )
 }
