@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLevelUp } from '@/context/LevelUpContext'
+import type { LevelUpInfo } from '@/lib/xp'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -203,7 +205,8 @@ function WorkoutCard({ log }: { log: WorkoutEntry }) {
 // ─── WorkoutLogger ────────────────────────────────────────────────────────────
 
 export function WorkoutLogger({ initialLogs }: Props) {
-  const router = useRouter()
+  const router       = useRouter()
+  const { triggerLevelUp } = useLevelUp()
 
   // History
   const [logs, setLogs] = useState<WorkoutEntry[]>(initialLogs)
@@ -265,13 +268,15 @@ export function WorkoutLogger({ initialLogs }: Props) {
       return
     }
 
-    const { log } = (await res.json()) as { log: WorkoutEntry }
+    const { log, levelUp } = (await res.json()) as { log: WorkoutEntry; levelUp?: LevelUpInfo | null }
 
     setLogs((prev) =>
       [log, ...prev].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       ),
     )
+
+    if (levelUp) triggerLevelUp(levelUp)
 
     // Reset form
     setExercises([{ ...BLANK_EXERCISE }])

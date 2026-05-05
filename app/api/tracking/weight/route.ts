@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { addXP, XP_REWARDS } from '@/lib/xp'
+import { addXP, XP_REWARDS, type LevelUpInfo } from '@/lib/xp'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -53,10 +53,10 @@ export async function POST(req: NextRequest) {
     select: { id: true, weight: true, date: true },
   })
 
-  addXP(session.user.id, XP_REWARDS.WEIGHT_LOG).catch(() => undefined)
+  const levelUp: LevelUpInfo | null = await addXP(session.user.id, XP_REWARDS.WEIGHT_LOG).catch(() => null)
 
   return NextResponse.json(
-    { log: { id: log.id, weight: log.weight, date: log.date.toISOString() } },
+    { log: { id: log.id, weight: log.weight, date: log.date.toISOString() }, levelUp },
     { status: 201 },
   )
 }

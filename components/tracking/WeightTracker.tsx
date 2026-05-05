@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { WeightChart } from './WeightChart'
+import { useLevelUp } from '@/context/LevelUpContext'
+import type { LevelUpInfo } from '@/lib/xp'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,7 +69,8 @@ function StatCard({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function WeightTracker({ initialLogs }: Props) {
-  const router = useRouter()
+  const router             = useRouter()
+  const { triggerLevelUp } = useLevelUp()
 
   const [logs,   setLogs]   = useState<WeightEntry[]>(initialLogs)
   const [weight, setWeight] = useState('')
@@ -108,7 +111,7 @@ export function WeightTracker({ initialLogs }: Props) {
       return
     }
 
-    const { log } = (await res.json()) as { log: WeightEntry }
+    const { log, levelUp } = (await res.json()) as { log: WeightEntry; levelUp?: LevelUpInfo | null }
 
     // Insert and re-sort to keep desc order by date
     setLogs((prev) =>
@@ -116,6 +119,9 @@ export function WeightTracker({ initialLogs }: Props) {
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       ),
     )
+
+    if (levelUp) triggerLevelUp(levelUp)
+
     setWeight('')
     setDate(todayISO())
     setStatus('idle')

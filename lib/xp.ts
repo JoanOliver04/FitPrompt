@@ -42,15 +42,36 @@ export function deriveLevel(totalXP: number): LevelInfo {
   }
 }
 
+// ─── Level-up detection ───────────────────────────────────────────────────────
+
+export interface LevelUpInfo {
+  from:      number
+  to:        number
+  levelName: string
+}
+
 // ─── DB operations ────────────────────────────────────────────────────────────
 
-/** Adds `amount` XP to the user, creating the record on first call. */
-export async function addXP(userId: string, amount: number): Promise<void> {
+/**
+ * Adds `amount` XP to the user. Returns level-up info when the action caused
+ * the user to cross a level threshold, or null otherwise.
+ */
+export async function addXP(userId: string, amount: number): Promise<LevelUpInfo | null> {
+  const before    = await db.userXP.findUnique({ where: { userId }, select: { totalXP: true } })
+  const prevXP    = before?.totalXP ?? 0
+  const prevLevel = deriveLevel(prevXP).level
+
   await db.userXP.upsert({
     where:  { userId },
     create: { userId, totalXP: amount },
     update: { totalXP: { increment: amount } },
   })
+
+  const newInfo = deriveLevel(prevXP + amount)
+  if (newInfo.level > prevLevel) {
+    return { from: prevLevel, to: newInfo.level, levelName: newInfo.levelName }
+  }
+  return null
 }
 
 /** Returns the user's current XP and derived level info. */

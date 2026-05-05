@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { updateStreakIfWeekComplete } from '@/lib/streak'
-import { addXP, XP_REWARDS } from '@/lib/xp'
+import { addXP, XP_REWARDS, type LevelUpInfo } from '@/lib/xp'
 import type { WorkoutExercise } from '@/components/tracking/WorkoutLogger'
 
 // ─── GET — last 50 workout logs ───────────────────────────────────────────────
@@ -98,13 +98,14 @@ export async function POST(req: NextRequest) {
     }),
   ])
 
+  let levelUp: LevelUpInfo | null = null
   if (completed) {
     const daysPerWeek = profile?.daysPerWeek ?? 4
-    addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => undefined)
+    levelUp = await addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => null)
     updateStreakIfWeekComplete(session.user.id, daysPerWeek).catch(() => undefined)
   }
 
-  return NextResponse.json({ log: serialize(row) }, { status: 201 })
+  return NextResponse.json({ log: serialize(row), levelUp }, { status: 201 })
 }
 
 // ─── Serializer ───────────────────────────────────────────────────────────────
