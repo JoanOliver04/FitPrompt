@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
 import { BadgesGrid } from '@/components/profile/BadgesGrid'
 
 export const metadata: Metadata = {
@@ -37,6 +38,14 @@ const profileSections = [
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)
+
+  const [followersCount, followingCount] = session?.user?.id
+    ? await Promise.all([
+        db.follow.count({ where: { followingId: session.user.id } }),
+        db.follow.count({ where: { followerId:  session.user.id } }),
+      ])
+    : [0, 0]
+
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full animate-fade-in">
       <h1 className="text-3xl font-black text-text-primary mb-8">Mi perfil</h1>
@@ -62,6 +71,14 @@ export default async function ProfilePage() {
               <div className="text-text-primary font-black text-lg">700 XP</div>
               <div className="text-text-muted text-xs">Experiencia</div>
             </div>
+            <Link href="/social" className="bg-bg-tertiary hover:bg-bg-secondary rounded-xl px-4 py-2 text-center transition-colors">
+              <div className="text-text-primary font-black text-lg tabular-nums">{followersCount}</div>
+              <div className="text-text-muted text-xs">Seguidores</div>
+            </Link>
+            <Link href="/social" className="bg-bg-tertiary hover:bg-bg-secondary rounded-xl px-4 py-2 text-center transition-colors">
+              <div className="text-text-primary font-black text-lg tabular-nums">{followingCount}</div>
+              <div className="text-text-muted text-xs">Siguiendo</div>
+            </Link>
           </div>
         </div>
         <div className="flex flex-col gap-2">

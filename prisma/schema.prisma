@@ -88,6 +88,8 @@ model User {
   checkIns     WeeklyCheckIn[]
   xp           UserXP?
   challenges   UserChallenge[]
+  followers    Follow[]        @relation("UserFollowers")
+  following    Follow[]        @relation("UserFollowing")
 }
 
 model UserProfile {
@@ -187,6 +189,19 @@ model UserXP {
   userId  String @unique
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   totalXP Int    @default(0)
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }
 
 model UserChallenge {
