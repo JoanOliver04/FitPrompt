@@ -109,11 +109,11 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
   }, [canCreateChat, isCreating, router])
 
   return (
-    <aside className="hidden md:flex flex-col w-60 shrink-0 bg-[#0D0D0D] border-r border-white/[0.06] overflow-hidden">
+    <aside className="hidden md:flex flex-col w-60 shrink-0 bg-bg-primary border-r border-border-default overflow-hidden">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3.5 border-b border-white/[0.06] shrink-0">
-        <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest px-1">
+      <div className="flex items-center justify-between px-3 py-3.5 border-b border-border-default shrink-0">
+        <span className="text-text-muted text-[10px] font-bold uppercase tracking-widest px-1">
           Chats
         </span>
         <button
@@ -124,7 +124,7 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
             'w-7 h-7 flex items-center justify-center rounded-lg transition-all',
             canCreateChat && !isCreating
               ? 'bg-[#FF471A] hover:bg-[#e03d15] active:scale-95 text-white'
-              : 'bg-white/5 text-white/20 cursor-not-allowed',
+              : 'bg-bg-tertiary text-text-muted opacity-50 cursor-not-allowed',
           ].join(' ')}
         >
           {isCreating ? (
@@ -138,11 +138,11 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto py-1.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb:hover]:bg-white/20">
+      <div className="flex-1 overflow-y-auto py-1.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border-default [&::-webkit-scrollbar-thumb:hover]:bg-text-muted">
         {chats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-2">
             <span className="text-2xl opacity-40">💬</span>
-            <p className="text-white/25 text-xs leading-relaxed">
+            <p className="text-text-muted text-xs leading-relaxed">
               Crea tu primer chat
             </p>
           </div>
@@ -160,10 +160,10 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
                 onKeyDown={e => e.key === 'Enter' && !isEditing && router.push(`/chat/${chat.id}`)}
                 className={[
                   'group relative flex items-center gap-1 mx-1.5 my-0.5 rounded-xl',
-                  'transition-all duration-150 cursor-pointer select-none',
+                  'transition-all duration-150 cursor-pointer select-none focus:outline-none',
                   isActive
                     ? 'bg-[#FF471A0F] border border-[#FF471A28]'
-                    : 'hover:bg-white/[0.04] border border-transparent',
+                    : 'hover:bg-bg-tertiary border border-transparent',
                 ].join(' ')}
               >
                 {/* Active left bar */}
@@ -184,19 +184,19 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
                       }}
                       onClick={e => e.stopPropagation()}
                       maxLength={100}
-                      className="w-full bg-transparent text-white text-sm font-medium outline-none border-b border-[#FF471A] pb-px"
+                      className="w-full bg-transparent text-text-primary text-sm font-medium outline-none border-b border-[#FF471A] pb-px"
                     />
                   ) : (
                     <p
                       className={[
                         'text-sm font-medium truncate transition-colors',
-                        isActive ? 'text-white' : 'text-white/60 group-hover:text-white/85',
+                        isActive ? 'text-text-primary' : 'text-text-secondary group-hover:text-text-primary',
                       ].join(' ')}
                     >
                       {chat.title}
                     </p>
                   )}
-                  <p className="text-[10px] text-white/25 mt-0.5 tabular-nums">
+                  <p className="text-[10px] text-text-muted mt-0.5 tabular-nums">
                     {timeAgo(chat.updatedAt)}
                   </p>
                 </div>
@@ -213,14 +213,14 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
                     <button
                       title="Renombrar"
                       onClick={e => { e.stopPropagation(); startRename(chat) }}
-                      className="w-6 h-6 flex items-center justify-center rounded-md text-white/30 hover:text-white/70 hover:bg-white/10 transition-all"
+                      className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-secondary hover:bg-bg-tertiary transition-all"
                     >
                       <PencilIcon />
                     </button>
                     <button
                       title="Eliminar"
                       onClick={e => { e.stopPropagation(); setPendingDelete(chat) }}
-                      className="w-6 h-6 flex items-center justify-center rounded-md text-white/30 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                      className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-red-400 hover:bg-red-400/10 transition-all"
                     >
                       <TrashIcon />
                     </button>
@@ -234,10 +234,10 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
 
       {/* Delete confirmation sheet */}
       {pendingDelete && (
-        <div className="shrink-0 p-3 border-t border-white/[0.06] bg-[#0A0A0A] animate-enter">
-          <p className="text-white/60 text-xs mb-2.5 leading-snug">
+        <div className="shrink-0 p-3 border-t border-border-default bg-bg-secondary animate-enter">
+          <p className="text-text-secondary text-xs mb-2.5 leading-snug">
             ¿Eliminar{' '}
-            <span className="text-white font-semibold">
+            <span className="text-text-primary font-semibold">
               &ldquo;{pendingDelete.title}&rdquo;
             </span>
             ?
@@ -251,7 +251,7 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
             </button>
             <button
               onClick={() => setPendingDelete(null)}
-              className="flex-1 py-1.5 rounded-lg bg-white/[0.07] hover:bg-white/[0.12] text-white/50 text-xs font-medium transition-all"
+              className="flex-1 py-1.5 rounded-lg bg-bg-tertiary hover:bg-border-default text-text-subtle text-xs font-medium transition-all"
             >
               Cancelar
             </button>
