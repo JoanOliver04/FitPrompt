@@ -7,6 +7,7 @@ import { useChat } from '@/hooks/useChat'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 import { ExportPdfButton } from './ExportPdfButton'
+import UpgradeBanner from '@/components/ui/UpgradeBanner'
 import type { Message } from '@/types'
 
 const FREE_DAILY_LIMIT = 5
@@ -87,24 +88,37 @@ export default function ChatInterface({
       {/* ── Messages ────────────────────────────────────────────── */}
       <MessageList messages={messages} isLoading={isLoading} />
 
-      {/* ── Error banner ────────────────────────────────────────── */}
+      {/* ── Error / limit banner ─────────────────────────────────
+          Two cases:
+          · messagesLeft === 0 → daily limit hit; show upgrade prompt.
+          · Any other error  → server/network issue; show red error.
+      ──────────────────────────────────────────────────────────── */}
       {error && (
-        <div
-          role="alert"
-          className="flex items-center justify-between gap-3 px-4 py-2.5 bg-red-950/40 border-t border-red-800/30 shrink-0"
-        >
-          <p className="text-xs text-red-400 leading-relaxed">{error}</p>
-          <button
-            onClick={clearError}
-            aria-label="Cerrar error"
-            className="text-red-500 hover:text-red-300 transition-colors shrink-0 p-0.5"
+        messagesLeft === 0 ? (
+          <UpgradeBanner
+            code="DAILY_MESSAGE_LIMIT"
+            dismissible
+            onDismiss={clearError}
+            className="mx-4 my-2"
+          />
+        ) : (
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-3 px-4 py-2.5 bg-red-950/40 border-t border-red-800/30 shrink-0"
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="1" y1="1" x2="11" y2="11" />
-              <line x1="11" y1="1" x2="1" y2="11" />
-            </svg>
-          </button>
-        </div>
+            <p className="text-xs text-red-400 leading-relaxed">{error}</p>
+            <button
+              onClick={clearError}
+              aria-label="Cerrar error"
+              className="text-red-500 hover:text-red-300 transition-colors shrink-0 p-0.5"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="1" y1="1" x2="11" y2="11" />
+                <line x1="11" y1="1" x2="1" y2="11" />
+              </svg>
+            </button>
+          </div>
+        )
       )}
 
       {/* ── Daily limit counter (Free plan only) ─────────────────

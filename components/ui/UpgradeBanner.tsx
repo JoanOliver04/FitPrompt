@@ -10,6 +10,8 @@ interface UpgradeBannerProps {
   message?: string
   dismissible?: boolean
   className?: string
+  /** Called when the user dismisses the banner — use to clear external error state. */
+  onDismiss?: () => void
 }
 
 const COPY: Record<LimitCode, { title: string; subtitle: string; emoji: string }> = {
@@ -41,6 +43,7 @@ export default function UpgradeBanner({
   message,
   dismissible = false,
   className = '',
+  onDismiss,
 }: UpgradeBannerProps) {
   const [dismissed, setDismissed] = useState(false)
 
@@ -87,7 +90,7 @@ export default function UpgradeBanner({
         {dismissible && (
           <button
             type="button"
-            onClick={() => setDismissed(true)}
+            onClick={() => { setDismissed(true); onDismiss?.() }}
             className="shrink-0 w-6 h-6 flex items-center justify-center text-text-muted hover:text-text-primary rounded-lg hover:bg-bg-tertiary transition-all"
             aria-label="Cerrar"
           >

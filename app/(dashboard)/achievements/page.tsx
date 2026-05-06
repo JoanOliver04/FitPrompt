@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { BADGE_DEFINITIONS } from '@/lib/badges'
 import { BadgeCard } from '@/components/ui/BadgeCard'
+import PremiumGate from '@/components/ui/PremiumGate'
+import type { Plan } from '@/types'
 
 export const metadata: Metadata = {
   title: 'Logros — FitPrompt',
@@ -13,6 +15,9 @@ export const metadata: Metadata = {
 export default async function AchievementsPage() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/login')
+
+  const plan      = (session.user as { plan?: Plan }).plan ?? 'free'
+  const isPremium = plan === 'premium'
 
   const achievements = await db.achievement.findMany({
     where: { userId: session.user.id },
@@ -65,7 +70,7 @@ export default async function AchievementsPage() {
 
       {/* Locked section */}
       {BADGE_DEFINITIONS.some(def => !earnedMap.has(def.id)) && (
-        <section>
+        <section className="mb-8">
           <h2 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">
             Por desbloquear
           </h2>
@@ -78,6 +83,19 @@ export default async function AchievementsPage() {
               />
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Premium badges — teaser for free users */}
+      {!isPremium && (
+        <section>
+          <h2 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">
+            Badges Premium
+          </h2>
+          <PremiumGate
+            feature="Badges exclusivos Premium"
+            description="Desbloquea logros avanzados por racha, nutrición, retos y más. Disponibles con el plan Premium."
+          />
         </section>
       )}
 
