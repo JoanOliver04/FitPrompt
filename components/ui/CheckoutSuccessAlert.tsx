@@ -15,14 +15,14 @@ export default function CheckoutSuccessAlert() {
 
     setVisible(true)
 
-    // Clean the query param from the URL without a full reload
     router.replace('/dashboard', { scroll: false })
 
-    // Give the Stripe webhook a few seconds to update the DB, then refresh the JWT
-    // so the new plan is reflected in the session without requiring a re-login.
+    // Re-read plan from DB into the JWT, then refresh Server Components so the
+    // premium state is reflected immediately without a manual reload.
     const timer = setTimeout(async () => {
       await update()
-    }, 3000)
+      router.refresh()
+    }, 200)
 
     return () => clearTimeout(timer)
   }, [params, router, update])

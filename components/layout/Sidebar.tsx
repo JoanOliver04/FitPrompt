@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Logo from '@/components/ui/Logo'
+import type { Plan } from '@/types'
 
 interface Props {
   collapsed: boolean
@@ -113,6 +115,8 @@ const navItems = [
 
 export default function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const isPremium = ((session?.user as { plan?: Plan })?.plan ?? 'free') === 'premium'
 
   return (
     <aside
@@ -186,24 +190,32 @@ export default function Sidebar({ collapsed, mobileOpen, onClose }: Props) {
 
       {/* Plan badge */}
       <div className={['p-3 border-t border-border-default', collapsed ? 'md:hidden' : ''].join(' ')}>
-        <div className="bg-bg-tertiary rounded-xl p-3.5">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-xs font-semibold text-text-secondary">Plan actual</span>
-            <span className="text-[10px] bg-bg-primary text-text-muted px-2 py-0.5 rounded-full font-medium border border-border-default">
-              Free
-            </span>
+        {isPremium ? (
+          <div className="bg-[#FF471A0F] border border-[#FF471A22] rounded-xl p-3.5 flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[#FF471A1A] border border-[#FF471A33] flex items-center justify-center shrink-0 text-sm select-none">
+              ⚡
+            </div>
+            <div className="min-w-0">
+              <p className="text-[#FF471A] text-xs font-bold leading-tight">FitPrompt Premium</p>
+              <p className="text-text-muted text-[10px] leading-tight mt-0.5">Sin límites activo</p>
+            </div>
           </div>
-          <div className="h-1 bg-bg-primary rounded-full mb-2 overflow-hidden">
-            <div className="h-full w-3/5 bg-gradient-to-r from-[#FF471A] to-[#FF6B3D] rounded-full" />
+        ) : (
+          <div className="bg-bg-tertiary rounded-xl p-3.5">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-xs font-semibold text-text-secondary">Plan actual</span>
+              <span className="text-[10px] bg-bg-primary text-text-muted px-2 py-0.5 rounded-full font-medium border border-border-default">
+                Free
+              </span>
+            </div>
+            <Link
+              href="/pricing"
+              className="block w-full text-center bg-[#FF471A] hover:bg-[#e03d15] active:scale-95 text-white text-xs font-bold py-2 rounded-lg transition-all"
+            >
+              Hazte Premium 🔥
+            </Link>
           </div>
-          <p className="text-[11px] text-text-muted mb-3">3 / 5 mensajes hoy</p>
-          <Link
-            href="/pricing"
-            className="block w-full text-center bg-[#FF471A] hover:bg-[#e03d15] active:scale-95 text-white text-xs font-bold py-2 rounded-lg transition-all"
-          >
-            Hazte Premium 🔥
-          </Link>
-        </div>
+        )}
       </div>
     </aside>
   )
