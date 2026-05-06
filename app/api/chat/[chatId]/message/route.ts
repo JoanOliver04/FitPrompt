@@ -4,18 +4,17 @@ import { authOptions } from '@/lib/auth'
 import {
   getHistory,
   saveMessages,
-  getDailyCount,
   incrementDailyCount,
   autoTitle,
   verifyChatOwnership,
 } from '@/lib/chat'
+import { applyLimits, PLAN_LIMITS } from '@/lib/limits'
 import { generarPromptListaCompra } from '@/lib/prompts'
 import { getLastCheckIn } from '@/lib/checkin'
 import { db } from '@/lib/db'
 import type { Plan, UserProfile, ShoppingList } from '@/types'
 import { SHOPPING_LIST_SENTINEL } from '@/types'
 
-const FREE_DAILY_LIMIT = 5
 const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
 const FITCOACH_SYSTEM = `Eres FitCoach, entrenador personal y nutricionista deportivo de élite con 15 años de experiencia.
@@ -124,24 +123,15 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { chatId } = await params
   const userId = session.user.id
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'
+  const user = { id: userId, plan }
 
   const owns = await verifyChatOwnership(chatId, userId)
   if (!owns) {
     return NextResponse.json({ error: 'Chat not found' }, { status: 404 })
   }
 
-  if (plan === 'free') {
-    const count = await getDailyCount(userId)
-    if (count >= FREE_DAILY_LIMIT) {
-      return NextResponse.json(
-        {
-          error: 'Has alcanzado el límite de mensajes diarios del plan Free.',
-          upgradeUrl: '/settings',
-        },
-        { status: 429 },
-      )
-    }
-  }
+  const blocked = await applyLimits(user, { type: 'send_message' })
+  if (blocked) return blocked
 
   let body: unknown
   try {
@@ -197,10 +187,11 @@ export async function POST(req: NextRequest, { params }: Params) {
       await saveMessages(chatId, userMessage, { role: 'assistant', content: aiContent })
       if (isFirstMessage) await autoTitle(chatId, userMessage.content)
       const messagesUsed = await incrementDailyCount(userId)
+      const dailyLimit = PLAN_LIMITS[plan].dailyMessages
 
       return NextResponse.json({
         content: aiContent,
-        ...(plan === 'free' && { messagesLeft: Math.max(0, FREE_DAILY_LIMIT - messagesUsed) }),
+        ...(isFinite(dailyLimit) && { messagesLeft: Math.max(0, dailyLimit - messagesUsed) }),
       })
     }
   }
@@ -233,10 +224,11 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const messagesUsed = await incrementDailyCount(userId)
+  const dailyLimit = PLAN_LIMITS[plan].dailyMessages
 
   return NextResponse.json({
     content: aiContent,
-    ...(plan === 'free' && { messagesLeft: Math.max(0, FREE_DAILY_LIMIT - messagesUsed) }),
+    ...(isFinite(dailyLimit) && { messagesLeft: Math.max(0, dailyLimit - messagesUsed) }),
   })
 }
 

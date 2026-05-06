@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.id = user.id
         token.plan = (user as { plan?: Plan }).plan ?? 'free'
@@ -69,6 +69,16 @@ export const authOptions: NextAuthOptions = {
           token.id = existing.id
           token.plan = existing.plan
         }
+      }
+
+      // Re-read plan from DB when the client explicitly triggers a session update
+      // (called from CheckoutButton after Stripe redirects back with ?checkout=success)
+      if (trigger === 'update' && token.id) {
+        const row = await db.user.findUnique({
+          where:  { id: token.id as string },
+          select: { plan: true },
+        })
+        if (row) token.plan = row.plan
       }
 
       return token

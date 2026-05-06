@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { applyLimits } from '@/lib/limits'
 import { db } from '@/lib/db'
 import { notifyNewFollower } from '@/lib/notifications'
+import type { Plan } from '@/types'
 
 // ─── POST — follow ────────────────────────────────────────────────────────────
 
@@ -15,7 +17,15 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const followerId  = session.user.id
+  const user = {
+    id: session.user.id,
+    plan: (session.user as { plan?: Plan }).plan ?? 'free',
+  }
+
+  const blocked = await applyLimits(user, { type: 'premium_feature', feature: 'social_groups' })
+  if (blocked) return blocked
+
+  const followerId  = user.id
   const followingId = params.userId
 
   if (followerId === followingId) {

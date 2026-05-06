@@ -12,7 +12,6 @@ Tiene un plan gratuito (Free) y uno de pago (Fit Premium).
 - **IA Premium:** Anthropic Claude — modelo `claude-sonnet-4-6` (cliente en `lib/anthropic.ts`)
 - **Auth:** NextAuth.js (Google OAuth + email/password)
 - **DB:** PostgreSQL via Supabase + Prisma ORM (esquema en `prisma/schema.prisma`)
-- **Pagos:** Stripe
 - **Deploy:** Vercel (frontend) + Supabase (DB)
 
 ## Paleta de Colores Oficial
@@ -40,7 +39,7 @@ app/
     ├── user/
     ├── chat/
     ├── ai/
-    └── stripe/
+    └── payment/
 assets/               → TODOS los recursos estáticos (imágenes, iconos, SVGs…)
 ├── logo/             → logotipos e iconos de marca
 │   ├── logo.png          (solo icono)
