@@ -4,8 +4,10 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { WeightTracker } from '@/components/tracking/WeightTracker'
 import { WorkoutLogger } from '@/components/tracking/WorkoutLogger'
+import PremiumGate from '@/components/ui/PremiumGate'
 import type { WeightEntry } from '@/components/tracking/WeightTracker'
 import type { WorkoutEntry, WorkoutExercise } from '@/components/tracking/WorkoutLogger'
+import type { Plan } from '@/types'
 
 export const metadata: Metadata = {
   title: 'Tracking — FitPrompt',
@@ -50,8 +52,10 @@ async function getWorkoutLogs(userId: string): Promise<WorkoutEntry[]> {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function TrackingPage() {
-  const session = await getServerSession(authOptions)
-  const userId  = session?.user?.id
+  const session   = await getServerSession(authOptions)
+  const userId    = session?.user?.id
+  const plan      = (session?.user as { plan?: Plan } | undefined)?.plan ?? 'free'
+  const isPremium = plan === 'premium'
 
   const [weightLogs, workoutLogs] = await Promise.all([
     userId ? getWeightLogs(userId)  : Promise.resolve<WeightEntry[]>([]),
@@ -86,16 +90,24 @@ export default async function TrackingPage() {
         <WorkoutLogger initialLogs={workoutLogs} />
       </section>
 
-      {/* Premium upsell */}
-      <div className="bg-[#FF471A0D] border border-[#FF471A33] rounded-2xl p-5 flex items-center gap-4">
-        <span className="text-3xl shrink-0" aria-hidden="true">📈</span>
-        <div className="flex-1 min-w-0">
-          <p className="text-text-primary font-bold text-sm">Métricas avanzadas en Premium</p>
-          <p className="text-text-secondary text-xs mt-0.5">
-            % grasa corporal, IMC, evolución mensual y análisis detallado
-          </p>
+      {/* Advanced metrics — locked for free, visible for premium */}
+      <section>
+        <div className="mb-3">
+          <h2 className="text-text-primary font-bold text-base flex items-center gap-2">
+            <span aria-hidden="true">📈</span> Métricas avanzadas
+          </h2>
         </div>
-      </div>
+        {isPremium ? (
+          <div className="bg-bg-secondary border border-border-default rounded-2xl p-5 text-center">
+            <p className="text-text-muted text-sm">Próximamente — análisis detallado de progreso.</p>
+          </div>
+        ) : (
+          <PremiumGate
+            feature="Métricas avanzadas"
+            description="% grasa corporal, IMC, evolución mensual y análisis detallado de tu progreso."
+          />
+        )}
+      </section>
 
     </div>
   )

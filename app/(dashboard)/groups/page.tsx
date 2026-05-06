@@ -5,7 +5,8 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import GroupCard from '@/components/groups/GroupCard'
 import CreateGroupButton from '@/components/groups/CreateGroupButton'
-import type { Group } from '@/types'
+import PremiumGate from '@/components/ui/PremiumGate'
+import type { Group, Plan } from '@/types'
 
 export const metadata: Metadata = { title: 'Grupos' }
 
@@ -13,7 +14,9 @@ export default async function GroupsPage() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/login')
 
-  const userId = session.user.id
+  const userId    = session.user.id
+  const plan      = (session.user as { plan?: Plan }).plan ?? 'free'
+  const isPremium = plan === 'premium'
 
   const memberships = await db.groupMember.findMany({
     where: { userId },
@@ -44,17 +47,19 @@ export default async function GroupsPage() {
           <h1 className="text-2xl font-black text-text-primary">Grupos</h1>
           <p className="text-text-muted text-sm">Entrena en equipo</p>
         </div>
-        <CreateGroupButton />
+        <CreateGroupButton isPremium={isPremium} />
       </div>
 
+      {/* Free plan: show PremiumGate when user has no groups yet */}
+      {!isPremium && groups.length === 0 && (
+        <PremiumGate
+          feature="Grupos sociales"
+          description="Crea grupos de entrenamiento, compite con amigos y sigue un ranking compartido."
+        />
+      )}
+
       {/* List */}
-      {groups.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <span className="text-5xl mb-4">👥</span>
-          <p className="text-text-primary font-bold mb-1">Sin grupos todavía</p>
-          <p className="text-text-muted text-sm">Crea uno o pide a alguien que te invite</p>
-        </div>
-      ) : (
+      {groups.length > 0 ? (
         <div className="grid gap-3">
           {groups.map((group) => (
             <GroupCard
@@ -64,7 +69,13 @@ export default async function GroupsPage() {
             />
           ))}
         </div>
-      )}
+      ) : isPremium ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <span className="text-5xl mb-4">👥</span>
+          <p className="text-text-primary font-bold mb-1">Sin grupos todavía</p>
+          <p className="text-text-muted text-sm">Crea uno o pide a alguien que te invite</p>
+        </div>
+      ) : null}
     </div>
   )
 }
