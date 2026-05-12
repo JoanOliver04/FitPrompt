@@ -13,6 +13,11 @@ enum Plan {
   premium
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 enum Gender {
   male
   female
@@ -81,6 +86,7 @@ model User {
   image     String?
   password  String?
   plan        Plan      @default(free)
+  role        Role      @default(USER)
   lastLoginAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

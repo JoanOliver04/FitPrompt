@@ -2,12 +2,15 @@
 
 export type Plan = 'free' | 'premium'
 
+export type Role = 'USER' | 'ADMIN'
+
 export interface User {
   id: string
   name: string
   email: string
   image?: string
   plan: Plan
+  role: Role
   createdAt: Date
 }
 

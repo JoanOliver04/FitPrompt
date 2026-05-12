@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 import { compare } from 'bcryptjs'
 import { db } from '@/lib/db'
-import type { Plan } from '@/types'
+import type { Plan, Role } from '@/types'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -38,6 +38,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name ?? '',
           image: user.image,
           plan: user.plan as Plan,
+          role: user.role as Role,
         }
       },
     }),
@@ -53,8 +54,9 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user, account, trigger }) {
       if (user) {
-        token.id = user.id
+        token.id   = user.id
         token.plan = (user as { plan?: Plan }).plan ?? 'free'
+        token.role = (user as { role?: Role }).role ?? 'USER'
       }
 
       if (account?.provider === 'google' && token.email) {
@@ -69,26 +71,31 @@ export const authOptions: NextAuthOptions = {
               lastLoginAt: new Date(),
             },
           })
-          token.id = created.id
+          token.id   = created.id
           token.plan = 'free'
+          token.role = 'USER'
         } else {
           await db.user.update({
             where: { id: existing.id },
             data: { lastLoginAt: new Date() },
           })
-          token.id = existing.id
+          token.id   = existing.id
           token.plan = existing.plan
+          token.role = existing.role as Role
         }
       }
 
-      // Re-read plan from DB when the client explicitly triggers a session update
+      // Re-read plan and role from DB when the client explicitly triggers a session update
       // (called from CheckoutButton after Stripe redirects back with ?checkout=success)
       if (trigger === 'update' && token.id) {
         const row = await db.user.findUnique({
           where:  { id: token.id as string },
-          select: { plan: true },
+          select: { plan: true, role: true },
         })
-        if (row) token.plan = row.plan
+        if (row) {
+          token.plan = row.plan
+          token.role = row.role as Role
+        }
       }
 
       return token
@@ -96,8 +103,9 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
+        session.user.id   = token.id as string
         session.user.plan = (token.plan ?? 'free') as Plan
+        session.user.role = (token.role ?? 'USER') as Role
       }
       return session
     },

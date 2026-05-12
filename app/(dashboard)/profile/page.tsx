@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { BadgesGrid } from '@/components/profile/BadgesGrid'
+import { ProfileActions } from '@/components/profile/ProfileActions'
 import { calculateAge } from '@/lib/age'
 import { formatLastLogin } from '@/lib/utils'
 
@@ -55,6 +56,7 @@ export default async function ProfilePage() {
       items: [
         { label: 'Nombre', value: session?.user?.name ?? '—' },
         { label: 'Email', value: session?.user?.email ?? '—' },
+        { label: 'Rol', value: session?.user?.role ?? 'USER' },
         {
           label: 'Fecha de nacimiento',
           value: profile?.birthDate
@@ -121,15 +123,22 @@ export default async function ProfilePage() {
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <span className="bg-bg-tertiary border border-border-default text-text-secondary text-xs font-semibold px-3 py-1 rounded-full text-center">
-            Plan Free
+          {session?.user?.role === 'ADMIN' && (
+            <span className="bg-[#FF471A] text-white text-xs font-bold px-3 py-1 rounded-full text-center uppercase tracking-wide">
+              Admin
+            </span>
+          )}
+          <span className="bg-bg-tertiary border border-border-default text-text-secondary text-xs font-semibold px-3 py-1 rounded-full text-center capitalize">
+            Plan {session?.user?.plan ?? 'Free'}
           </span>
-          <Link
-            href="/pricing"
-            className="bg-[#FF471A] hover:bg-[#e03d15] text-white text-xs font-bold px-4 py-1.5 rounded-full text-center transition-colors"
-          >
-            Ir a Premium
-          </Link>
+          {session?.user?.plan !== 'premium' && (
+            <Link
+              href="/pricing"
+              className="bg-[#FF471A] hover:bg-[#e03d15] text-white text-xs font-bold px-4 py-1.5 rounded-full text-center transition-colors"
+            >
+              Ir a Premium
+            </Link>
+          )}
         </div>
       </div>
 
@@ -166,6 +175,15 @@ export default async function ProfilePage() {
 
       {/* Actions */}
       <div className="space-y-2">
+        {session?.user?.role === 'ADMIN' && (
+          <Link
+            href="/admin"
+            className="flex items-center justify-between bg-[#FF471A1A] border border-[#FF471A33] hover:border-[#FF471A66] rounded-xl px-5 py-4 text-[#FF471A] hover:text-[#ff6a44] transition-all"
+          >
+            <span className="text-sm font-bold">🛡️ Panel de administración</span>
+            <span className="opacity-50">›</span>
+          </Link>
+        )}
         <Link
           href="/settings"
           className="flex items-center justify-between bg-bg-secondary border border-border-default hover:border-text-subtle rounded-xl px-5 py-4 text-text-secondary hover:text-text-primary transition-all"
@@ -173,20 +191,7 @@ export default async function ProfilePage() {
           <span className="text-sm font-medium">⚙️ Configuración</span>
           <span className="text-text-muted">›</span>
         </Link>
-        <button
-          type="button"
-          className="w-full flex items-center justify-between bg-bg-secondary border border-border-default hover:border-text-subtle rounded-xl px-5 py-4 text-text-secondary hover:text-text-primary transition-all"
-        >
-          <span className="text-sm font-medium">🚪 Cerrar sesión</span>
-          <span className="text-text-muted">›</span>
-        </button>
-        <button
-          type="button"
-          className="w-full flex items-center justify-between bg-bg-secondary border border-red-900/30 hover:border-red-800/60 rounded-xl px-5 py-4 text-red-400 hover:text-red-300 transition-all"
-        >
-          <span className="text-sm font-medium">🗑️ Eliminar cuenta</span>
-          <span className="opacity-50">›</span>
-        </button>
+        <ProfileActions />
       </div>
     </div>
   )

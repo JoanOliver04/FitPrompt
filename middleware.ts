@@ -1,16 +1,25 @@
-// middleware.ts — Protección de rutas del dashboard
-//
-// withAuth redirige a /login si el usuario no tiene sesión JWT válida.
-// Las rutas públicas (/, /login, /register, /api/auth/*) no están en el matcher
-// y por tanto nunca llegan a este middleware.
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
-import { withAuth } from 'next-auth/middleware'
+export async function middleware(request: NextRequest) {
+  const token = await getToken({ req: request })
+  const { pathname } = request.nextUrl
 
-export default withAuth({
-  pages: {
-    signIn: '/login',
-  },
-})
+  if (!token) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('callbackUrl', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  if (pathname.startsWith('/admin')) {
+    if (token.role !== 'ADMIN') {
+      return NextResponse.redirect(new URL('/403', request.url))
+    }
+  }
+
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [
@@ -18,5 +27,6 @@ export const config = {
     '/chat/:path*',
     '/profile/:path*',
     '/onboarding',
+    '/admin/:path*',
   ],
 }
