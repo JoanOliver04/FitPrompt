@@ -3,13 +3,14 @@
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { calculateAgeFromString, maxBirthDate, minBirthDate } from '@/lib/age'
 import type { UserProfile } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface OnboardingData {
   name: string
-  age: string
+  birthDate: string
   weight: string
   height: string
   gender: string
@@ -39,7 +40,7 @@ export const STEPS = [
 
 const INITIAL_DATA: OnboardingData = {
   name: '',
-  age: '',
+  birthDate: '',
   weight: '',
   height: '',
   gender: '',
@@ -60,16 +61,29 @@ const INITIAL_DATA: OnboardingData = {
 function validateStep(step: number, data: OnboardingData): StepErrors {
   const e: StepErrors = {}
   switch (step) {
-    case 0:
+    case 0: {
       if (!data.name.trim()) e.name = 'El nombre es obligatorio'
-      if (!data.age || Number(data.age) < 10 || Number(data.age) > 100)
-        e.age = 'Introduce una edad válida (10–100)'
+
+      if (!data.birthDate) {
+        e.birthDate = 'Introduce tu fecha de nacimiento'
+      } else {
+        const age = calculateAgeFromString(data.birthDate)
+        if (age === null) {
+          e.birthDate = 'Fecha de nacimiento inválida'
+        } else if (age < 13) {
+          e.birthDate = 'Debes tener al menos 13 años'
+        } else if (age > 100) {
+          e.birthDate = 'Introduce una fecha de nacimiento válida (máx. 100 años)'
+        }
+      }
+
       if (!data.weight || Number(data.weight) < 20 || Number(data.weight) > 300)
         e.weight = 'Introduce un peso válido (20–300 kg)'
       if (!data.height || Number(data.height) < 100 || Number(data.height) > 250)
         e.height = 'Introduce una altura válida (100–250 cm)'
       if (!data.gender) e.gender = 'Selecciona un género'
       break
+    }
     case 1:
       if (!data.goal) e.goal = 'Selecciona un objetivo'
       if (!data.level) e.level = 'Selecciona tu nivel'
@@ -124,7 +138,7 @@ export function toUserProfile(
 ): Omit<UserProfile, 'userId'> & { name: string } {
   return {
     name: data.name.trim(),
-    age: Number(data.age),
+    birthDate: new Date(data.birthDate),
     weight: Number(data.weight),
     height: Number(data.height),
     gender: GENDER_MAP[data.gender] ?? 'other',
@@ -217,3 +231,5 @@ export function useOnboarding() {
     goBack,
   }
 }
+
+export { maxBirthDate, minBirthDate }

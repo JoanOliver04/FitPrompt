@@ -1,6 +1,6 @@
 'use client'
 
-import { useOnboarding, STEPS } from '@/hooks/useOnboarding'
+import { useOnboarding, STEPS, maxBirthDate, minBirthDate } from '@/hooks/useOnboarding'
 import Logo from '@/components/ui/Logo'
 
 export default function OnboardingPage() {
@@ -58,7 +58,6 @@ export default function OnboardingPage() {
               {(
                 [
                   { id: 'name',   label: 'Nombre completo',    type: 'text',   placeholder: 'Tu nombre' },
-                  { id: 'age',    label: 'Edad',                type: 'number', placeholder: '25' },
                   { id: 'weight', label: 'Peso actual (kg)',    type: 'number', placeholder: '75' },
                   { id: 'height', label: 'Altura (cm)',         type: 'number', placeholder: '178' },
                 ] as const
@@ -81,6 +80,25 @@ export default function OnboardingPage() {
                   )}
                 </div>
               ))}
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
+                  Fecha de nacimiento
+                </label>
+                <input
+                  type="date"
+                  min={minBirthDate()}
+                  max={maxBirthDate()}
+                  value={data.birthDate}
+                  onChange={(e) => set('birthDate', e.target.value)}
+                  className={`w-full bg-bg-tertiary border text-text-primary rounded-xl px-4 py-3 text-sm outline-none transition-colors focus:border-[#FF471A] [color-scheme:dark] ${
+                    errors.birthDate ? 'border-red-500' : 'border-border-default'
+                  }`}
+                />
+                {errors.birthDate && (
+                  <p className="text-red-400 text-xs mt-1">{errors.birthDate}</p>
+                )}
+              </div>
 
               <div>
                 <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">

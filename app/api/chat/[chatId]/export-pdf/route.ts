@@ -97,7 +97,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   // ── Response ─────────────────────────────────────────────────────────────────
   const filename = `fitprompt-plan-${chatId.slice(0, 8)}.pdf`
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       'Content-Type':        'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,

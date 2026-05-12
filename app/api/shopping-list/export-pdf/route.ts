@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Error generando el PDF.' }, { status: 500 })
   }
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       'Content-Type':        'application/pdf',
       'Content-Disposition': 'attachment; filename="lista-compra-fitprompt.pdf"',

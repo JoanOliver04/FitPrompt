@@ -82,7 +82,7 @@ export default async function GroupRankingsPage({
   for (const log of logs) {
     const exercises = (
       Array.isArray(log.exercises) ? log.exercises : []
-    ) as WorkoutExercise[]
+    ) as unknown as WorkoutExercise[]
 
     for (const ex of exercises) {
       if (ex.name.toLowerCase() !== selected.toLowerCase()) continue

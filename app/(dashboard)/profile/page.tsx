@@ -4,47 +4,77 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { BadgesGrid } from '@/components/profile/BadgesGrid'
+import { calculateAge } from '@/lib/age'
 
 export const metadata: Metadata = {
   title: 'Perfil',
 }
 
-const profileSections = [
-  {
-    title: 'Datos personales',
-    items: [
-      { label: 'Nombre', value: 'Atleta FitPrompt' },
-      { label: 'Email', value: 'atleta@email.com' },
-      { label: 'Edad', value: '25 años' },
-    ],
-  },
-  {
-    title: 'Datos físicos',
-    items: [
-      { label: 'Peso', value: '75 kg' },
-      { label: 'Altura', value: '178 cm' },
-      { label: 'Objetivo', value: 'Volumen' },
-    ],
-  },
-  {
-    title: 'Preferencias de entrenamiento',
-    items: [
-      { label: 'Nivel', value: 'Intermedio' },
-      { label: 'Días/semana', value: '4 días' },
-      { label: 'Tipo', value: 'Gimnasio' },
-    ],
-  },
-]
+const GOAL_LABEL: Record<string, string> = {
+  volume: 'Volumen',
+  definition: 'Definición',
+  maintenance: 'Mantenimiento',
+  weight_loss: 'Pérdida de peso',
+}
+
+const LEVEL_LABEL: Record<string, string> = {
+  beginner: 'Principiante',
+  intermediate: 'Intermedio',
+  advanced: 'Avanzado',
+}
+
+const WORKOUT_LABEL: Record<string, string> = {
+  gym: 'Gimnasio',
+  home: 'Casa',
+  bodyweight: 'Peso corporal',
+}
+
+function formatBirthDate(date: Date): string {
+  return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)
 
-  const [followersCount, followingCount] = session?.user?.id
+  const [followersCount, followingCount, profile] = session?.user?.id
     ? await Promise.all([
         db.follow.count({ where: { followingId: session.user.id } }),
         db.follow.count({ where: { followerId:  session.user.id } }),
+        db.userProfile.findUnique({ where: { userId: session.user.id } }),
       ])
-    : [0, 0]
+    : [0, 0, null]
+
+  const profileSections = [
+    {
+      title: 'Datos personales',
+      items: [
+        { label: 'Nombre', value: session?.user?.name ?? '—' },
+        { label: 'Email', value: session?.user?.email ?? '—' },
+        {
+          label: 'Fecha de nacimiento',
+          value: profile?.birthDate
+            ? `${formatBirthDate(profile.birthDate)} (${calculateAge(profile.birthDate)} años)`
+            : '—',
+        },
+      ],
+    },
+    {
+      title: 'Datos físicos',
+      items: [
+        { label: 'Peso', value: profile ? `${profile.weight} kg` : '—' },
+        { label: 'Altura', value: profile ? `${profile.height} cm` : '—' },
+        { label: 'Objetivo', value: profile ? (GOAL_LABEL[profile.goal] ?? profile.goal) : '—' },
+      ],
+    },
+    {
+      title: 'Preferencias de entrenamiento',
+      items: [
+        { label: 'Nivel', value: profile ? (LEVEL_LABEL[profile.level] ?? profile.level) : '—' },
+        { label: 'Días/semana', value: profile ? `${profile.daysPerWeek} días` : '—' },
+        { label: 'Tipo', value: profile ? (WORKOUT_LABEL[profile.workoutType] ?? profile.workoutType) : '—' },
+      ],
+    },
+  ]
 
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full animate-fade-in">
@@ -56,8 +86,8 @@ export default async function ProfilePage() {
           <span className="text-4xl">👤</span>
         </div>
         <div className="flex-1 text-center md:text-left">
-          <h2 className="text-xl font-black text-text-primary">Atleta FitPrompt</h2>
-          <p className="text-text-secondary text-sm mb-3">atleta@email.com</p>
+          <h2 className="text-xl font-black text-text-primary">{session?.user?.name ?? 'Atleta FitPrompt'}</h2>
+          <p className="text-text-secondary text-sm mb-3">{session?.user?.email ?? ''}</p>
           <div className="flex flex-wrap justify-center md:justify-start gap-3">
             <div className="bg-bg-tertiary rounded-xl px-4 py-2 text-center">
               <div className="text-[#FF471A] font-black text-lg">🔥 5</div>

@@ -89,14 +89,14 @@ export default function MetricsGrid({
           <div className="text-2xl mb-2">{m.icon}</div>
           <div
             className="text-2xl font-black"
-            style={{ color: 'streakBadge' in m ? m.streakBadge.color : 'inherit' }}
+            style={{ color: m.streakBadge?.color ?? 'inherit' }}
           >
             {m.value}
           </div>
           <div className="text-xs text-text-secondary">{m.unit}</div>
           <div className="text-xs text-text-muted mt-0.5">{m.label}</div>
 
-          {'streakBadge' in m && (
+          {m.streakBadge && (
             <div className="mt-2 text-[10px] text-text-muted">
               {m.streakBadge.best > 0
                 ? `Mejor: ${m.streakBadge.best} sem`

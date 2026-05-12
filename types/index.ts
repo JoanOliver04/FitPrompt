@@ -13,7 +13,7 @@ export interface User {
 
 export interface UserProfile {
   userId: string
-  age: number
+  birthDate: Date
   weight: number
   height: number
   gender: 'male' | 'female' | 'other'

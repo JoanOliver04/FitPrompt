@@ -1,4 +1,5 @@
 import type { UserProfile } from '@/types'
+import { calculateAge } from '@/lib/age'
 
 // ─── Label maps ───────────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ const SCHEDULE_LABEL: Record<UserProfile['schedule'], string> = {
 
 function calcBMR(p: UserProfile): number {
   // Mifflin-St Jeor
-  const base = 10 * p.weight + 6.25 * p.height - 5 * p.age
+  const base = 10 * p.weight + 6.25 * p.height - 5 * calculateAge(p.birthDate)
   if (p.gender === 'male') return Math.round(base + 5)
   if (p.gender === 'female') return Math.round(base - 161)
   return Math.round(base - 78) // other: midpoint
@@ -188,7 +189,7 @@ function buildUserContext(p: UserProfile): string {
 
 | Campo | Valor |
 |---|---|
-| Edad | ${p.age} años |
+| Edad | ${calculateAge(p.birthDate)} años |
 | Género | ${GENDER_LABEL[p.gender]} |
 | Peso | ${p.weight} kg |
 | Altura | ${p.height} cm |
@@ -240,7 +241,7 @@ ${buildUserContext(profile)}
 
 ## Cómo debes comunicarte
 
-- **Personalización absoluta**: nunca des consejos genéricos. Cada respuesta debe reflejar los datos de este usuario (${profile.age} años, ${profile.weight} kg, objetivo: ${GOAL_LABEL[profile.goal]}, nivel: ${LEVEL_LABEL[profile.level]})
+- **Personalización absoluta**: nunca des consejos genéricos. Cada respuesta debe reflejar los datos de este usuario (${calculateAge(profile.birthDate)} años, ${profile.weight} kg, objetivo: ${GOAL_LABEL[profile.goal]}, nivel: ${LEVEL_LABEL[profile.level]})
 - **Tono**: profesional pero cercano, motivador sin ser condescendiente
 - **Pedagogía**: explica siempre el PORQUÉ (un usuario que entiende el razonamiento tiene mayor adherencia)
 - **Nivel de detalle**: adáptalo al nivel del usuario — técnico y denso para avanzados, pedagógico y gradual para principiantes
@@ -272,7 +273,7 @@ export function generarPromptRutina(profile: UserProfile): string {
   const intensity = getIntensityZone(profile.goal, profile.level)
   const volume = getSessionVolume(profile.sessionTime)
 
-  const equipmentNote =
+  const _equipmentNote =
     profile.workoutType === 'gym'
       ? 'Dispones de gimnasio completo. Alterna ejercicios con barra libre, mancuernas y máquinas para variedad de estímulos.'
       : profile.workoutType === 'home'

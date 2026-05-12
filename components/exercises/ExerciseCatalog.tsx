@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import type { Exercise, MuscleGroup, ExerciseType, Equipment } from '@/types'
+import type { Exercise, Equipment } from '@/types'
 import { MUSCLE_LABELS, TYPE_LABELS, EQUIPMENT_LABELS } from '@/lib/exercises'
 import ExerciseCard from './ExerciseCard'
 

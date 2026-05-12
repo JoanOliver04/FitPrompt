@@ -39,7 +39,7 @@ async function getWorkoutLogs(userId: string): Promise<WorkoutEntry[]> {
     return rows.map((r) => ({
       id:        r.id,
       date:      r.date.toISOString(),
-      exercises: (Array.isArray(r.exercises) ? r.exercises : []) as WorkoutExercise[],
+      exercises: (Array.isArray(r.exercises) ? r.exercises : []) as unknown as WorkoutExercise[],
       duration:  r.duration,
       completed: r.completed,
       notes:     r.notes ?? '',

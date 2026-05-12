@@ -105,7 +105,7 @@ model UserProfile {
   id              String      @id @default(cuid())
   userId          String      @unique
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  age             Int
+  birthDate       DateTime
   weight          Float
   height          Float
   gender          Gender

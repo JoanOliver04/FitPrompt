@@ -6,7 +6,10 @@ import { awardBadge } from '@/lib/badges'
 import { BadgeId } from '@prisma/client'
 import type { UserProfile } from '@/types'
 
-type OnboardingBody = Omit<UserProfile, 'userId'> & { name: string }
+type OnboardingBody = Omit<UserProfile, 'userId' | 'birthDate'> & {
+  name: string
+  birthDate: string | Date
+}
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
@@ -22,11 +25,16 @@ export async function POST(req: Request) {
   }
 
   const userId = session.user.id
+  const birthDate = new Date(body.birthDate)
+
+  if (isNaN(birthDate.getTime())) {
+    return NextResponse.json({ error: 'Invalid birthDate' }, { status: 400 })
+  }
 
   await db.userProfile.upsert({
     where: { userId },
     update: {
-      age: body.age,
+      birthDate,
       weight: body.weight,
       height: body.height,
       gender: body.gender,
@@ -43,7 +51,7 @@ export async function POST(req: Request) {
     },
     create: {
       userId,
-      age: body.age,
+      birthDate,
       weight: body.weight,
       height: body.height,
       gender: body.gender,

@@ -203,7 +203,7 @@ function ScoreBanner({
 }) {
   const isMeWinner    = myWins > theirWins
   const isThemWinner  = theirWins > myWins
-  const isOverallTied = myWins === theirWins
+  const _isOverallTied = myWins === theirWins
 
   return (
     <div className={[

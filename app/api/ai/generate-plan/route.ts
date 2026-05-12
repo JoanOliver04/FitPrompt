@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generatePlan } from '@/lib/ai'
+import { calculateAge } from '@/lib/age'
 import type { UserProfile } from '@/types'
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 const REQUIRED_FIELDS: (keyof UserProfile)[] = [
   'userId',
-  'age',
+  'birthDate',
   'weight',
   'height',
   'gender',
@@ -29,13 +30,19 @@ function validateProfile(body: unknown): UserProfile | string {
     }
   }
 
-  if (typeof b.age !== 'number' || b.age < 10 || b.age > 120) return 'age must be a number between 10 and 120'
+  const birthDate = new Date(b.birthDate as string)
+  if (isNaN(birthDate.getTime())) return 'birthDate must be a valid ISO date string'
+
+  const age = calculateAge(birthDate)
+  if (age < 13 || age > 100) return 'age derived from birthDate must be between 13 and 100'
+
   if (typeof b.weight !== 'number' || b.weight < 20 || b.weight > 400) return 'weight must be a number between 20 and 400'
   if (typeof b.height !== 'number' || b.height < 100 || b.height > 250) return 'height must be a number between 100 and 250'
   if (typeof b.daysPerWeek !== 'number' || b.daysPerWeek < 1 || b.daysPerWeek > 7) return 'daysPerWeek must be between 1 and 7'
 
   return {
     ...(b as unknown as UserProfile),
+    birthDate,
     foodPreferences: Array.isArray(b.foodPreferences) ? b.foodPreferences : [],
   }
 }
