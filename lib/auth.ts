@@ -27,6 +27,11 @@ export const authOptions: NextAuthOptions = {
         const valid = await compare(credentials.password, user.password)
         if (!valid) return null
 
+        await db.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        })
+
         return {
           id: user.id,
           email: user.email,
@@ -61,11 +66,16 @@ export const authOptions: NextAuthOptions = {
               name: token.name ?? '',
               image: token.picture ?? null,
               plan: 'free',
+              lastLoginAt: new Date(),
             },
           })
           token.id = created.id
           token.plan = 'free'
         } else {
+          await db.user.update({
+            where: { id: existing.id },
+            data: { lastLoginAt: new Date() },
+          })
           token.id = existing.id
           token.plan = existing.plan
         }

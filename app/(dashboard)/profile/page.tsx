@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { BadgesGrid } from '@/components/profile/BadgesGrid'
 import { calculateAge } from '@/lib/age'
+import { formatLastLogin } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Perfil',
@@ -36,13 +37,17 @@ function formatBirthDate(date: Date): string {
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)
 
-  const [followersCount, followingCount, profile] = session?.user?.id
+  const [followersCount, followingCount, profile, userMeta] = session?.user?.id
     ? await Promise.all([
         db.follow.count({ where: { followingId: session.user.id } }),
         db.follow.count({ where: { followerId:  session.user.id } }),
         db.userProfile.findUnique({ where: { userId: session.user.id } }),
+        db.user.findUnique({
+          where:  { id: session.user.id },
+          select: { lastLoginAt: true },
+        }),
       ])
-    : [0, 0, null]
+    : [0, 0, null, null]
 
   const profileSections = [
     {
@@ -55,6 +60,10 @@ export default async function ProfilePage() {
           value: profile?.birthDate
             ? `${formatBirthDate(profile.birthDate)} (${calculateAge(profile.birthDate)} años)`
             : '—',
+        },
+        {
+          label: 'Última conexión',
+          value: formatLastLogin(userMeta?.lastLoginAt),
         },
       ],
     },
