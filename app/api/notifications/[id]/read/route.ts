@@ -5,15 +5,17 @@ import { db } from '@/lib/db'
 
 export async function PATCH(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const { id } = await params
+
   await db.notification.updateMany({
-    where: { id: params.id, userId: session.user.id },
+    where: { id, userId: session.user.id },
     data:  { read: true },
   })
 

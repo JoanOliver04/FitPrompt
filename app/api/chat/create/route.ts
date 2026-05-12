@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
   const user = {
     id: session.user.id,
     plan: (session.user as { plan?: Plan }).plan ?? 'free',
+    role: session.user.role,
   }
 
   const blocked = await applyLimits(user, { type: 'create_chat' })

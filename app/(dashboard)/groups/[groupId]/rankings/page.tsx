@@ -37,16 +37,17 @@ export default async function GroupRankingsPage({
   params,
   searchParams,
 }: {
-  params: { groupId: string }
-  searchParams: { ex?: string }
+  params: Promise<{ groupId: string }>
+  searchParams: Promise<{ ex?: string }>
 }) {
+  const [{ groupId }, { ex: exParam }] = await Promise.all([params, searchParams])
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/login')
 
   const userId = session.user.id
 
   const group = await db.group.findUnique({
-    where: { id: params.groupId },
+    where: { id: groupId },
     include: {
       members: {
         include: { user: { select: { id: true, name: true, image: true } } },
@@ -60,7 +61,7 @@ export default async function GroupRankingsPage({
 
   const selected: Exercise =
     (EXERCISES.find(
-      (e) => e.toLowerCase() === (searchParams.ex ?? '').toLowerCase()
+      (e) => e.toLowerCase() === (exParam ?? '').toLowerCase()
     ) as Exercise | undefined) ?? EXERCISES[0]
 
   const memberIds = group.members.map((m) => m.userId)
@@ -139,7 +140,7 @@ export default async function GroupRankingsPage({
 
       {/* Back */}
       <Link
-        href={`/groups/${params.groupId}`}
+        href={`/groups/${groupId}`}
         className="inline-flex items-center gap-1.5 text-text-muted hover:text-text-primary text-sm mb-6 transition-colors"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -162,7 +163,7 @@ export default async function GroupRankingsPage({
           return (
             <Link
               key={ex}
-              href={`/groups/${params.groupId}/rankings?ex=${encodeURIComponent(ex.toLowerCase())}`}
+              href={`/groups/${groupId}/rankings?ex=${encodeURIComponent(ex.toLowerCase())}`}
               className={[
                 'px-3.5 py-1.5 rounded-xl text-sm font-semibold border transition-all',
                 isActive

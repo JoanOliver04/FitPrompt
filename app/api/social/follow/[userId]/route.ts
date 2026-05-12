@@ -8,7 +8,7 @@ import { notifyNewFollower } from '@/lib/notifications'
 
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { userId: string } },
+  { params }: { params: Promise<{ userId: string }> },
 ) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
@@ -16,7 +16,7 @@ export async function POST(
   }
 
   const followerId  = session.user.id
-  const followingId = params.userId
+  const { userId: followingId } = await params
 
   if (followerId === followingId) {
     return NextResponse.json({ error: 'Cannot follow yourself' }, { status: 400 })
@@ -44,7 +44,7 @@ export async function POST(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { userId: string } },
+  { params }: { params: Promise<{ userId: string }> },
 ) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
@@ -52,7 +52,7 @@ export async function DELETE(
   }
 
   const followerId  = session.user.id
-  const followingId = params.userId
+  const { userId: followingId } = await params
 
   await db.follow.deleteMany({ where: { followerId, followingId } })
 

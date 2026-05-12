@@ -7,15 +7,17 @@ import { db } from '@/lib/db'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { groupId: string } },
+  { params }: { params: Promise<{ groupId: string }> },
 ) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const { groupId } = await params
+
   const group = await db.group.findUnique({
-    where: { id: params.groupId },
+    where: { id: groupId },
     select: { id: true, createdBy: true },
   })
 
@@ -40,8 +42,8 @@ export async function POST(
   }
 
   await db.groupMember.upsert({
-    where: { groupId_userId: { groupId: params.groupId, userId } },
-    create: { groupId: params.groupId, userId },
+    where: { groupId_userId: { groupId, userId } },
+    create: { groupId, userId },
     update: {},
   })
 

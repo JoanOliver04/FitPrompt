@@ -7,14 +7,14 @@ import { addXP } from '@/lib/xp'
 
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { challengeId: string } },
+  { params }: { params: Promise<{ challengeId: string }> },
 ) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { challengeId } = params
+  const { challengeId } = await params
   const def = WEEKLY_CHALLENGES.find(c => c.id === challengeId)
   if (!def) {
     return NextResponse.json({ error: 'Challenge not found' }, { status: 404 })

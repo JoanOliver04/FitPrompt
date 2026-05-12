@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getDailyCount, countUserChats } from '@/lib/chat'
-import type { Plan } from '@/types'
+import type { Plan, Role } from '@/types'
 
 // ─── Plan configuration ───────────────────────────────────────────────────────
 
@@ -115,9 +115,11 @@ export type LimitOperation =
  * for post-upgrade accuracy.
  */
 export async function checkUserLimits(
-  user: { id: string; plan: Plan },
+  user: { id: string; plan: Plan; role?: Role },
   operation: LimitOperation,
 ): Promise<LimitResult> {
+  if (user.role === 'ADMIN') return { allowed: true }
+
   switch (operation.type) {
     case 'send_message':
       return checkMessageLimit(user.id, user.plan)
@@ -140,7 +142,7 @@ export async function checkUserLimits(
  *   if (blocked) return blocked
  */
 export async function applyLimits(
-  user: { id: string; plan: Plan },
+  user: { id: string; plan: Plan; role?: Role },
   operation: LimitOperation,
 ): Promise<NextResponse | null> {
   const result = await checkUserLimits(user, operation)

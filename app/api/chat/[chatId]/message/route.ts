@@ -123,7 +123,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { chatId } = await params
   const userId = session.user.id
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'
-  const user = { id: userId, plan }
+  const user = { id: userId, plan, role: session.user.role }
 
   const owns = await verifyChatOwnership(chatId, userId)
   if (!owns) {

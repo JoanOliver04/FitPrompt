@@ -7,30 +7,28 @@ import { db } from '@/lib/db'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import InviteButton from '@/components/groups/InviteButton'
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { groupId: string }
-}): Promise<Metadata> {
+interface Props {
+  params: Promise<{ groupId: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { groupId } = await params
   const group = await db.group.findUnique({
-    where: { id: params.groupId },
+    where: { id: groupId },
     select: { name: true },
   })
   return { title: group?.name ?? 'Grupo' }
 }
 
-export default async function GroupDetailPage({
-  params,
-}: {
-  params: { groupId: string }
-}) {
+export default async function GroupDetailPage({ params }: Props) {
+  const { groupId } = await params
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/login')
 
   const userId = session.user.id
 
   const group = await db.group.findUnique({
-    where: { id: params.groupId },
+    where: { id: groupId },
     include: {
       members: {
         include: { user: { select: { id: true, name: true, image: true } } },
@@ -61,6 +59,7 @@ export default async function GroupDetailPage({
       {/* Back */}
       <Link
         href="/groups"
+
         className="inline-flex items-center gap-1.5 text-text-muted hover:text-text-primary text-sm mb-6 transition-colors"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -89,7 +88,7 @@ export default async function GroupDetailPage({
           </p>
         </div>
         <Link
-          href={`/groups/${params.groupId}/rankings`}
+          href={`/groups/${groupId}/rankings`}
           className="ml-auto flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-bg-tertiary border border-border-default text-text-muted hover:text-text-primary hover:border-[#FF471A33] text-sm font-semibold transition-all"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

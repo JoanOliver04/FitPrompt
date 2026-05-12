@@ -9,26 +9,23 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { BadgesGrid } from '@/components/profile/BadgesGrid'
 import FollowButton from '@/components/profile/FollowButton'
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { userId: string }
-}): Promise<Metadata> {
+interface Props {
+  params: Promise<{ userId: string }>
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { userId } = await params
   const user = await db.user.findUnique({
-    where: { id: params.userId },
+    where: { id: userId },
     select: { name: true },
   })
   return { title: user?.name ? `Perfil de ${user.name}` : 'Perfil' }
 }
 
-export default async function PublicProfilePage({
-  params,
-}: {
-  params: { userId: string }
-}) {
+export default async function PublicProfilePage({ params }: Props) {
+  const { userId } = await params
   const session = await getServerSession(authOptions)
   const viewerId = session?.user?.id ?? null
-  const { userId } = params
 
   const [
     user,
