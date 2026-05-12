@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, startTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
 export interface ChatListItem {
@@ -40,6 +40,12 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
   const editRef = useRef<HTMLInputElement>(null)
 
   const activeChatId = pathname.match(/^\/chat\/([^/]+)/)?.[1] ?? null
+
+  // Sync when the server layout re-renders (router.refresh after title generation,
+  // plan change, etc.). initialChats gets a new array reference each time.
+  useEffect(() => {
+    setChats(initialChats)
+  }, [initialChats])
 
   useEffect(() => {
     if (editingId && editRef.current) {
@@ -100,9 +106,22 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
     try {
       const res = await fetch('/api/chat/create', { method: 'POST' })
       if (!res.ok) throw new Error()
-      const data = await res.json()
-      router.push(`/chat/${data.chat.id}`)
-      router.refresh()
+      const { chat } = (await res.json()) as { chat: ChatListItem }
+
+      // Optimistic: prepend the new chat immediately so it appears before navigation.
+      setChats(prev => {
+        // Guard against duplicates if router.refresh() lands before us.
+        if (prev.some(c => c.id === chat.id)) return prev
+        return [{ id: chat.id, title: chat.title, updatedAt: chat.updatedAt }, ...prev]
+      })
+
+      startTransition(() => {
+        router.push(`/chat/${chat.id}`)
+        // Keeps canCreateChat flag and other server-derived props in sync.
+        router.refresh()
+      })
+    } catch {
+      // API call failed — nothing created, no rollback needed.
     } finally {
       setIsCreating(false)
     }
@@ -139,7 +158,15 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto py-1.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border-default [&::-webkit-scrollbar-thumb:hover]:bg-text-muted">
-        {chats.length === 0 ? (
+        {/* Skeleton while the API call is in-flight */}
+        {isCreating && (
+          <div className="mx-1.5 my-0.5 rounded-xl border border-[#FF471A28] bg-[#FF471A08] px-3 py-2.5 animate-pulse">
+            <div className="h-2.5 rounded-md bg-bg-tertiary w-3/4 mb-2" />
+            <div className="h-2 rounded-md bg-bg-tertiary w-1/4" />
+          </div>
+        )}
+
+        {!isCreating && chats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-2">
             <span className="text-2xl opacity-40">💬</span>
             <p className="text-text-muted text-xs leading-relaxed">
