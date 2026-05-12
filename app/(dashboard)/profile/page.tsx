@@ -5,29 +5,31 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { BadgesGrid } from '@/components/profile/BadgesGrid'
 import { ProfileActions } from '@/components/profile/ProfileActions'
+import ProfileSections from '@/components/profile/ProfileSections'
 import { calculateAge } from '@/lib/age'
 import { formatLastLogin } from '@/lib/utils'
+import { deriveLevel } from '@/lib/xp'
 
 export const metadata: Metadata = {
   title: 'Perfil',
 }
 
 const GOAL_LABEL: Record<string, string> = {
-  volume: 'Volumen',
-  definition: 'Definición',
+  volume:      'Volumen',
+  definition:  'Definición',
   maintenance: 'Mantenimiento',
   weight_loss: 'Pérdida de peso',
 }
 
 const LEVEL_LABEL: Record<string, string> = {
-  beginner: 'Principiante',
+  beginner:     'Principiante',
   intermediate: 'Intermedio',
-  advanced: 'Avanzado',
+  advanced:     'Avanzado',
 }
 
 const WORKOUT_LABEL: Record<string, string> = {
-  gym: 'Gimnasio',
-  home: 'Casa',
+  gym:        'Gimnasio',
+  home:       'Casa',
   bodyweight: 'Peso corporal',
 }
 
@@ -38,54 +40,68 @@ function formatBirthDate(date: Date): string {
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)
 
-  const [followersCount, followingCount, profile, userMeta] = session?.user?.id
+  const [followersCount, followingCount, profile, userMeta, streakData, xpData] = session?.user?.id
     ? await Promise.all([
         db.follow.count({ where: { followingId: session.user.id } }),
         db.follow.count({ where: { followerId:  session.user.id } }),
         db.userProfile.findUnique({ where: { userId: session.user.id } }),
-        db.user.findUnique({
-          where:  { id: session.user.id },
-          select: { lastLoginAt: true },
-        }),
+        db.user.findUnique({ where: { id: session.user.id }, select: { lastLoginAt: true } }),
+        db.streak.findUnique({ where: { userId: session.user.id } }),
+        db.userXP.findUnique({ where: { userId: session.user.id } }),
       ])
-    : [0, 0, null, null]
+    : [0, 0, null, null, null, null]
+
+  const totalXP    = xpData?.totalXP ?? 0
+  const levelInfo  = deriveLevel(totalXP)
+  const streak     = streakData?.currentStreak ?? 0
 
   const profileSections = [
     {
-      title: 'Datos personales',
+      title:       'Datos personales',
+      editSection: 'personal' as const,
       items: [
-        { label: 'Nombre', value: session?.user?.name ?? '—' },
-        { label: 'Email', value: session?.user?.email ?? '—' },
-        { label: 'Rol', value: session?.user?.role ?? 'USER' },
+        { label: 'Nombre',              value: session?.user?.name ?? '—' },
+        { label: 'Email',               value: session?.user?.email ?? '—' },
+        { label: 'Rol',                 value: session?.user?.role ?? 'USER' },
         {
           label: 'Fecha de nacimiento',
           value: profile?.birthDate
             ? `${formatBirthDate(profile.birthDate)} (${calculateAge(profile.birthDate)} años)`
             : '—',
         },
-        {
-          label: 'Última conexión',
-          value: formatLastLogin(userMeta?.lastLoginAt),
-        },
+        { label: 'Última conexión',     value: formatLastLogin(userMeta?.lastLoginAt) },
       ],
     },
     {
-      title: 'Datos físicos',
+      title:       'Datos físicos',
+      editSection: 'physical' as const,
       items: [
-        { label: 'Peso', value: profile ? `${profile.weight} kg` : '—' },
-        { label: 'Altura', value: profile ? `${profile.height} cm` : '—' },
+        { label: 'Peso',     value: profile ? `${profile.weight} kg` : '—' },
+        { label: 'Altura',   value: profile ? `${profile.height} cm` : '—' },
         { label: 'Objetivo', value: profile ? (GOAL_LABEL[profile.goal] ?? profile.goal) : '—' },
       ],
     },
     {
-      title: 'Preferencias de entrenamiento',
+      title:       'Preferencias de entrenamiento',
+      editSection: 'training' as const,
       items: [
-        { label: 'Nivel', value: profile ? (LEVEL_LABEL[profile.level] ?? profile.level) : '—' },
-        { label: 'Días/semana', value: profile ? `${profile.daysPerWeek} días` : '—' },
-        { label: 'Tipo', value: profile ? (WORKOUT_LABEL[profile.workoutType] ?? profile.workoutType) : '—' },
+        { label: 'Nivel',         value: profile ? (LEVEL_LABEL[profile.level] ?? profile.level) : '—' },
+        { label: 'Días/semana',   value: profile ? `${profile.daysPerWeek} días` : '—' },
+        { label: 'Tipo',          value: profile ? (WORKOUT_LABEL[profile.workoutType] ?? profile.workoutType) : '—' },
       ],
     },
   ]
+
+  const profileData = {
+    name:        session?.user?.name  ?? '',
+    birthDate:   profile?.birthDate   ? profile.birthDate.toISOString().slice(0, 10) : null,
+    weight:      profile?.weight      ?? null,
+    height:      profile?.height      ?? null,
+    goal:        profile?.goal        ?? null,
+    level:       profile?.level       ?? null,
+    daysPerWeek: profile?.daysPerWeek ?? null,
+    workoutType: profile?.workoutType ?? null,
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full animate-fade-in">
@@ -101,15 +117,15 @@ export default async function ProfilePage() {
           <p className="text-text-secondary text-sm mb-3">{session?.user?.email ?? ''}</p>
           <div className="flex flex-wrap justify-center md:justify-start gap-3">
             <div className="bg-bg-tertiary rounded-xl px-4 py-2 text-center">
-              <div className="text-[#FF471A] font-black text-lg">🔥 5</div>
+              <div className="text-[#FF471A] font-black text-lg tabular-nums">🔥 {streak}</div>
               <div className="text-text-muted text-xs">Racha</div>
             </div>
             <div className="bg-bg-tertiary rounded-xl px-4 py-2 text-center">
-              <div className="text-text-primary font-black text-lg">⭐ 3</div>
-              <div className="text-text-muted text-xs">Nivel</div>
+              <div className="text-text-primary font-black text-lg tabular-nums">⭐ {levelInfo.level}</div>
+              <div className="text-text-muted text-xs">{levelInfo.levelName}</div>
             </div>
             <div className="bg-bg-tertiary rounded-xl px-4 py-2 text-center">
-              <div className="text-text-primary font-black text-lg">700 XP</div>
+              <div className="text-text-primary font-black text-lg tabular-nums">{totalXP} XP</div>
               <div className="text-text-muted text-xs">Experiencia</div>
             </div>
             <Link href="/social" className="bg-bg-tertiary hover:bg-bg-secondary rounded-xl px-4 py-2 text-center transition-colors">
@@ -142,26 +158,9 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {/* Profile sections */}
-      <div className="space-y-4 mb-6">
-        {profileSections.map((section) => (
-          <div key={section.title} className="bg-bg-secondary border border-border-default rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-text-primary font-bold">{section.title}</h3>
-              <button type="button" className="text-[#FF471A] text-xs font-semibold hover:underline">
-                Editar
-              </button>
-            </div>
-            <div className="space-y-2">
-              {section.items.map((item) => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-border-default last:border-0">
-                  <span className="text-text-muted text-sm">{item.label}</span>
-                  <span className="text-text-primary text-sm font-medium">{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+      {/* Editable profile sections */}
+      <div className="mb-6">
+        <ProfileSections data={profileData} profileSections={profileSections} />
       </div>
 
       {/* Achievements */}

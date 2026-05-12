@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import type { Exercise } from '@/types'
-import { MUSCLE_LABELS, TYPE_LABELS, LEVEL_LABELS, MUSCLE_COLORS, MUSCLE_ICONS } from '@/lib/exercises'
+import { MUSCLE_LABELS, TYPE_LABELS, LEVEL_LABELS, MUSCLE_COLORS } from '@/lib/exercises'
 
 interface Props {
   exercise: Exercise
@@ -23,20 +23,31 @@ export default function ExerciseCard({ exercise, style }: Props) {
       className="group flex flex-col bg-bg-secondary border border-border-default rounded-2xl overflow-hidden hover:border-[#FF471A44] hover:shadow-[0_4px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-200 animate-enter"
       style={style}
     >
-      {/* Image area */}
+      {/* Visual header */}
       <div
-        className="h-28 flex items-center justify-center text-5xl relative shrink-0"
+        className="h-24 flex items-end justify-between px-4 pb-3 relative shrink-0"
         style={{
-          background: `linear-gradient(135deg, ${color}28 0%, ${color}0a 100%)`,
-          borderBottom: `1px solid ${color}18`,
+          background: `linear-gradient(135deg, ${color}22 0%, ${color}08 100%)`,
+          borderBottom: `1px solid ${color}15`,
         }}
       >
-        <span role="img" aria-label={MUSCLE_LABELS[exercise.muscleGroup]}>
-          {MUSCLE_ICONS[exercise.muscleGroup]}
-        </span>
+        {/* Activity bars decoration */}
+        <div className="flex gap-[3px] items-end">
+          {[0.45, 0.7, 1, 0.8, 0.55].map((h, i) => (
+            <div
+              key={i}
+              className="w-[5px] rounded-full transition-all duration-300 group-hover:opacity-80"
+              style={{
+                height: `${h * 32}px`,
+                backgroundColor: color,
+                opacity: 0.25 + i * 0.06,
+              }}
+            />
+          ))}
+        </div>
 
         <span
-          className={`absolute top-2.5 right-2.5 text-[10px] px-2 py-0.5 rounded-full border font-semibold ${LEVEL_BADGE[exercise.level]}`}
+          className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${LEVEL_BADGE[exercise.level]}`}
         >
           {LEVEL_LABELS[exercise.level]}
         </span>
@@ -49,7 +60,7 @@ export default function ExerciseCard({ exercise, style }: Props) {
         </h3>
 
         <div className="flex flex-wrap gap-1.5 mt-auto">
-          <Badge>{MUSCLE_LABELS[exercise.muscleGroup]}</Badge>
+          <Badge color={color}>{MUSCLE_LABELS[exercise.muscleGroup]}</Badge>
           <Badge>{TYPE_LABELS[exercise.type]}</Badge>
         </div>
       </div>
@@ -57,7 +68,17 @@ export default function ExerciseCard({ exercise, style }: Props) {
   )
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
+function Badge({ children, color }: { children: React.ReactNode; color?: string }) {
+  if (color) {
+    return (
+      <span
+        className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+        style={{ background: `${color}18`, color, border: `1px solid ${color}25` }}
+      >
+        {children}
+      </span>
+    )
+  }
   return (
     <span className="text-[10px] px-2 py-0.5 rounded-full bg-bg-tertiary text-text-secondary border border-border-default font-medium">
       {children}

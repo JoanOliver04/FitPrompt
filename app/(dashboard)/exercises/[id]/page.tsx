@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getExerciseById, getExercises, MUSCLE_LABELS, TYPE_LABELS, LEVEL_LABELS, EQUIPMENT_LABELS, MUSCLE_COLORS, MUSCLE_ICONS } from '@/lib/exercises'
+import { getExerciseById, getExercises, MUSCLE_LABELS, TYPE_LABELS, LEVEL_LABELS, EQUIPMENT_LABELS, MUSCLE_COLORS } from '@/lib/exercises'
 import { Card, CardContent } from '@/components/ui/Card'
 
 interface Props {
@@ -50,25 +50,36 @@ export default async function ExerciseDetailPage({ params }: Props) {
 
       {/* Hero */}
       <div
-        className="rounded-2xl h-48 flex flex-col items-center justify-center mb-6 relative overflow-hidden"
+        className="rounded-2xl h-44 flex flex-col items-start justify-end px-8 pb-7 mb-6 relative overflow-hidden"
         style={{
-          background: `linear-gradient(135deg, ${color}30 0%, ${color}0c 100%)`,
-          border: `1px solid ${color}20`,
+          background: `linear-gradient(135deg, ${color}2a 0%, ${color}0a 100%)`,
+          border: `1px solid ${color}18`,
         }}
       >
-        <span className="text-7xl mb-3" role="img" aria-label={MUSCLE_LABELS[exercise.muscleGroup]}>
-          {MUSCLE_ICONS[exercise.muscleGroup]}
-        </span>
-        <h1 className="text-2xl font-black text-text-primary text-center px-4">{exercise.name}</h1>
+        {/* Decorative bars */}
+        <div className="absolute top-6 right-8 flex gap-[5px] items-end opacity-20">
+          {[0.4, 0.65, 1, 0.8, 0.55, 0.75, 0.45].map((h, i) => (
+            <div
+              key={i}
+              className="w-2 rounded-full"
+              style={{ height: `${h * 56}px`, backgroundColor: color }}
+            />
+          ))}
+        </div>
+
+        <p
+          className="text-[11px] font-black uppercase tracking-[0.18em] mb-2 opacity-60"
+          style={{ color }}
+        >
+          {MUSCLE_LABELS[exercise.muscleGroup]}
+        </p>
+        <h1 className="text-2xl font-black text-text-primary leading-tight">{exercise.name}</h1>
       </div>
 
       {/* Badges */}
       <div className="flex flex-wrap gap-2 mb-8">
         <span className={`text-xs px-3 py-1 rounded-full font-semibold ${LEVEL_BADGE[exercise.level]}`}>
           {LEVEL_LABELS[exercise.level]}
-        </span>
-        <span className="text-xs px-3 py-1 rounded-full bg-bg-tertiary text-text-secondary border border-border-default font-medium">
-          {MUSCLE_LABELS[exercise.muscleGroup]}
         </span>
         <span className="text-xs px-3 py-1 rounded-full bg-bg-tertiary text-text-secondary border border-border-default font-medium">
           {TYPE_LABELS[exercise.type]}
@@ -83,8 +94,16 @@ export default async function ExerciseDetailPage({ params }: Props) {
       {/* Instructions */}
       <Card className="mb-4">
         <CardContent>
-          <h2 className="text-text-primary font-bold text-base mb-4 flex items-center gap-2">
-            <span>📋</span> Instrucciones
+          <h2 className="text-text-primary font-bold text-base mb-4 flex items-center gap-2.5">
+            <span className="w-5 h-5 text-text-muted shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="4" rx="1"/>
+                <path d="M3 6h18v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+                <line x1="8" y1="16" x2="14" y2="16"/>
+              </svg>
+            </span>
+            Instrucciones
           </h2>
           <ol className="space-y-3">
             {exercise.instructions.map((step, i) => (
@@ -105,8 +124,13 @@ export default async function ExerciseDetailPage({ params }: Props) {
       {/* Muscles */}
       <Card className="mb-4">
         <CardContent>
-          <h2 className="text-text-primary font-bold text-base mb-4 flex items-center gap-2">
-            <span>💪</span> Músculos trabajados
+          <h2 className="text-text-primary font-bold text-base mb-4 flex items-center gap-2.5">
+            <span className="w-5 h-5 text-text-muted shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+            </span>
+            Músculos trabajados
           </h2>
 
           <div className="space-y-3">
@@ -144,8 +168,15 @@ export default async function ExerciseDetailPage({ params }: Props) {
       {/* Tips */}
       <Card>
         <CardContent>
-          <h2 className="text-text-primary font-bold text-base mb-4 flex items-center gap-2">
-            <span>💡</span> Recomendaciones
+          <h2 className="text-text-primary font-bold text-base mb-4 flex items-center gap-2.5">
+            <span className="w-5 h-5 text-text-muted shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </span>
+            Recomendaciones
           </h2>
           <ul className="space-y-2.5">
             {exercise.tips.map((tip, i) => (

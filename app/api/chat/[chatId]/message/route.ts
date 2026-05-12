@@ -9,7 +9,7 @@ import {
   verifyChatOwnership,
 } from '@/lib/chat'
 import { applyLimits, PLAN_LIMITS } from '@/lib/limits'
-import { generarPromptListaCompra } from '@/lib/prompts'
+import { generarPromptListaCompra, generarSystemPrompt } from '@/lib/prompts'
 import { getLastCheckIn } from '@/lib/checkin'
 import { db } from '@/lib/db'
 import type { Plan, UserProfile, ShoppingList } from '@/types'
@@ -37,7 +37,7 @@ async function callGroq(
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: GROQ_MODEL, messages, temperature, max_tokens: 1024 }),
+    body: JSON.stringify({ model: GROQ_MODEL, messages, temperature, max_tokens: 4096 }),
   })
 
   if (!res.ok) {
@@ -106,6 +106,22 @@ function sanitizeForGroq(
     }
     return m
   })
+}
+
+/**
+ * Keeps the last N messages and truncates any single message that is too long.
+ * Groq's free tier has a 12k TPM cap — long routine responses blow past it quickly.
+ */
+function trimHistory(
+  messages: Array<{ role: string; content: string }>,
+  maxMessages = 10,
+  maxCharsPerMessage = 1200,
+): Array<{ role: string; content: string }> {
+  return messages.slice(-maxMessages).map((m) =>
+    m.content.length > maxCharsPerMessage
+      ? { ...m, content: m.content.slice(0, maxCharsPerMessage) + '\n[...]' }
+      : m,
+  )
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
@@ -203,9 +219,15 @@ export async function POST(req: NextRequest, { params }: Params) {
     ? `\n\n---\n\n**Último check-in del usuario** (semana del ${lastCheckIn.weekStart.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}):\n> "${lastCheckIn.response}"\n\nTen en cuenta este contexto para personalizar tus respuestas.`
     : ''
 
+  // Use full personalised system prompt when the user has a profile
+  const userRow = await db.user.findUnique({ where: { id: userId }, select: { profile: true } })
+  const systemContent = userRow?.profile
+    ? generarSystemPrompt(userRow.profile as unknown as UserProfile) + checkInContext
+    : FITCOACH_SYSTEM + checkInContext
+
   const messages = [
-    { role: 'system' as const, content: FITCOACH_SYSTEM + checkInContext },
-    ...sanitizeForGroq(history),
+    { role: 'system' as const, content: systemContent },
+    ...trimHistory(sanitizeForGroq(history)),
     userMessage,
   ]
 

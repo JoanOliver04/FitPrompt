@@ -54,7 +54,7 @@ export default function WeeklyCheckIn() {
   if (view === 'loading' || view === 'hidden') return null
 
   return (
-    <div className="mb-6 bg-[#1A1A1A] border border-[#FF471A33] rounded-2xl p-5">
+    <div className="mb-6 bg-bg-secondary border border-[#FF471A33] rounded-2xl p-5">
       {view === 'prompt' ? (
         <>
           <div className="flex items-center gap-2 mb-2">
@@ -69,7 +69,7 @@ export default function WeeklyCheckIn() {
             onChange={(e) => setResponse(e.target.value)}
             placeholder="Esta semana he..."
             rows={3}
-            className="w-full bg-[#101010] border border-[#2A2A2A] rounded-xl px-4 py-3 text-text-primary text-sm resize-none focus:outline-none focus:border-[#FF471A] placeholder:text-[#666] transition-colors"
+            className="w-full bg-bg-primary border border-border-default rounded-xl px-4 py-3 text-text-primary text-sm resize-none focus:outline-none focus:border-[#FF471A] placeholder:text-text-muted transition-colors"
           />
           <div className="flex justify-end mt-3">
             <button
