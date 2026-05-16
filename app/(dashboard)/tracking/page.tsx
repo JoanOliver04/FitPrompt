@@ -6,11 +6,29 @@ import { WeightTracker } from '@/components/tracking/WeightTracker'
 import { WorkoutLogger } from '@/components/tracking/WorkoutLogger'
 import PremiumGate from '@/components/ui/PremiumGate'
 import type { WeightEntry } from '@/components/tracking/WeightTracker'
-import type { WorkoutEntry, WorkoutExercise } from '@/components/tracking/WorkoutLogger'
+import type { WorkoutEntry, WorkoutExercise, RoutineSummary } from '@/components/tracking/WorkoutLogger'
 import type { Plan } from '@/types'
 
 export const metadata: Metadata = {
   title: 'Tracking — FitPrompt',
+}
+
+async function getRoutines(userId: string): Promise<RoutineSummary[]> {
+  try {
+    const routines = await db.routine.findMany({
+      where:   { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        days: {
+          orderBy: { dayIndex: 'asc' },
+          include: { exercises: { orderBy: { order: 'asc' } } },
+        },
+      },
+    })
+    return routines as unknown as RoutineSummary[]
+  } catch {
+    return []
+  }
 }
 
 // ─── Data fetchers ────────────────────────────────────────────────────────────
@@ -51,15 +69,21 @@ async function getWorkoutLogs(userId: string): Promise<WorkoutEntry[]> {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function TrackingPage() {
+export default async function TrackingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ routineId?: string; dayId?: string }>
+}) {
   const session   = await getServerSession(authOptions)
   const userId    = session?.user?.id
   const plan      = (session?.user as { plan?: Plan } | undefined)?.plan ?? 'free'
   const isPremium = plan === 'premium'
+  const sp        = await searchParams
 
-  const [weightLogs, workoutLogs] = await Promise.all([
+  const [weightLogs, workoutLogs, routines] = await Promise.all([
     userId ? getWeightLogs(userId)  : Promise.resolve<WeightEntry[]>([]),
     userId ? getWorkoutLogs(userId) : Promise.resolve<WorkoutEntry[]>([]),
+    userId ? getRoutines(userId)    : Promise.resolve<RoutineSummary[]>([]),
   ])
 
   return (
@@ -87,7 +111,12 @@ export default async function TrackingPage() {
             <span aria-hidden="true">💪</span> Entrenamientos
           </h2>
         </div>
-        <WorkoutLogger initialLogs={workoutLogs} />
+        <WorkoutLogger
+          initialLogs={workoutLogs}
+          routines={routines}
+          preRoutineId={sp.routineId}
+          preDayId={sp.dayId}
+        />
       </section>
 
       {/* Advanced metrics — locked for free, visible for premium */}

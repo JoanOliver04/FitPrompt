@@ -106,6 +106,7 @@ model User {
   groupsCreated Group[]        @relation("GroupCreator")
   groupMembers  GroupMember[]  @relation("GroupMemberships")
   notifications Notification[]
+  routines      Routine[]
 }
 
 model UserProfile {
@@ -151,15 +152,17 @@ model Message {
 }
 
 model WorkoutLog {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date      DateTime @default(now())
-  exercises Json
-  duration  Int
-  completed Boolean  @default(false)
-  notes     String?
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date         DateTime @default(now())
+  exercises    Json
+  duration     Int
+  completed    Boolean  @default(false)
+  notes        String?
+  routineId    String?
+  routineDayId String?
+  createdAt    DateTime @default(now())
 }
 
 model WeightLog {
@@ -269,6 +272,42 @@ model Notification {
 
   @@index([userId, createdAt])
   @@index([userId, read])
+}
+
+model Routine {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  days      RoutineDay[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+model RoutineDay {
+  id        String          @id @default(cuid())
+  routineId String
+  routine   Routine         @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  dayIndex  Int
+  name      String
+  exercises RoutineExercise[]
+
+  @@index([routineId])
+}
+
+model RoutineExercise {
+  id           String     @id @default(cuid())
+  routineDayId String
+  routineDay   RoutineDay @relation(fields: [routineDayId], references: [id], onDelete: Cascade)
+  name         String
+  sets         Int
+  reps         String
+  restSeconds  Int?
+  order        Int
+
+  @@index([routineDayId])
 }
 
 model WeeklyCheckIn {

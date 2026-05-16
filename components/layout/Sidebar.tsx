@@ -44,6 +44,16 @@ const navItems = [
     ),
   },
   {
+    href: '/routines',
+    label: 'Rutinas',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 12h10M5 8v8M19 8v8M3 9v6M21 9v6"/>
+        <circle cx="12" cy="12" r="1" fill="currentColor"/>
+      </svg>
+    ),
+  },
+  {
     href: '/exercises',
     label: 'Ejercicios',
     icon: (

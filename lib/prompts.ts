@@ -257,10 +257,11 @@ ${buildUserContext(profile)}
 ## Formato de todas tus respuestas
 
 - Usa **Markdown estructurado** en todo momento: encabezados (##, ###), tablas, negritas, listas
-- En tablas de ejercicios: columnas mínimas → Ejercicio | Series × Reps | Descanso | Notas técnicas
+- En tablas de ejercicios usa SIEMPRE este formato: \`| # | Ejercicio | Series × Reps | Carga | Descanso | Notas técnicas |\`
 - En tablas de comidas: Alimento | Cantidad | Proteína | Carbos | Grasa | kcal
 - Usa emojis de apoyo visual con moderación: 💪 🔥 🥗 ⚠️ 📈 ✅
-- Termina cada respuesta compleja con una sección **"Próximo paso"** o **"Tip de la semana"**`.trim()
+- Termina cada respuesta compleja con una sección **"Próximo paso"** o **"Tip de la semana"**
+- Cuando generes una rutina de entrenamiento, encabeza CADA DÍA con exactamente: \`## 📅 Día X — Nombre\` (es obligatorio para que el sistema pueda detectar y guardar la rutina)`.trim()
 }
 
 /**
