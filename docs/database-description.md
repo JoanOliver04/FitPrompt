@@ -362,6 +362,70 @@ Check-in semanal del usuario sobre su estado físico y mental. La IA (Groq) anal
 
 ## 4.3. Justificación del modelo de datos
 
+### Prueba técnica de la conexión
+
+La conexión a la base de datos PostgreSQL alojada en Supabase se realiza mediante **Prisma v7 con driver adapter** (`@prisma/adapter-pg`). Este enfoque delega la gestión del pool de conexiones a la librería `pg` de Node.js en lugar de al motor binario de Prisma, lo que es el modelo recomendado para entornos serverless (Vercel + Supabase).
+
+**Variable de entorno (`.env.local`):**
+
+```env
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?pgbouncer=true&connection_limit=1"
+```
+
+El parámetro `pgbouncer=true` activa el modo compatible con PgBouncer de Supabase (connection pooling en modo Transaction). El `connection_limit=1` es obligatorio en entornos serverless para evitar el agotamiento del pool.
+
+**Configuración en `prisma/schema.prisma`:**
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  // La URL se inyecta en tiempo de ejecución a través del adapter (lib/db.ts),
+  // no como campo url/directUrl, que es el patrón de Prisma v7 con driver adapters.
+}
+```
+
+**Inicialización del cliente (`lib/db.ts`):**
+
+```typescript
+import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+
+function createPrismaClient() {
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not set')
+  }
+  const adapter = new PrismaPg({ connectionString })
+  return new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  })
+}
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const db = globalForPrisma.prisma ?? createPrismaClient()
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = db
+}
+```
+
+El patrón **singleton con `globalThis`** evita que Next.js abra múltiples instancias de Prisma durante el hot-reload en desarrollo (cada vez que se recarga un módulo, `createPrismaClient` solo se ejecuta si `globalForPrisma.prisma` todavía no existe). En producción se crea una única instancia por proceso de servidor.
+
+El cliente exportado se llama `db` (no `prisma`) y es el único punto de acceso a la base de datos en todo el proyecto:
+
+```typescript
+import { db } from '@/lib/db'
+
+// Ejemplo de uso en cualquier API Route o Server Component:
+const user = await db.user.findUnique({ where: { id: session.user.id } })
+```
+
+---
+
 ### Fragmento de código: uso de variables de BD en el Prompt de IA
 
 El `UserProfile` recuperado de la base de datos se inyecta en el prompt del sistema antes de cada llamada a la IA. La función `buildUserContext` (en `lib/prompts.ts`) construye dos tablas Markdown — una con los datos del perfil y otra con los datos metabólicos calculados — y la función `generarSystemPrompt` los ensambla como mensaje `system` para Groq:
