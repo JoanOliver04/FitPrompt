@@ -1,5 +1,7 @@
 import type { UserProfile } from '@/types'
+import type { Equipment } from '@/types'
 import { calculateAge } from '@/lib/age'
+import { EXERCISES, MUSCLE_LABELS, EQUIPMENT_LABELS, LEVEL_LABELS } from '@/lib/exercises'
 
 // ─── Label maps ───────────────────────────────────────────────────────────────
 
@@ -168,6 +170,40 @@ function getSessionVolume(sessionTime: UserProfile['sessionTime']): string {
   }
 }
 
+// ─── Exercise index (compact, filtered by profile) ────────────────────────────
+
+const EQUIPMENT_FOR_WORKOUT_TYPE: Record<UserProfile['workoutType'], Equipment[]> = {
+  gym:        ['barbell', 'dumbbell', 'machine', 'cables', 'kettlebell', 'bands', 'bodyweight'],
+  home:       ['dumbbell', 'kettlebell', 'bands', 'bodyweight'],
+  bodyweight: ['bodyweight'],
+}
+
+const LEVEL_ORDER: Record<UserProfile['level'], number> = {
+  beginner:     0,
+  intermediate: 1,
+  advanced:     2,
+}
+
+function buildExerciseIndex(profile: UserProfile): string {
+  const allowed = EQUIPMENT_FOR_WORKOUT_TYPE[profile.workoutType]
+  const maxLevel = LEVEL_ORDER[profile.level]
+
+  const lines = EXERCISES
+    .filter(
+      (ex) =>
+        ex.equipment.some((eq) => allowed.includes(eq)) &&
+        LEVEL_ORDER[ex.level] <= maxLevel,
+    )
+    .map(
+      (ex) =>
+        `${ex.name} | ${MUSCLE_LABELS[ex.muscleGroup]} | ${ex.equipment.map((e) => EQUIPMENT_LABELS[e]).join('/')} | ${LEVEL_LABELS[ex.level]}`,
+    )
+
+  if (lines.length === 0) return ''
+
+  return `\n\n---\n\n## Catálogo de ejercicios disponibles\n\nCuando generes rutinas usa PRIORITARIAMENTE estos ejercicios (Nombre | Grupo | Equipo | Nivel):\n\n${lines.join('\n')}`
+}
+
 // ─── User context block (shared by all prompts) ───────────────────────────────
 
 function buildUserContext(p: UserProfile): string {
@@ -261,7 +297,7 @@ ${buildUserContext(profile)}
 - En tablas de comidas: Alimento | Cantidad | Proteína | Carbos | Grasa | kcal
 - Usa emojis de apoyo visual con moderación: 💪 🔥 🥗 ⚠️ 📈 ✅
 - Termina cada respuesta compleja con una sección **"Próximo paso"** o **"Tip de la semana"**
-- Cuando generes una rutina de entrenamiento, encabeza CADA DÍA con exactamente: \`## 📅 Día X — Nombre\` (es obligatorio para que el sistema pueda detectar y guardar la rutina)`.trim()
+- Cuando generes una rutina de entrenamiento, encabeza CADA DÍA con exactamente: \`## 📅 Día X — Nombre\` (es obligatorio para que el sistema pueda detectar y guardar la rutina)${buildExerciseIndex(profile)}`.trim()
 }
 
 /**

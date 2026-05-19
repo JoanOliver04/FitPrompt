@@ -36,15 +36,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="dark">
+    <html lang="es" className="dark" suppressHydrationWarning>
       <head>
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `try{const t=localStorage.getItem('fp-theme');if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}catch(e){}`,
           }}
         />
       </head>
-      <body className={`${inter.variable} font-sans bg-bg-primary text-text-primary min-h-screen`}>
+      <body suppressHydrationWarning className={`${inter.variable} font-sans bg-bg-primary text-text-primary min-h-screen`}>
         <Providers>{children}</Providers>
       </body>
     </html>
