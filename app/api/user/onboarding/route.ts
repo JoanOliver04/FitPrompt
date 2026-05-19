@@ -1,74 +1,53 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
 import { awardBadge } from '@/lib/badges'
 import { BadgeId } from '@prisma/client'
-import type { UserProfile } from '@/types'
+import { onboardingSchema } from '@/lib/schemas'
 
-type OnboardingBody = Omit<UserProfile, 'userId' | 'birthDate'> & {
-  name: string
-  birthDate: string | Date
-}
+export const runtime = 'nodejs'
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export const POST = defineHandler(
+  {
+    auth: 'session',
+    body: onboardingSchema,
+    maxBodyBytes: 16 * 1024,
+    rateLimit: { key: ({ userId }) => `onboarding:${userId}`, limit: 10, windowSec: 60 * 60 },
+  },
+  async ({ session, body }) => {
+    const birthDate = new Date(body.birthDate)
+    if (isNaN(birthDate.getTime())) {
+      return NextResponse.json({ error: 'Invalid birthDate' }, { status: 422 })
+    }
 
-  let body: OnboardingBody
-  try {
-    body = (await req.json()) as OnboardingBody
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
-
-  const userId = session.user.id
-  const birthDate = new Date(body.birthDate)
-
-  if (isNaN(birthDate.getTime())) {
-    return NextResponse.json({ error: 'Invalid birthDate' }, { status: 400 })
-  }
-
-  await db.userProfile.upsert({
-    where: { userId },
-    update: {
+    const data = {
       birthDate,
-      weight: body.weight,
-      height: body.height,
-      gender: body.gender,
-      goal: body.goal,
-      level: body.level,
-      daysPerWeek: body.daysPerWeek,
-      sessionTime: body.sessionTime,
-      workoutType: body.workoutType,
-      schedule: body.schedule,
-      injuries: body.injuries ?? null,
-      allergies: body.allergies ?? null,
+      weight:          body.weight,
+      height:          body.height,
+      gender:          body.gender,
+      goal:            body.goal,
+      level:           body.level,
+      daysPerWeek:     body.daysPerWeek,
+      sessionTime:     body.sessionTime,
+      workoutType:     body.workoutType,
+      schedule:        body.schedule,
+      injuries:        body.injuries ?? null,
+      allergies:       body.allergies ?? null,
       foodPreferences: body.foodPreferences ?? [],
-      extraInfo: body.extraInfo ?? null,
-    },
-    create: {
-      userId,
-      birthDate,
-      weight: body.weight,
-      height: body.height,
-      gender: body.gender,
-      goal: body.goal,
-      level: body.level,
-      daysPerWeek: body.daysPerWeek,
-      sessionTime: body.sessionTime,
-      workoutType: body.workoutType,
-      schedule: body.schedule,
-      injuries: body.injuries ?? null,
-      allergies: body.allergies ?? null,
-      foodPreferences: body.foodPreferences ?? [],
-      extraInfo: body.extraInfo ?? null,
-    },
-  })
+      extraInfo:       body.extraInfo ?? null,
+    }
 
-  awardBadge(userId, BadgeId.first_step).catch(() => undefined)
+    await db.$transaction([
+      db.user.update({ where: { id: session.user.id }, data: { name: body.name } }),
+      db.userProfile.upsert({
+        where:  { userId: session.user.id },
+        update: data,
+        create: { userId: session.user.id, ...data },
+      }),
+    ])
 
-  return NextResponse.json({ success: true })
-}
+    awardBadge(session.user.id, BadgeId.first_step).catch(() => undefined)
+
+    return NextResponse.json({ success: true })
+  },
+)

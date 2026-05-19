@@ -1,3 +1,8 @@
+'use client'
+
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import type { Components } from 'react-markdown'
 import type { Message } from '@/types'
 import { SHOPPING_LIST_SENTINEL } from '@/types'
 import { ShoppingListCard } from './ShoppingListCard'
@@ -7,27 +12,39 @@ interface Props {
   message: Message
 }
 
-// Detect if a message contains a structured workout routine from the AI
 function hasRoutineStructure(content: string): boolean {
-  // Allow any emoji/text prefix before "Día N" (up to 25 chars of prefix after ##)
   return /#{2,3}[^\n]{0,25}[Dd][íi]a\s+\d+/.test(content)
 }
 
-function renderContent(content: string): string {
-  return content
-    // Headings
-    .replace(/^#{3}\s+(.+)$/gm, '<strong style="font-size:0.875rem;display:block;margin-top:0.75rem">$1</strong>')
-    .replace(/^#{2}\s+(.+)$/gm, '<strong style="font-size:1rem;display:block;margin-top:1rem">$1</strong>')
-    // Bold
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code style="background:rgba(255,71,26,0.1);padding:0.1em 0.3em;border-radius:3px;font-size:0.85em">$1</code>')
-    // Unordered list items
-    .replace(/^[-*]\s+(.+)$/gm, '<li style="margin-left:1rem;list-style:disc">$1</li>')
-    // Horizontal rule
-    .replace(/^---+$/gm, '<hr style="border-color:var(--border-default);margin:0.5rem 0">')
-    // Line breaks (after block-level replacements)
-    .replace(/\n/g, '<br />')
+// Allowlist of node renderers — anything not listed renders as plain text.
+// We deliberately drop <script>, <iframe>, <img>, raw <a> with javascript:.
+const components: Components = {
+  h1: ({ children }) => <strong className="block text-base mt-4">{children}</strong>,
+  h2: ({ children }) => <strong className="block text-base mt-4">{children}</strong>,
+  h3: ({ children }) => <strong className="block text-sm  mt-3">{children}</strong>,
+  h4: ({ children }) => <strong className="block text-sm">{children}</strong>,
+  code: ({ children }) => (
+    <code className="bg-accent/10 px-1 py-0.5 rounded text-[0.85em]">{children}</code>
+  ),
+  hr: () => <hr className="border-border-default my-2" />,
+  ul: ({ children }) => <ul className="list-disc ml-5 my-2">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal ml-5 my-2">{children}</ol>,
+  li: ({ children }) => <li className="my-0.5">{children}</li>,
+  table: ({ children }) => (
+    <div className="overflow-x-auto my-3">
+      <table className="w-full text-xs border-collapse">{children}</table>
+    </div>
+  ),
+  th: ({ children }) => <th className="text-left px-2 py-1 border border-border-default">{children}</th>,
+  td: ({ children }) => <td className="px-2 py-1 border border-border-default">{children}</td>,
+  a: ({ href, children }) =>
+    typeof href === 'string' && /^https?:\/\//.test(href)
+      ? (
+        <a href={href} rel="noopener noreferrer nofollow" target="_blank" className="underline">
+          {children}
+        </a>
+      )
+      : <span>{children}</span>,
 }
 
 export default function MessageBubble({ message }: Props) {
@@ -53,8 +70,15 @@ export default function MessageBubble({ message }: Props) {
                 ? 'bg-accent text-white rounded-tr-sm'
                 : 'bg-bg-secondary border border-border-default text-text-secondary rounded-tl-sm'
             }`}
-            dangerouslySetInnerHTML={{ __html: renderContent(message.content) }}
-          />
+          >
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={components}
+              skipHtml
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
           {isRoutine && (
             <div className="mt-1 ml-1">
               <SaveRoutineButton content={message.content} />

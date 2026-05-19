@@ -1,60 +1,46 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
+import { userProfilePatchSchema } from '@/lib/schemas'
 
-export async function PUT(req: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export const runtime = 'nodejs'
 
-  const body = await req.json() as {
-    name?: string
-    birthDate?: string
-    weight?: number
-    height?: number
-    goal?: string
-    level?: string
-    daysPerWeek?: number
-    workoutType?: string
-  }
+export const PUT = defineHandler(
+  {
+    auth: 'session',
+    body: userProfilePatchSchema,
+    maxBodyBytes: 8 * 1024,
+    rateLimit: { key: ({ userId }) => `profile:${userId}`, limit: 30, windowSec: 60 },
+  },
+  async ({ session, body }) => {
+    const { name, birthDate, ...profile } = body
+    const profileKeys = Object.keys(profile)
+    const needsProfileWrite = profileKeys.length > 0 || birthDate !== undefined
 
-  const { name, birthDate, ...profileFields } = body
+    if (needsProfileWrite) {
+      const existing = await db.userProfile.findUnique({
+        where: { userId: session.user.id }, select: { id: true },
+      })
+      if (!existing) {
+        return NextResponse.json({ error: 'Complete onboarding first' }, { status: 409 })
+      }
+    }
 
-  await Promise.all([
-    name !== undefined
-      ? db.user.update({ where: { id: session.user.id }, data: { name } })
-      : Promise.resolve(),
-
-    Object.keys(profileFields).length > 0 || birthDate !== undefined
-      ? db.userProfile.upsert({
+    await db.$transaction(async (tx) => {
+      if (name !== undefined) {
+        await tx.user.update({ where: { id: session.user.id }, data: { name } })
+      }
+      if (needsProfileWrite) {
+        await tx.userProfile.update({
           where: { userId: session.user.id },
-          create: {
-            userId:      session.user.id,
-            birthDate:   birthDate ? new Date(birthDate) : new Date(),
-            weight:      profileFields.weight      ?? 70,
-            height:      profileFields.height      ?? 170,
-            gender:      'male',
-            goal:        (profileFields.goal       ?? 'maintenance') as never,
-            level:       (profileFields.level      ?? 'beginner')    as never,
-            daysPerWeek: profileFields.daysPerWeek ?? 3,
-            sessionTime: '45-60',
-            workoutType: (profileFields.workoutType ?? 'gym')        as never,
-            schedule:    'morning',
-          },
-          update: {
-            ...(birthDate   !== undefined && { birthDate: new Date(birthDate) }),
-            ...(profileFields.weight      !== undefined && { weight:      profileFields.weight }),
-            ...(profileFields.height      !== undefined && { height:      profileFields.height }),
-            ...(profileFields.goal        !== undefined && { goal:        profileFields.goal        as never }),
-            ...(profileFields.level       !== undefined && { level:       profileFields.level       as never }),
-            ...(profileFields.daysPerWeek !== undefined && { daysPerWeek: profileFields.daysPerWeek }),
-            ...(profileFields.workoutType !== undefined && { workoutType: profileFields.workoutType as never }),
+          data: {
+            ...(birthDate !== undefined && { birthDate: new Date(birthDate) }),
+            ...profile,
           },
         })
-      : Promise.resolve(),
-  ])
+      }
+    })
 
-  return NextResponse.json({ ok: true })
-}
+    return NextResponse.json({ ok: true })
+  },
+)

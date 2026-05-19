@@ -1,56 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { defineHandler } from '@/lib/api-handler'
 import {
   getCurrentWeekCheckIn,
   saveCheckIn,
   updateCheckInSuggestions,
   generateSuggestions,
 } from '@/lib/checkin'
+import { checkInSchema } from '@/lib/schemas'
+import { stripHtml } from '@/lib/sanitize'
 
-export async function GET() {
+export const runtime = 'nodejs'
+
+export async function GET(): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
   const checkIn = await getCurrentWeekCheckIn(session.user.id)
-
   return NextResponse.json({
     hasCheckIn: checkIn !== null,
     checkIn: checkIn
       ? {
           id: checkIn.id,
           response: checkIn.response,
-          aiSuggestions: checkIn.aiSuggestions
-            ? (JSON.parse(checkIn.aiSuggestions) as string[])
-            : null,
+          aiSuggestions: checkIn.aiSuggestions ? (JSON.parse(checkIn.aiSuggestions) as string[]) : null,
         }
       : null,
-  })
+  }, { headers: { 'Cache-Control': 'no-store' } })
 }
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  }
-
-  const response = (body as Record<string, unknown>)?.response
-  if (typeof response !== 'string' || !response.trim()) {
-    return NextResponse.json({ error: 'response must be a non-empty string' }, { status: 400 })
-  }
-
-  const checkIn = await saveCheckIn(session.user.id, response.trim())
-  const suggestions = await generateSuggestions(response.trim())
-  await updateCheckInSuggestions(checkIn.id, suggestions)
-
-  return NextResponse.json({ checkIn, suggestions })
-}
+export const POST = defineHandler(
+  {
+    auth: 'session',
+    body: checkInSchema,
+    maxBodyBytes: 8 * 1024,
+    rateLimit: { key: ({ userId }) => `checkin:${userId}`, limit: 5, windowSec: 60 * 60 },
+  },
+  async ({ session, body }) => {
+    const safe = stripHtml(body.response)
+    const checkIn = await saveCheckIn(session.user.id, safe)
+    const suggestions = await generateSuggestions(safe)
+    await updateCheckInSuggestions(checkIn.id, suggestions)
+    return NextResponse.json({ checkIn, suggestions })
+  },
+)

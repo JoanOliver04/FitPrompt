@@ -1,38 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { defineHandler } from '@/lib/api-handler'
 import { saveMessage, verifyChatOwnership } from '@/lib/chat'
+import { stripHtml } from '@/lib/sanitize'
+import { userSavedMessageSchema } from '@/lib/schemas'
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export const runtime = 'nodejs'
 
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
-  }
-
-  const { chatId, content, role } = body as Record<string, unknown>
-
-  if (typeof chatId !== 'string' || !chatId.trim()) {
-    return NextResponse.json({ error: 'chatId must be a non-empty string' }, { status: 400 })
-  }
-  if (typeof content !== 'string' || !content.trim()) {
-    return NextResponse.json({ error: 'content must be a non-empty string' }, { status: 400 })
-  }
-  if (role !== 'user' && role !== 'assistant') {
-    return NextResponse.json({ error: 'role must be "user" or "assistant"' }, { status: 400 })
-  }
-
-  const owns = await verifyChatOwnership(chatId, session.user.id)
-  if (!owns) {
-    return NextResponse.json({ error: 'Chat not found' }, { status: 404 })
-  }
-
-  const message = await saveMessage(chatId, role, content.trim())
-  return NextResponse.json({ message }, { status: 201 })
-}
+/**
+ * Persist a USER-role message. The assistant role is server-only — never accepted
+ * from the client, which closes the AI message-impersonation hole.
+ */
+export const POST = defineHandler(
+  {
+    auth: 'session',
+    body: userSavedMessageSchema,
+    maxBodyBytes: 16 * 1024,
+    rateLimit: { key: ({ userId, ip }) => `chat-msg:${userId ?? ip}`, limit: 30, windowSec: 60 },
+  },
+  async ({ session, body }) => {
+    if (!(await verifyChatOwnership(body.chatId, session.user.id))) {
+      return NextResponse.json({ error: 'Chat not found' }, { status: 404 })
+    }
+    const message = await saveMessage(body.chatId, 'user', stripHtml(body.content))
+    return NextResponse.json({ message }, { status: 201 })
+  },
+)

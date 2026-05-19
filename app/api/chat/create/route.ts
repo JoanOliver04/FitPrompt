@@ -1,35 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { defineHandler } from '@/lib/api-handler'
 import { createChat } from '@/lib/chat'
-import { applyLimits } from '@/lib/limits'
-import type { Plan } from '@/types'
+import { chatCreateSchema } from '@/lib/schemas'
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export const runtime = 'nodejs'
 
-  const user = {
-    id: session.user.id,
-    plan: (session.user as { plan?: Plan }).plan ?? 'free',
-    role: session.user.role,
-  }
-
-  const blocked = await applyLimits(user, { type: 'create_chat' })
-  if (blocked) return blocked
-
-  let title: string | undefined
-  try {
-    const body = await req.json()
-    if (typeof body?.title === 'string' && body.title.trim()) {
-      title = body.title.trim()
-    }
-  } catch {
-    // title is optional — ignore parse errors
-  }
-
-  const chat = await createChat(user.id, title)
-  return NextResponse.json({ chat }, { status: 201 })
-}
+export const POST = defineHandler(
+  {
+    auth: 'session',
+    body: chatCreateSchema,
+    planLimit: { type: 'create_chat' },
+    rateLimit: { key: ({ userId }) => `chat-create:${userId}`, limit: 10, windowSec: 60 },
+    maxBodyBytes: 2 * 1024,
+  },
+  async ({ session, body }) => {
+    const chat = await createChat(session.user.id, body?.title)
+    return NextResponse.json({ chat }, { status: 201 })
+  },
+)

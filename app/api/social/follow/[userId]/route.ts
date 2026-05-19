@@ -1,61 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
 import { notifyNewFollower } from '@/lib/notifications'
+import { cuidString } from '@/lib/schemas'
 
-// ─── POST — follow ────────────────────────────────────────────────────────────
+export const runtime = 'nodejs'
 
-export async function POST(
-  _req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> },
-) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export const POST = defineHandler(
+  {
+    auth: 'session',
+    params: ({ userId }) => ({ userId: cuidString.parse(userId) }),
+    rateLimit: { key: ({ userId }) => `follow:${userId}`, limit: 30, windowSec: 60 },
+  },
+  async ({ session, params }) => {
+    const followerId  = session.user.id
+    const followingId = params.userId
 
-  const followerId  = session.user.id
-  const { userId: followingId } = await params
+    if (followerId === followingId) {
+      return NextResponse.json({ error: 'Cannot follow yourself' }, { status: 400 })
+    }
+    const target = await db.user.findUnique({ where: { id: followingId }, select: { id: true } })
+    if (!target) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
 
-  if (followerId === followingId) {
-    return NextResponse.json({ error: 'Cannot follow yourself' }, { status: 400 })
-  }
+    await db.follow.upsert({
+      where:  { followerId_followingId: { followerId, followingId } },
+      create: { followerId, followingId },
+      update: {},
+    })
+    notifyNewFollower(followerId, followingId).catch(() => undefined)
 
-  const target = await db.user.findUnique({ where: { id: followingId }, select: { id: true } })
-  if (!target) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 })
-  }
+    const followersCount = await db.follow.count({ where: { followingId } })
+    return NextResponse.json({ ok: true, followersCount })
+  },
+)
 
-  await db.follow.upsert({
-    where:  { followerId_followingId: { followerId, followingId } },
-    create: { followerId, followingId },
-    update: {},
-  })
-
-  // Notify the followed user (fire-and-forget)
-  notifyNewFollower(followerId, followingId).catch(() => undefined)
-
-  const followersCount = await db.follow.count({ where: { followingId } })
-  return NextResponse.json({ ok: true, followersCount })
-}
-
-// ─── DELETE — unfollow ────────────────────────────────────────────────────────
-
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> },
-) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const followerId  = session.user.id
-  const { userId: followingId } = await params
-
-  await db.follow.deleteMany({ where: { followerId, followingId } })
-
-  const followersCount = await db.follow.count({ where: { followingId } })
-  return NextResponse.json({ ok: true, followersCount })
-}
+export const DELETE = defineHandler(
+  {
+    auth: 'session',
+    params: ({ userId }) => ({ userId: cuidString.parse(userId) }),
+    rateLimit: { key: ({ userId }) => `unfollow:${userId}`, limit: 30, windowSec: 60 },
+  },
+  async ({ session, params }) => {
+    const followerId  = session.user.id
+    const followingId = params.userId
+    await db.follow.deleteMany({ where: { followerId, followingId } })
+    const followersCount = await db.follow.count({ where: { followingId } })
+    return NextResponse.json({ ok: true, followersCount })
+  },
+)
