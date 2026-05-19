@@ -39,8 +39,14 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
-    <html lang="es" className="dark">
+    <html lang="es" className="dark" suppressHydrationWarning>
       <head>
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `try{const t=localStorage.getItem('fp-theme');if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}catch(e){}`,
+          }}
+        />
         <Script
           id="fp-theme-bootstrap"
           strategy="beforeInteractive"
@@ -49,7 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {`try{var t=localStorage.getItem('fp-theme');if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}catch(e){}`}
         </Script>
       </head>
-      <body className={`${inter.variable} font-sans bg-bg-primary text-text-primary min-h-screen`}>
+      <body suppressHydrationWarning className={`${inter.variable} font-sans bg-bg-primary text-text-primary min-h-screen`}>
         <Providers>{children}</Providers>
       </body>
     </html>
