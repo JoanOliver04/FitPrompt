@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLevelUp } from '@/context/LevelUpContext'
 import { useToast } from '@/context/ToastContext'
@@ -55,12 +55,14 @@ export interface RoutineSummary {
 interface FormSet {
   weight: number
   reps:   number
+  done:   boolean
 }
 
 interface FormExercise {
-  name:       string
-  targetReps: string
-  sets:       FormSet[]
+  name:        string
+  targetReps:  string
+  restSeconds: number | null
+  sets:        FormSet[]
 }
 
 interface Props {
@@ -79,7 +81,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function blankSet(): FormSet { return { weight: 0, reps: 0 } }
+function blankSet(targetReps = 0): FormSet { return { weight: 0, reps: targetReps, done: false } }
 
 function parseTargetReps(reps: string): number {
   const n = parseInt(reps.split('-')[0])
@@ -89,11 +91,10 @@ function parseTargetReps(reps: string): number {
 // ─── SetRow ───────────────────────────────────────────────────────────────────
 
 function SetRow({
-  index, set,
-  onChange,
+  index, set, onChange,
 }: { index: number; set: FormSet; onChange: (s: FormSet) => void }) {
   return (
-    <div className="grid grid-cols-[28px_1fr_1fr] gap-2 items-center">
+    <div className={`grid grid-cols-[28px_1fr_1fr_32px] gap-2 items-center transition-opacity ${set.done ? 'opacity-50' : ''}`}>
       <span className="text-[10px] text-text-muted font-bold text-center tabular-nums select-none">
         {index + 1}
       </span>
@@ -117,6 +118,20 @@ function SetRow({
           className="w-full bg-bg-primary border border-border-default focus:border-accent rounded-lg px-2 py-1.5 text-sm text-text-primary outline-none transition-colors text-center tabular-nums"
         />
       </div>
+      <button
+        type="button"
+        onClick={() => onChange({ ...set, done: !set.done })}
+        title={set.done ? 'Desmarcar serie' : 'Marcar serie como hecha'}
+        className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all self-end mb-0.5 ${
+          set.done
+            ? 'border-green-400 bg-green-400/20 text-green-400'
+            : 'border-border-default text-transparent hover:border-accent/40'
+        }`}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </button>
     </div>
   )
 }
@@ -126,13 +141,38 @@ function SetRow({
 function RoutineExerciseCard({
   exercise, onChange,
 }: { exercise: FormExercise; onChange: (e: FormExercise) => void }) {
+  const doneSets  = exercise.sets.filter((s) => s.done).length
+  const allDone   = doneSets === exercise.sets.length && exercise.sets.length > 0
+  const restLabel = exercise.restSeconds
+    ? exercise.restSeconds >= 60
+      ? `${Math.floor(exercise.restSeconds / 60)}min descanso`
+      : `${exercise.restSeconds}s descanso`
+    : null
+
   return (
-    <div className="bg-bg-tertiary rounded-xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-text-primary text-sm font-bold">{exercise.name}</p>
-        <span className="text-[10px] text-text-muted bg-bg-secondary border border-border-default rounded-full px-2 py-0.5">
-          {exercise.sets.length} series · {exercise.targetReps} reps objetivo
-        </span>
+    <div className={`bg-bg-tertiary rounded-xl p-4 space-y-3 transition-all ${allDone ? 'border border-green-400/25' : ''}`}>
+      <div className="flex items-start justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <p className="text-text-primary text-sm font-bold">{exercise.name}</p>
+          {allDone && (
+            <span className="text-[10px] text-green-400 font-bold">✓</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {restLabel && (
+            <span className="text-[10px] text-text-muted bg-bg-secondary border border-border-default rounded-full px-2 py-0.5">
+              ⏱ {restLabel}
+            </span>
+          )}
+          <span className="text-[10px] text-text-muted bg-bg-secondary border border-border-default rounded-full px-2 py-0.5">
+            {exercise.sets.length} series · {exercise.targetReps} reps
+          </span>
+          <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 tabular-nums ${
+            allDone ? 'text-green-400 bg-green-400/10' : 'text-text-muted'
+          }`}>
+            {doneSets}/{exercise.sets.length}
+          </span>
+        </div>
       </div>
       <div className="space-y-2">
         {exercise.sets.map((set, i) => (
@@ -293,15 +333,33 @@ export function WorkoutLogger({ initialLogs, routines = [], preRoutineId, preDay
   const selectedRoutine = routines.find((r) => r.id === selectedRoutineId)
   const selectedDay     = selectedRoutine?.days.find((d) => d.id === selectedDayId)
 
+  // Auto-carga ejercicios cuando se llega desde /routines/[id] con URL params
+  useEffect(() => {
+    if (!preRoutineId || !preDayId || routines.length === 0) return
+    const routine = routines.find((r) => r.id === preRoutineId)
+    const day = routine?.days.find((d) => d.id === preDayId)
+    if (!day) return
+    setRoutineExercises(
+      day.exercises.map((ex) => ({
+        name:        ex.name,
+        targetReps:  ex.reps,
+        restSeconds: ex.restSeconds,
+        sets:        Array.from({ length: ex.sets }, () => blankSet(parseTargetReps(ex.reps))),
+      })),
+    )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function loadDay(dayId: string) {
     setSelectedDayId(dayId)
     const day = selectedRoutine?.days.find((d) => d.id === dayId)
     if (!day) return
     setRoutineExercises(
       day.exercises.map((ex) => ({
-        name:       ex.name,
-        targetReps: ex.reps,
-        sets:       Array.from({ length: ex.sets }, () => blankSet()),
+        name:        ex.name,
+        targetReps:  ex.reps,
+        restSeconds: ex.restSeconds,
+        sets:        Array.from({ length: ex.sets }, () => blankSet(parseTargetReps(ex.reps))),
       })),
     )
   }
@@ -398,8 +456,10 @@ export function WorkoutLogger({ initialLogs, routines = [], preRoutineId, preDay
     setDate(todayISO())
     if (mode === 'routine' && selectedDay) {
       setRoutineExercises(selectedDay.exercises.map((ex) => ({
-        name: ex.name, targetReps: ex.reps,
-        sets: Array.from({ length: ex.sets }, () => blankSet()),
+        name:        ex.name,
+        targetReps:  ex.reps,
+        restSeconds: ex.restSeconds,
+        sets:        Array.from({ length: ex.sets }, () => blankSet(parseTargetReps(ex.reps))),
       })))
     }
     setStatus('idle')
