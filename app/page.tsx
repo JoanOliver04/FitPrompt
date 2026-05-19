@@ -37,6 +37,7 @@ const plans = [
       'Hasta 3 chats guardados',
       'Generación de rutina + dieta',
       'Exportar plan en PDF',
+      'Grupos y rankings con amigos',
       'Tracking de peso y entrenamientos',
       '4 badges desbloqueables',
     ],
@@ -49,10 +50,9 @@ const plans = [
     price: '9,99€',
     period: 'al mes',
     features: [
-      'Mensajes ilimitados con Claude IA',
+      'Mensajes ilimitados con nuestra IA',
       'Chats ilimitados guardados',
       'Gráficas avanzadas de progreso',
-      'Grupos y rankings con amigos',
       'Todos los badges desbloqueados',
       'Check-in semanal automático',
     ],
@@ -88,7 +88,7 @@ export default function LandingPage() {
       <section className="flex-1 flex flex-col items-center justify-center px-6 py-24 text-center animate-fade-in">
         <div className="inline-flex items-center gap-2 bg-[#FF471A1A] border border-[#FF471A33] text-[#FF471A] px-4 py-1.5 rounded-full text-sm font-medium mb-8">
           <span>✨</span>
-          <span>Powered by IA — Groq & Claude</span>
+          <span>Powered by IA</span>
         </div>
         <h1 className="text-5xl md:text-7xl font-black text-text-primary mb-6 leading-none tracking-tight text-balance">
           Tu entrenador personal
@@ -103,7 +103,7 @@ export default function LandingPage() {
             href="/register"
             className="bg-[#FF471A] hover:bg-[#e03d15] active:scale-95 text-white px-8 py-4 rounded-xl text-base font-bold transition-all hover:scale-105 shadow-lg shadow-[#FF471A33]"
           >
-            Empieza gratis — es gratis →
+            Empieza gratis →
           </Link>
           <Link
             href="/login"
@@ -190,7 +190,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-text-muted">
           <div className="flex items-center gap-2">
             <Logo variant="icon" height={20} />
-            <span>© 2025 FitPrompt</span>
+            <span>© 2026 FitPrompt</span>
           </div>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-text-primary transition-colors">
