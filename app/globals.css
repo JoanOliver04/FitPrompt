@@ -48,6 +48,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
+  overscroll-behavior: none;
 }
 
 /* ─── Scrollbar ───────────────────────────────────────────────────────────── */
@@ -124,5 +125,11 @@ body {
   /* Prevent flash-of-invisible on animated elements with delay */
   .animate-enter {
     animation-fill-mode: both;
+  }
+
+  /* Momentum scrolling on iOS for all scrollable containers */
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    -webkit-overflow-scrolling: touch;
   }
 }
