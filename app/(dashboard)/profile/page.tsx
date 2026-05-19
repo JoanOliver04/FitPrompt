@@ -6,6 +6,7 @@ import { db } from '@/lib/db'
 import { BadgesGrid } from '@/components/profile/BadgesGrid'
 import { ProfileActions } from '@/components/profile/ProfileActions'
 import ProfileSections from '@/components/profile/ProfileSections'
+import { AvatarPicker } from '@/components/profile/AvatarPicker'
 import { calculateAge } from '@/lib/age'
 import { formatLastLogin } from '@/lib/utils'
 import { deriveLevel } from '@/lib/xp'
@@ -45,12 +46,13 @@ export default async function ProfilePage() {
         db.follow.count({ where: { followingId: session.user.id } }),
         db.follow.count({ where: { followerId:  session.user.id } }),
         db.userProfile.findUnique({ where: { userId: session.user.id } }),
-        db.user.findUnique({ where: { id: session.user.id }, select: { lastLoginAt: true } }),
+        db.user.findUnique({ where: { id: session.user.id }, select: { lastLoginAt: true, image: true } }),
         db.streak.findUnique({ where: { userId: session.user.id } }),
         db.userXP.findUnique({ where: { userId: session.user.id } }),
       ])
     : [0, 0, null, null, null, null]
 
+  const currentImage = userMeta?.image ?? session?.user?.image ?? null
   const totalXP    = xpData?.totalXP ?? 0
   const levelInfo  = deriveLevel(totalXP)
   const streak     = streakData?.currentStreak ?? 0
@@ -109,8 +111,15 @@ export default async function ProfilePage() {
 
       {/* Avatar + stats */}
       <div className="bg-bg-secondary border border-border-default rounded-2xl p-6 mb-6 flex flex-col md:flex-row items-center md:items-start gap-6">
-        <div className="w-20 h-20 rounded-2xl bg-[#FF471A1A] border border-[#FF471A33] flex items-center justify-center shrink-0">
-          <span className="text-4xl">👤</span>
+        <div className="shrink-0 flex flex-col items-center gap-1">
+          <div className="w-20 h-20 rounded-2xl bg-[#FF471A1A] border border-[#FF471A33] flex items-center justify-center overflow-hidden">
+            {currentImage
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={currentImage} alt="avatar" className="w-full h-full object-cover" />
+              : <span className="text-4xl">👤</span>
+            }
+          </div>
+          <AvatarPicker currentImage={currentImage} plan={session?.user?.plan ?? 'free'} />
         </div>
         <div className="flex-1 text-center md:text-left">
           <h2 className="text-xl font-black text-text-primary">{session?.user?.name ?? 'Atleta FitPrompt'}</h2>

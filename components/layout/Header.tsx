@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import Logo from '@/components/ui/Logo'
 import { NotificationBell } from '@/components/layout/NotificationBell'
@@ -12,9 +13,24 @@ interface Props {
 export default function Header({ onMenuClick }: Props) {
   const { data: session } = useSession()
   const [isDark, setIsDark] = useState(true)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'))
+  }, [])
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    fetch('/api/user/avatar')
+      .then((r) => r.json())
+      .then((d: { image: string | null }) => setAvatarUrl(d.image))
+      .catch(() => {})
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    const handler = (e: Event) => setAvatarUrl((e as CustomEvent<string>).detail)
+    window.addEventListener('avatar-updated', handler)
+    return () => window.removeEventListener('avatar-updated', handler)
   }, [])
 
   const toggleTheme = () => {
@@ -85,21 +101,18 @@ export default function Header({ onMenuClick }: Props) {
         )}
       </button>
 
-      <div
-        className="w-9 h-9 rounded-xl bg-[#FF471A1A] border border-[#FF471A33] flex items-center justify-center cursor-pointer hover:bg-[#FF471A26] transition-colors shrink-0"
-        title={session?.user?.name ?? 'Usuario'}
+      <Link
+        href="/profile"
+        className="w-9 h-9 rounded-xl bg-[#FF471A1A] border border-[#FF471A33] flex items-center justify-center hover:bg-[#FF471A26] transition-colors shrink-0 overflow-hidden"
+        title={`Perfil — ${session?.user?.name ?? 'Usuario'}`}
       >
-        {session?.user?.image ? (
+        {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={session.user.image}
-            alt="avatar"
-            className="w-full h-full rounded-xl object-cover"
-          />
+          <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
         ) : (
           <span className="text-[#FF471A] text-xs font-bold">{initials}</span>
         )}
-      </div>
+      </Link>
     </header>
   )
 }

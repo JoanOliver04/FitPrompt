@@ -90,7 +90,7 @@ export const authOptions: NextAuthOptions = {
       if (trigger === 'update' && token.id) {
         const row = await db.user.findUnique({
           where:  { id: token.id as string },
-          select: { plan: true, role: true },
+          select: { plan: true, role: true, image: true },
         })
         if (row) {
           token.plan = row.plan
