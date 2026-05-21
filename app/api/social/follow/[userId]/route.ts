@@ -19,20 +19,34 @@ export const POST = defineHandler(
     if (followerId === followingId) {
       return NextResponse.json({ error: 'Cannot follow yourself' }, { status: 400 })
     }
-    const target = await db.user.findUnique({ where: { id: followingId }, select: { id: true } })
+
+    const target = await db.user.findUnique({
+      where:  { id: followingId },
+      select: { id: true, isPublic: true },
+    })
     if (!target) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    await db.follow.upsert({
-      where:  { followerId_followingId: { followerId, followingId } },
-      create: { followerId, followingId },
-      update: {},
-    })
-    notifyNewFollower(followerId, followingId).catch(() => undefined)
+    if (target.isPublic) {
+      await db.follow.upsert({
+        where:  { followerId_followingId: { followerId, followingId } },
+        create: { followerId, followingId },
+        update: {},
+      })
+      await db.followRequest.deleteMany({ where: { fromUserId: followerId, toUserId: followingId } })
+      notifyNewFollower(followerId, followingId).catch(() => undefined)
+      return NextResponse.json({ ok: true, status: 'following' })
+    }
 
-    const followersCount = await db.follow.count({ where: { followingId } })
-    return NextResponse.json({ ok: true, followersCount })
+    // Private account — create or return existing follow request
+    const existing = await db.followRequest.findUnique({
+      where: { fromUserId_toUserId: { fromUserId: followerId, toUserId: followingId } },
+    })
+    if (existing) return NextResponse.json({ ok: true, status: 'pending' })
+
+    await db.followRequest.create({ data: { fromUserId: followerId, toUserId: followingId } })
+    return NextResponse.json({ ok: true, status: 'pending' })
   },
 )
 
@@ -45,8 +59,12 @@ export const DELETE = defineHandler(
   async ({ session, params }) => {
     const followerId  = session.user.id
     const followingId = params.userId
-    await db.follow.deleteMany({ where: { followerId, followingId } })
-    const followersCount = await db.follow.count({ where: { followingId } })
-    return NextResponse.json({ ok: true, followersCount })
+
+    const deleted = await db.follow.deleteMany({ where: { followerId, followingId } })
+    if (deleted.count === 0) {
+      await db.followRequest.deleteMany({ where: { fromUserId: followerId, toUserId: followingId } })
+    }
+
+    return NextResponse.json({ ok: true })
   },
 )

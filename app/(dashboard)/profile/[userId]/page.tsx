@@ -36,40 +36,42 @@ export default async function PublicProfilePage({ params }: Props) {
     followersCount,
     followingCount,
     isFollowing,
+    hasPendingRequest,
   ] = await Promise.all([
     db.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, image: true, plan: true },
+      where:  { id: userId },
+      select: { id: true, name: true, image: true, plan: true, isPublic: true },
     }),
     db.streak.findUnique({
-      where: { userId },
+      where:  { userId },
       select: { currentStreak: true, bestStreak: true },
     }),
     db.userXP.findUnique({
-      where: { userId },
+      where:  { userId },
       select: { totalXP: true },
     }),
     db.workoutLog.count({ where: { userId, completed: true } }),
     db.weightLog.findFirst({
-      where: { userId },
+      where:   { userId },
       orderBy: { date: 'desc' },
-      select: { weight: true },
+      select:  { weight: true },
     }),
     db.follow.count({ where: { followingId: userId } }),
     db.follow.count({ where: { followerId: userId } }),
     viewerId && viewerId !== userId
-      ? db.follow
-          .findFirst({ where: { followerId: viewerId, followingId: userId } })
-          .then(Boolean)
+      ? db.follow.findFirst({ where: { followerId: viewerId, followingId: userId } }).then(Boolean)
+      : Promise.resolve(false),
+    viewerId && viewerId !== userId
+      ? db.followRequest.findUnique({ where: { fromUserId_toUserId: { fromUserId: viewerId, toUserId: userId } } }).then(Boolean)
       : Promise.resolve(false),
   ])
 
   if (!user) notFound()
 
-  const totalXP = xpRecord?.totalXP ?? 0
+  const totalXP      = xpRecord?.totalXP ?? 0
   const { level, levelName } = deriveLevel(totalXP)
   const isOwnProfile = viewerId === userId
-  const showFollowButton = !!viewerId && !isOwnProfile
+  const canSeeStats  = isOwnProfile || user.isPublic || (isFollowing as boolean)
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl mx-auto w-full">
@@ -116,9 +118,15 @@ export default async function PublicProfilePage({ params }: Props) {
                     <h1 className="text-xl font-black text-text-primary">
                       {user.name ?? 'Atleta'}
                     </h1>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-green-700/40 bg-green-900/20 text-green-400">
-                      🌐 Público
-                    </span>
+                    {user.isPublic ? (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-green-700/40 bg-green-900/20 text-green-400">
+                        🌐 Público
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-border-default bg-bg-tertiary text-text-muted">
+                        🔒 Privado
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center justify-center sm:justify-start gap-2">
                     <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
@@ -128,71 +136,94 @@ export default async function PublicProfilePage({ params }: Props) {
                     }`}>
                       {user.plan === 'premium' ? '⚡ Premium' : 'Free'}
                     </span>
-                    <span className="text-text-muted text-xs">{levelName}</span>
+                    {canSeeStats && <span className="text-text-muted text-xs">{levelName}</span>}
                   </div>
                 </div>
 
-                {showFollowButton && (
+                {!!viewerId && !isOwnProfile && (
                   <FollowButton
                     targetUserId={userId}
                     initialIsFollowing={isFollowing as boolean}
+                    initialIsPending={hasPendingRequest as boolean}
                     initialFollowersCount={followersCount}
                   />
                 )}
               </div>
 
-              {/* Stats row */}
-              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
-                <StatChip label="Racha" value={`🔥 ${streak?.currentStreak ?? 0}`} highlight />
-                <StatChip label="Mejor racha" value={`⚡ ${streak?.bestStreak ?? 0}`} />
-                <StatChip label="Nivel" value={`⭐ ${level}`} />
-                <StatChip label="XP" value={`${totalXP.toLocaleString()} XP`} />
-                <StatChip label="Seguidores" value={String(followersCount)} />
-                <StatChip label="Siguiendo" value={String(followingCount)} />
-              </div>
+              {/* Stats row — only if viewer can see them */}
+              {canSeeStats && (
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+                  <StatChip label="Racha"       value={`🔥 ${streak?.currentStreak ?? 0}`} highlight />
+                  <StatChip label="Mejor racha" value={`⚡ ${streak?.bestStreak ?? 0}`} />
+                  <StatChip label="Nivel"       value={`⭐ ${level}`} />
+                  <StatChip label="XP"          value={`${totalXP.toLocaleString()} XP`} />
+                  <StatChip label="Seguidores"  value={String(followersCount)} />
+                  <StatChip label="Siguiendo"   value={String(followingCount)} />
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Stats cards ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <Card>
-          <CardHeader title="Entrenamientos" />
-          <CardContent>
-            <p className="text-4xl font-black text-text-primary tabular-nums">{workoutsCompleted}</p>
-            <p className="text-text-muted text-sm mt-1">sesiones completadas</p>
-          </CardContent>
-        </Card>
+      {/* ── Private locked view ────────────────────────────────────── */}
+      {!canSeeStats && (
+        <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-bg-tertiary border border-border-default flex items-center justify-center text-3xl">
+            🔒
+          </div>
+          <div>
+            <p className="text-text-primary font-bold text-lg mb-1">Esta cuenta es privada</p>
+            <p className="text-text-muted text-sm leading-relaxed max-w-xs">
+              {hasPendingRequest as boolean
+                ? 'Tu solicitud de seguimiento está pendiente de aceptación.'
+                : 'Sigue a este usuario para ver sus estadísticas, entrenamientos y logros.'}
+            </p>
+          </div>
+        </div>
+      )}
 
-        <Card>
-          <CardHeader title="Peso actual" />
-          <CardContent>
-            {lastWeight ? (
-              <>
-                <p className="text-4xl font-black text-text-primary tabular-nums">
-                  {lastWeight.weight}{' '}
-                  <span className="text-xl font-semibold text-text-muted">kg</span>
-                </p>
-                <p className="text-text-muted text-sm mt-1">último registro</p>
-              </>
-            ) : (
-              <p className="text-text-muted text-sm py-2">Sin datos de peso</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* ── Stats cards — only if can see ──────────────────────────── */}
+      {canSeeStats && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <Card>
+              <CardHeader title="Entrenamientos" />
+              <CardContent>
+                <p className="text-4xl font-black text-text-primary tabular-nums">{workoutsCompleted}</p>
+                <p className="text-text-muted text-sm mt-1">sesiones completadas</p>
+              </CardContent>
+            </Card>
 
-      {/* ── Badges ─────────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader
-          title="Logros"
-          description={`Badges desbloqueados por ${user.name ?? 'este atleta'}`}
-        />
-        <CardContent>
-          <BadgesGrid userId={userId} />
-        </CardContent>
-      </Card>
+            <Card>
+              <CardHeader title="Peso actual" />
+              <CardContent>
+                {lastWeight ? (
+                  <>
+                    <p className="text-4xl font-black text-text-primary tabular-nums">
+                      {lastWeight.weight}{' '}
+                      <span className="text-xl font-semibold text-text-muted">kg</span>
+                    </p>
+                    <p className="text-text-muted text-sm mt-1">último registro</p>
+                  </>
+                ) : (
+                  <p className="text-text-muted text-sm py-2">Sin datos de peso</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader
+              title="Logros"
+              description={`Badges desbloqueados por ${user.name ?? 'este atleta'}`}
+            />
+            <CardContent>
+              <BadgesGrid userId={userId} />
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   )
 }

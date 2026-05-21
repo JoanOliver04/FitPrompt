@@ -5,16 +5,16 @@ import { UserCard } from './UserCard'
 import type { SocialUser } from '@/types'
 
 interface Props {
-  otherUsers:    SocialUser[]
-  rankingUsers:  SocialUser[]
-  me:            SocialUser
-  followersCount: number
-  myRank:        number
+  otherUsers:   SocialUser[]
+  followers:    SocialUser[]
+  rankingUsers: SocialUser[]
+  me:           SocialUser
+  myRank:       number
 }
 
-type Tab = 'Descubrir' | 'Siguiendo' | 'Ranking'
+type Tab = 'Descubrir' | 'Siguiendo' | 'Seguidores' | 'Ranking'
 
-export function SocialClient({ otherUsers, rankingUsers, me, followersCount, myRank }: Props) {
+export function SocialClient({ otherUsers, followers, rankingUsers, me, myRank }: Props) {
   const [tab, setTab]       = useState<Tab>('Descubrir')
   const [search, setSearch] = useState('')
 
@@ -22,7 +22,10 @@ export function SocialClient({ otherUsers, rankingUsers, me, followersCount, myR
   const discover  = otherUsers.filter(u => !u.isFollowing)
 
   const q = search.toLowerCase().trim()
-  const base    = tab === 'Siguiendo' ? following : tab === 'Descubrir' ? discover : rankingUsers
+  const base =
+    tab === 'Siguiendo'  ? following  :
+    tab === 'Seguidores' ? followers  :
+    tab === 'Descubrir'  ? discover   : rankingUsers
   const filtered = q ? base.filter(u => u.name?.toLowerCase().includes(q)) : base
 
   const xpPct = Math.min(100, Math.round((me.xpCurrent / me.xpMax) * 100))
@@ -79,17 +82,32 @@ export function SocialClient({ otherUsers, rankingUsers, me, followersCount, myR
           {/* Stats chips */}
           <div className="mt-4 flex flex-wrap gap-2">
             {[
-              { icon: '🔥', label: 'Racha',      value: me.currentStreak },
-              { icon: '⚡', label: 'XP total',   value: me.totalXP.toLocaleString('es') },
-              { icon: '💪', label: 'Entrenos',   value: me.workoutCount },
-              { icon: '👥', label: 'Seguidores', value: followersCount },
-              { icon: '➕', label: 'Siguiendo',  value: following.length },
-            ].map(({ icon, label, value }) => (
-              <div key={label} className="flex items-center gap-1.5 bg-bg-secondary border border-border-default rounded-xl px-3 py-1.5 text-xs">
-                <span>{icon}</span>
-                <span className="text-text-muted">{label}:</span>
-                <span className="text-text-primary font-bold">{value}</span>
-              </div>
+              { icon: '🔥', label: 'Racha',      value: me.currentStreak,                  tab: undefined },
+              { icon: '⚡', label: 'XP total',   value: me.totalXP.toLocaleString('es'),   tab: undefined },
+              { icon: '💪', label: 'Entrenos',   value: me.workoutCount,                   tab: undefined },
+              { icon: '👥', label: 'Seguidores', value: followers.length,                  tab: 'Seguidores' as Tab },
+              { icon: '➕', label: 'Siguiendo',  value: following.length,                  tab: 'Siguiendo' as Tab },
+            ].map(({ icon, label, value, tab: chipTab }) => (
+              chipTab
+                ? (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => { setTab(chipTab); setSearch('') }}
+                    className="flex items-center gap-1.5 bg-bg-secondary border border-border-default hover:border-[#FF471A]/40 rounded-xl px-3 py-1.5 text-xs transition-colors"
+                  >
+                    <span>{icon}</span>
+                    <span className="text-text-muted">{label}:</span>
+                    <span className="text-text-primary font-bold">{value}</span>
+                  </button>
+                )
+                : (
+                  <div key={label} className="flex items-center gap-1.5 bg-bg-secondary border border-border-default rounded-xl px-3 py-1.5 text-xs">
+                    <span>{icon}</span>
+                    <span className="text-text-muted">{label}:</span>
+                    <span className="text-text-primary font-bold">{value}</span>
+                  </div>
+                )
             ))}
           </div>
         </div>
@@ -100,33 +118,38 @@ export function SocialClient({ otherUsers, rankingUsers, me, followersCount, myR
 
         {/* Tabs */}
         <div className="flex gap-1 p-1 bg-bg-tertiary rounded-2xl mb-5">
-          {(['Descubrir', 'Siguiendo', 'Ranking'] as Tab[]).map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => { setTab(t); setSearch('') }}
-              className={[
-                'flex-1 py-2 rounded-xl text-sm font-bold transition-all duration-200',
-                tab === t
-                  ? 'bg-[#FF471A] text-white shadow-md'
-                  : 'text-text-muted hover:text-text-secondary',
-              ].join(' ')}
-            >
-              {t}
-              {t === 'Siguiendo' && following.length > 0 && (
-                <span className={[
-                  'ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full font-black',
-                  tab === t ? 'bg-white/25 text-white' : 'bg-bg-secondary text-text-muted',
-                ].join(' ')}>
-                  {following.length}
-                </span>
-              )}
-            </button>
-          ))}
+          {(['Descubrir', 'Siguiendo', 'Seguidores', 'Ranking'] as Tab[]).map(t => {
+            const count =
+              t === 'Siguiendo'  ? following.length :
+              t === 'Seguidores' ? followers.length : 0
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => { setTab(t); setSearch('') }}
+                className={[
+                  'flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-200',
+                  tab === t
+                    ? 'bg-[#FF471A] text-white shadow-md'
+                    : 'text-text-muted hover:text-text-secondary',
+                ].join(' ')}
+              >
+                {t}
+                {count > 0 && (
+                  <span className={[
+                    'ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-black',
+                    tab === t ? 'bg-white/25 text-white' : 'bg-bg-secondary text-text-muted',
+                  ].join(' ')}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         {/* Search (hidden on Ranking) */}
-        {tab !== 'Ranking' && (
+        {tab !== 'Ranking' && tab !== 'Seguidores' && (
           <div className="relative mb-5">
             <svg
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
@@ -149,15 +172,21 @@ export function SocialClient({ otherUsers, rankingUsers, me, followersCount, myR
         {/* Tab content */}
         {tab === 'Ranking'
           ? <RankingView users={filtered} hasSearch={false} />
-          : <ListView
-              users={filtered}
-              emptyMsg={
-                tab === 'Siguiendo'
-                  ? 'Aún no sigues a nadie'
-                  : q ? 'Sin resultados para "' + q + '"' : '¡Ya sigues a todos!'
-              }
-              emptyHint={tab === 'Siguiendo' ? 'Descubre atletas en la pestaña Descubrir' : undefined}
-            />
+          : tab === 'Seguidores'
+            ? <ListView
+                users={followers}
+                emptyMsg="Aún nadie te sigue"
+                emptyHint="Comparte tu perfil para conseguir seguidores"
+              />
+            : <ListView
+                users={filtered}
+                emptyMsg={
+                  tab === 'Siguiendo'
+                    ? 'Aún no sigues a nadie'
+                    : q ? `Sin resultados para "${q}"` : '¡Ya sigues a todos!'
+                }
+                emptyHint={tab === 'Siguiendo' ? 'Descubre atletas en la pestaña Descubrir' : undefined}
+              />
         }
       </div>
     </div>

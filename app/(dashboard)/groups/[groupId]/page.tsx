@@ -55,12 +55,14 @@ export default async function GroupDetailPage({ params }: Props) {
   if (isCreator) {
     const [mutualFollows, pendingInvitations] = await Promise.all([
       // People who I follow AND who follow me back
+      // Note: user.following = Follow[] where followingId=user.id (I am being followed)
+      //       user.followers = Follow[] where followerId=user.id (I am the follower)
       db.user.findMany({
         where: {
           AND: [
             { id: { notIn: [...memberIds] } },
-            { followers: { some: { followerId: userId } } },   // I follow them
-            { following: { some: { followingId: userId } } },  // They follow me
+            { following: { some: { followerId: userId } } },  // I (userId) follow them: Follow(followerId=userId, followingId=u.id)
+            { followers: { some: { followingId: userId } } }, // They follow me: Follow(followerId=u.id, followingId=userId)
           ],
         },
         select: { id: true, name: true, image: true },
