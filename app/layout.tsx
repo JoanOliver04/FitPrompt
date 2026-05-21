@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { headers } from 'next/headers'
-import Script from 'next/script'
 import Providers from '@/components/layout/Providers'
 import './globals.css'
 
@@ -36,8 +34,7 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
       <head>
@@ -47,13 +44,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: `try{const t=localStorage.getItem('fp-theme');if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}catch(e){}`,
           }}
         />
-        <Script
-          id="fp-theme-bootstrap"
-          strategy="beforeInteractive"
-          nonce={nonce}
-        >
-          {`try{var t=localStorage.getItem('fp-theme');if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}catch(e){}`}
-        </Script>
       </head>
       <body suppressHydrationWarning className={`${inter.variable} font-sans bg-bg-primary text-text-primary min-h-screen`}>
         <Providers>{children}</Providers>

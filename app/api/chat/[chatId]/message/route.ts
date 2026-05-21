@@ -10,11 +10,11 @@ import {
 import { PLAN_LIMITS } from '@/lib/limits'
 import { generarPromptListaCompra, generarSystemPrompt } from '@/lib/prompts'
 import { getLastCheckIn } from '@/lib/checkin'
-import { db } from '@/lib/db'
+import { loadAIProfile } from '@/lib/ai-profile'
 import { stripHtml } from '@/lib/sanitize'
 import { chatMessageBodySchema, cuidString, shoppingListSchema } from '@/lib/schemas'
 import { logger } from '@/lib/logger'
-import type { Plan, UserProfile, ShoppingList } from '@/types'
+import type { Plan, ShoppingList } from '@/types'
 import { SHOPPING_LIST_SENTINEL } from '@/types'
 
 export const runtime = 'nodejs'
@@ -149,13 +149,9 @@ export const POST = defineHandler(
       if (!process.env.GROQ_API_KEY) {
         parsedList = parseShoppingList(MOCK_SHOPPING_JSON)
       } else {
-        const userRow = await db.user.findUnique({
-          where:  { id: userId },
-          select: { profile: true },
-        })
+        const profile = await loadAIProfile(userId)
 
-        if (userRow?.profile) {
-          const profile = userRow.profile as unknown as UserProfile
+        if (profile) {
           try {
             const rawAI = await callGroq(
               [
@@ -193,9 +189,9 @@ export const POST = defineHandler(
       ? `\n\n---\n\n**Último check-in del usuario** (semana del ${lastCheckIn.weekStart.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}):\n> "${stripHtml(lastCheckIn.response).slice(0, 1000)}"\n\nTen en cuenta este contexto para personalizar tus respuestas.`
       : ''
 
-    const userRow = await db.user.findUnique({ where: { id: userId }, select: { profile: true } })
-    const systemContent = userRow?.profile
-      ? generarSystemPrompt(userRow.profile as unknown as UserProfile) + checkInContext
+    const profile = await loadAIProfile(userId)
+    const systemContent = profile
+      ? generarSystemPrompt(profile) + checkInContext
       : FITCOACH_SYSTEM + checkInContext
 
     const messages = [

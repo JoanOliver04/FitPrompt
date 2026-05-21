@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { defineHandler } from '@/lib/api-handler'
 import { generatePlan } from '@/lib/ai'
-import { db } from '@/lib/db'
+import { loadAIProfile } from '@/lib/ai-profile'
 import { userProfileSchema } from '@/lib/schemas'
 import { logger } from '@/lib/logger'
 import type { UserProfile } from '@/types'
@@ -22,14 +22,13 @@ export const POST = defineHandler(
   },
   async ({ session, body }) => {
     // Always prefer the persisted profile to prevent client tampering with macros.
-    const stored = await db.userProfile.findUnique({
-      where: { userId: session.user.id },
-    })
-    const profile: UserProfile = (stored ?? {
+    // loadAIProfile also overrides `weight` with the latest WeightLog entry.
+    const stored = await loadAIProfile(session.user.id)
+    const profile: UserProfile = stored ?? ({
       ...body,
       userId:     session.user.id,
       birthDate:  body.birthDate instanceof Date ? body.birthDate : new Date(body.birthDate),
-    }) as unknown as UserProfile
+    } as unknown as UserProfile)
 
     try {
       const result = await generatePlan(profile)

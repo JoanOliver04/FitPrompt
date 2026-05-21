@@ -21,7 +21,13 @@ export async function GET(): Promise<NextResponse> {
     where:   { userId: session.user.id },
     orderBy: { date: 'desc' },
     take:    50,
-    select:  { id: true, date: true, exercises: true, duration: true, completed: true, notes: true },
+    select:  {
+      id: true, date: true, duration: true, completed: true, notes: true,
+      exercises: {
+        orderBy: { order: 'asc' },
+        select:  { name: true, sets: true, reps: true, weight: true },
+      },
+    },
   })
   return NextResponse.json({ logs: rows.map(serialize) }, { headers: { 'Cache-Control': 'no-store' } })
 }
@@ -44,12 +50,28 @@ export const POST = defineHandler(
         data: {
           userId:    session.user.id,
           date,
-          exercises: body.exercises as unknown as Parameters<typeof db.workoutLog.create>[0]['data']['exercises'],
           duration:  body.duration,
           completed: body.completed,
           notes:     body.notes || null,
+          exercises: {
+            create: body.exercises.map((ex, i) => ({
+              userId: session.user.id,
+              date,
+              name:   ex.name,
+              sets:   ex.sets,
+              reps:   ex.reps,
+              weight: ex.weight,
+              order:  i,
+            })),
+          },
         },
-        select: { id: true, date: true, exercises: true, duration: true, completed: true, notes: true },
+        select: {
+          id: true, date: true, duration: true, completed: true, notes: true,
+          exercises: {
+            orderBy: { order: 'asc' },
+            select:  { name: true, sets: true, reps: true, weight: true },
+          },
+        },
       }),
       db.userProfile.findUnique({
         where:  { userId: session.user.id },
@@ -75,12 +97,13 @@ export const POST = defineHandler(
 )
 
 function serialize(row: {
-  id: string; date: Date; exercises: unknown; duration: number; completed: boolean; notes: string | null
+  id: string; date: Date; duration: number; completed: boolean; notes: string | null
+  exercises: { name: string; sets: number; reps: number; weight: number }[]
 }) {
   return {
     id:        row.id,
     date:      row.date.toISOString(),
-    exercises: (Array.isArray(row.exercises) ? row.exercises : []) as WorkoutExercise[],
+    exercises: row.exercises as WorkoutExercise[],
     duration:  row.duration,
     completed: row.completed,
     notes:     row.notes ?? '',

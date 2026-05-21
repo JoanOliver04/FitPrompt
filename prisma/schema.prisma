@@ -205,13 +205,34 @@ model WorkoutLog {
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date         DateTime @default(now())
-  exercises    Json
+  // DEPRECATED legacy blob — superseded by the `exercises` relation below.
+  // Kept (nullable) as a rollback safety net; a follow-up migration drops the column.
+  legacyExercises Json? @map("exercises")
+  exercises    WorkoutExercise[]
   duration     Int
   completed    Boolean  @default(false)
   notes        String?
   routineId    String?
   routineDayId String?
   createdAt    DateTime @default(now())
+}
+
+model WorkoutExercise {
+  id           String     @id @default(cuid())
+  workoutLogId String
+  workoutLog   WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  // userId + date are denormalized from the parent log so cross-session per-exercise
+  // stats (e.g. bench-press progression, group rankings) are an indexed query.
+  userId       String
+  date         DateTime
+  name         String
+  sets         Int
+  reps         Int
+  weight       Float
+  order        Int
+
+  @@index([workoutLogId])
+  @@index([userId, name, date])
 }
 
 model WeightLog {

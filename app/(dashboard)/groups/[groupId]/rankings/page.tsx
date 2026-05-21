@@ -8,13 +8,6 @@ import { db } from '@/lib/db'
 const EXERCISES = ['Press banca', 'Sentadilla', 'Peso muerto', 'Dominadas'] as const
 type Exercise = (typeof EXERCISES)[number]
 
-interface WorkoutExercise {
-  name: string
-  sets: number
-  reps: number
-  weight: number
-}
-
 interface RankingRow {
   pos: number
   userId: string
@@ -67,9 +60,15 @@ export default async function GroupRankingsPage({
   const memberIds = group.members.map((m) => m.userId)
   const memberMap = new Map(group.members.map((m) => [m.userId, m.user]))
 
-  const logs = await db.workoutLog.findMany({
-    where: { userId: { in: memberIds }, completed: true },
-    select: { userId: true, exercises: true },
+  // Indexed lookup: filter by exercise name + member ids directly on the relational
+  // table, instead of scanning every member's full workout history and parsing JSON.
+  const exerciseRows = await db.workoutExercise.findMany({
+    where: {
+      userId:     { in: memberIds },
+      name:       { equals: selected, mode: 'insensitive' },
+      workoutLog: { is: { completed: true } },
+    },
+    select: { userId: true, reps: true, weight: true },
   })
 
   type UserBest = {
@@ -80,32 +79,25 @@ export default async function GroupRankingsPage({
   }
   const bestMap = new Map<string, UserBest>()
 
-  for (const log of logs) {
-    const exercises = (
-      Array.isArray(log.exercises) ? log.exercises : []
-    ) as unknown as WorkoutExercise[]
+  for (const ex of exerciseRows) {
+    const orm = estimateOrm(ex.weight, ex.reps)
+    const cur = bestMap.get(ex.userId)
 
-    for (const ex of exercises) {
-      if (ex.name.toLowerCase() !== selected.toLowerCase()) continue
-      const orm = estimateOrm(ex.weight, ex.reps)
-      const cur = bestMap.get(log.userId)
-
-      if (!cur) {
-        bestMap.set(log.userId, {
-          orm,
-          bestReps: ex.reps,
-          bestWeight: ex.weight,
-          maxWeight: ex.weight,
-        })
-      } else {
-        const betterOrm = orm > cur.orm
-        bestMap.set(log.userId, {
-          orm: betterOrm ? orm : cur.orm,
-          bestReps: betterOrm ? ex.reps : cur.bestReps,
-          bestWeight: betterOrm ? ex.weight : cur.bestWeight,
-          maxWeight: ex.weight > cur.maxWeight ? ex.weight : cur.maxWeight,
-        })
-      }
+    if (!cur) {
+      bestMap.set(ex.userId, {
+        orm,
+        bestReps: ex.reps,
+        bestWeight: ex.weight,
+        maxWeight: ex.weight,
+      })
+    } else {
+      const betterOrm = orm > cur.orm
+      bestMap.set(ex.userId, {
+        orm: betterOrm ? orm : cur.orm,
+        bestReps: betterOrm ? ex.reps : cur.bestReps,
+        bestWeight: betterOrm ? ex.weight : cur.bestWeight,
+        maxWeight: ex.weight > cur.maxWeight ? ex.weight : cur.maxWeight,
+      })
     }
   }
 
