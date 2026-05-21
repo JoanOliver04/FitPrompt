@@ -186,7 +186,7 @@ function GroupInvitationRow({
         <p className="text-text-primary text-xs font-semibold leading-tight">
           <span className="truncate">{inv.inviter.name ?? 'Alguien'}</span>
           {' '}te invita a{' '}
-          <span className="text-[#FF471A] truncate">"{inv.group.name}"</span>
+          <span className="text-[#FF471A] truncate">&quot;{inv.group.name}&quot;</span>
         </p>
         <p className="text-text-muted text-[10px] mt-0.5">{timeAgo(inv.createdAt)}</p>
       </div>

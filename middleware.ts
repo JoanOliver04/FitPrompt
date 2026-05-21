@@ -9,6 +9,9 @@ const PUBLIC_API_ROUTES = new Set<string>([
   '/api/stripe/webhook',        // has its own Stripe-signature verification
 ])
 
+// Page routes accessible without a session.
+const PUBLIC_PAGES = new Set<string>(['/', '/login', '/register', '/pricing', '/403'])
+
 function isNextAuthRoute(path: string): boolean {
   // /api/auth/* belongs to NextAuth (signin, callback, csrf, session, providers…).
   // /api/auth/register is OUR route — keep it explicit in PUBLIC_API_ROUTES.
@@ -85,6 +88,20 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 
   // ── Page routes ────────────────────────────────────────────────────────────
+  // Public pages: always accessible. Redirect logged-in users away from auth pages.
+  if (PUBLIC_PAGES.has(pathname)) {
+    if (token && (pathname === '/login' || pathname === '/register')) {
+      const res = NextResponse.redirect(new URL('/dashboard', request.url))
+      applySecurityHeaders(res, nonce, isDev)
+      return res
+    }
+    const reqHeaders = new Headers(request.headers)
+    reqHeaders.set('x-nonce', nonce)
+    const res = NextResponse.next({ request: { headers: reqHeaders } })
+    applySecurityHeaders(res, nonce, isDev)
+    return res
+  }
+
   if (!token) {
     const cb = isSafeRelativePath(pathname) ? pathname : '/dashboard'
     const loginUrl = new URL('/login', request.url)

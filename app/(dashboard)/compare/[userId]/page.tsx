@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
@@ -64,7 +65,7 @@ function ProfileCard({
     <div className={`bg-bg-secondary border ${borderClass} rounded-2xl p-5 text-center flex flex-col items-center gap-2`}>
       <div className={`w-16 h-16 rounded-2xl ${avatarBg} border ${avatarBorder} flex items-center justify-center overflow-hidden shrink-0`}>
         {user.image
-          ? <img src={user.image} alt={user.name ?? ''} className="w-full h-full object-cover" />
+          ? <Image src={user.image} alt={user.name ?? ''} width={64} height={64} className="w-full h-full object-cover" />
           : <span className="text-3xl">👤</span>
         }
       </div>
