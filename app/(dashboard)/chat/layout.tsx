@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserChats, countUserChats } from '@/lib/chat'
@@ -9,7 +8,7 @@ const FREE_CHAT_LIMIT = 3
 
 export default async function ChatLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
 
   const userId = session.user.id
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'

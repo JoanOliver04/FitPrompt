@@ -12,7 +12,7 @@ const FREE_CHAT_LIMIT = 3
  */
 export default async function NewChatPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
 
   const userId = session.user.id
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'

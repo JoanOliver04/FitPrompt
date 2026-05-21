@@ -75,7 +75,7 @@ export function ShoppingListCard({ content }: Props) {
   const [pdfStatus, setPdfStatus] = useState<'idle' | 'loading' | 'error'>('idle')
 
   const list = useMemo(() => parseContent(content), [content])
-  const categories = list?.categories ?? []
+  const categories = useMemo(() => list?.categories ?? [], [list])
 
   // All hooks defined before any conditional return
   const handleCopy = useCallback(async () => {

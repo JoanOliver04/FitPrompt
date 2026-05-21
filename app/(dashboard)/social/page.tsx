@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import { getServerSession } from 'next-auth'
-import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { deriveLevel } from '@/lib/xp'
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function SocialPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
 
   const userId = session.user.id
 
@@ -41,7 +41,7 @@ export default async function SocialPage() {
     }),
   ])
 
-  if (!rawMe) redirect('/login')
+  if (!rawMe) notFound()
 
   const followingIds = new Set(myFollowIds.map(f => f.followingId))
   const pendingIds   = new Set(sentRequests.map(r => r.toUserId))
