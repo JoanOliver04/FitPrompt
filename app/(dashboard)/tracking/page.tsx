@@ -52,12 +52,18 @@ async function getWorkoutLogs(userId: string): Promise<WorkoutEntry[]> {
       where:   { userId },
       orderBy: { date: 'desc' },
       take:    50,
-      select:  { id: true, date: true, exercises: true, duration: true, completed: true, notes: true },
+      select:  {
+        id: true, date: true, duration: true, completed: true, notes: true,
+        exercises: {
+          orderBy: { order: 'asc' },
+          select:  { name: true, sets: true, reps: true, weight: true },
+        },
+      },
     })
     return rows.map((r) => ({
       id:        r.id,
       date:      r.date.toISOString(),
-      exercises: (Array.isArray(r.exercises) ? r.exercises : []) as unknown as WorkoutExercise[],
+      exercises: r.exercises as WorkoutExercise[],
       duration:  r.duration,
       completed: r.completed,
       notes:     r.notes ?? '',
