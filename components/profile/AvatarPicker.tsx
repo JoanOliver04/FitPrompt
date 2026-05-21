@@ -84,17 +84,17 @@ export function AvatarPicker({ currentImage, plan }: Props) {
       <p className="text-text-secondary text-sm font-semibold mb-3">Cambiar avatar</p>
 
       {/* Predefined grid */}
-      <div className="grid grid-cols-6 gap-2 mb-4">
+      <div className="grid grid-cols-4 gap-2 mb-4">
         {PREDEFINED_AVATARS.map((url) => (
           <button
             key={url}
             type="button"
             onClick={() => setSelected(url)}
             className={[
-              'w-10 h-10 rounded-xl overflow-hidden border-2 transition-all',
+              'w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all duration-150',
               selected === url
-                ? 'border-[#FF471A] scale-110 shadow-lg'
-                : 'border-transparent hover:border-[#FF471A66]',
+                ? 'border-[#FF471A] scale-110 shadow-lg shadow-[#FF471A]/20'
+                : 'border-transparent hover:border-[#FF471A66] hover:scale-105',
             ].join(' ')}
             title="Seleccionar avatar"
           >

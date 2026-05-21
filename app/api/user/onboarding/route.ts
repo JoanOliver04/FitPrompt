@@ -38,7 +38,7 @@ export const POST = defineHandler(
     }
 
     await db.$transaction([
-      db.user.update({ where: { id: session.user.id }, data: { name: body.name } }),
+      db.user.update({ where: { id: session.user.id }, data: { name: body.name, isPublic: body.isPublic ?? true } }),
       db.userProfile.upsert({
         where:  { userId: session.user.id },
         update: data,

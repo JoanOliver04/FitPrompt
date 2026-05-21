@@ -24,6 +24,7 @@ export interface OnboardingData {
   allergies: string
   foodPreferences: string[]
   extraInfo: string
+  isPublic: boolean
 }
 
 export type StepErrors = Partial<Record<keyof OnboardingData, string>>
@@ -54,6 +55,7 @@ const INITIAL_DATA: OnboardingData = {
   allergies: '',
   foodPreferences: [],
   extraInfo: '',
+  isPublic: true,
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -174,6 +176,11 @@ export function useOnboarding() {
     [setData],
   )
 
+  const setPublic = useCallback(
+    (val: boolean) => setData((prev) => ({ ...prev, isPublic: val })),
+    [setData],
+  )
+
   const toggleFoodPref = useCallback(
     (pref: string) =>
       setData((prev) => ({
@@ -200,7 +207,7 @@ export function useOnboarding() {
         await fetch('/api/user/onboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(profile),
+          body: JSON.stringify({ ...profile, isPublic: data.isPublic }),
         })
         removeValue()
       } catch {
@@ -226,6 +233,7 @@ export function useOnboarding() {
     isSubmitting,
     isHydrated,
     set,
+    setPublic,
     toggleFoodPref,
     goNext,
     goBack,

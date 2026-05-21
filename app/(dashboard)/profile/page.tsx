@@ -7,6 +7,7 @@ import { BadgesGrid } from '@/components/profile/BadgesGrid'
 import { ProfileActions } from '@/components/profile/ProfileActions'
 import ProfileSections from '@/components/profile/ProfileSections'
 import { AvatarPicker } from '@/components/profile/AvatarPicker'
+import { PrivacyToggle } from '@/components/settings/PrivacyToggle'
 import { calculateAge } from '@/lib/age'
 import { formatLastLogin } from '@/lib/utils'
 import { deriveLevel } from '@/lib/xp'
@@ -46,7 +47,7 @@ export default async function ProfilePage() {
         db.follow.count({ where: { followingId: session.user.id } }),
         db.follow.count({ where: { followerId:  session.user.id } }),
         db.userProfile.findUnique({ where: { userId: session.user.id } }),
-        db.user.findUnique({ where: { id: session.user.id }, select: { lastLoginAt: true, image: true } }),
+        db.user.findUnique({ where: { id: session.user.id }, select: { lastLoginAt: true, image: true, isPublic: true } }),
         db.streak.findUnique({ where: { userId: session.user.id } }),
         db.userXP.findUnique({ where: { userId: session.user.id } }),
       ])
@@ -165,6 +166,11 @@ export default async function ProfilePage() {
             </Link>
           )}
         </div>
+      </div>
+
+      {/* Privacy */}
+      <div className="bg-bg-secondary border border-border-default rounded-2xl overflow-hidden mb-6">
+        <PrivacyToggle initialIsPublic={userMeta?.isPublic ?? true} />
       </div>
 
       {/* Editable profile sections */}

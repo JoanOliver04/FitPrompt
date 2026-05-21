@@ -4,7 +4,7 @@ import { useOnboarding, STEPS, maxBirthDate, minBirthDate } from '@/hooks/useOnb
 import Logo from '@/components/ui/Logo'
 
 export default function OnboardingPage() {
-  const { step, data, errors, isSubmitting, isHydrated, set, toggleFoodPref, goNext, goBack } =
+  const { step, data, errors, isSubmitting, isHydrated, set, setPublic, toggleFoodPref, goNext, goBack } =
     useOnboarding()
 
   const isLastStep = step === STEPS.length - 1
@@ -384,6 +384,37 @@ export default function OnboardingPage() {
                 onChange={(e) => set('extraInfo', e.target.value)}
                 className="w-full bg-bg-tertiary border border-border-default focus:border-[#FF471A] text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors resize-none"
               />
+
+              {/* Privacy toggle */}
+              <div className="bg-bg-tertiary border border-border-default rounded-xl p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-text-primary font-semibold text-sm mb-0.5">
+                      {data.isPublic ? '🔓 Cuenta pública' : '🔒 Cuenta privada'}
+                    </p>
+                    <p className="text-text-muted text-xs leading-relaxed">
+                      {data.isPublic
+                        ? 'Cualquiera puede seguirte directamente. Puedes cambiarlo en cualquier momento desde Configuración.'
+                        : 'Los nuevos seguidores deben enviar una solicitud que tú aceptas o rechazas.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={data.isPublic}
+                    onClick={() => setPublic(!data.isPublic)}
+                    className={[
+                      'relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 mt-0.5',
+                      data.isPublic ? 'bg-[#FF471A]' : 'bg-bg-secondary border border-border-default',
+                    ].join(' ')}
+                  >
+                    <span className={[
+                      'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                      data.isPublic ? 'translate-x-5' : 'translate-x-0.5',
+                    ].join(' ')} />
+                  </button>
+                </div>
+              </div>
 
               <div className="bg-[#FF471A1A] border border-[#FF471A33] rounded-xl p-4 text-sm text-text-secondary">
                 <p className="font-semibold text-text-primary mb-1">¡Todo listo!</p>

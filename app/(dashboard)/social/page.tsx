@@ -28,18 +28,23 @@ export default async function SocialPage() {
     _count: { select: { workoutLogs: true, achievements: true } },
   } as const
 
-  const [myFollowIds, followersCount, rawOthers, rawMe, sentRequests] = await Promise.all([
+  const [myFollowIds, rawOthers, rawMe, sentRequests, rawFollowers] = await Promise.all([
     db.follow.findMany({ where: { followerId: userId }, select: { followingId: true } }),
-    db.follow.count({ where: { followingId: userId } }),
     db.user.findMany({ where: { id: { not: userId } }, select, take: 100 }),
     db.user.findUnique({ where: { id: userId }, select }),
     db.followRequest.findMany({ where: { fromUserId: userId }, select: { toUserId: true } }),
+    db.follow.findMany({
+      where:   { followingId: userId },
+      select:  { follower: { select } },
+      orderBy: { createdAt: 'desc' },
+      take:    100,
+    }),
   ])
 
   if (!rawMe) redirect('/login')
 
-  const followingIds  = new Set(myFollowIds.map(f => f.followingId))
-  const pendingIds    = new Set(sentRequests.map(r => r.toUserId))
+  const followingIds = new Set(myFollowIds.map(f => f.followingId))
+  const pendingIds   = new Set(sentRequests.map(r => r.toUserId))
 
   type Raw = typeof rawOthers[number]
   function toSocialUser(u: Raw, opts: { isFollowing: boolean; hasPendingRequest: boolean; isMe: boolean }): SocialUser {
@@ -67,9 +72,17 @@ export default async function SocialPage() {
 
   const otherUsers: SocialUser[] = rawOthers.map(u =>
     toSocialUser(u, {
-      isFollowing:      followingIds.has(u.id),
+      isFollowing:       followingIds.has(u.id),
       hasPendingRequest: pendingIds.has(u.id),
-      isMe:             false,
+      isMe:              false,
+    })
+  )
+
+  const followers: SocialUser[] = rawFollowers.map(f =>
+    toSocialUser(f.follower, {
+      isFollowing:       followingIds.has(f.follower.id),
+      hasPendingRequest: pendingIds.has(f.follower.id),
+      isMe:              false,
     })
   )
 
@@ -83,9 +96,9 @@ export default async function SocialPage() {
   return (
     <SocialClient
       otherUsers={otherUsers}
+      followers={followers}
       rankingUsers={rankingUsers}
       me={meUser}
-      followersCount={followersCount}
       myRank={myRank}
     />
   )
