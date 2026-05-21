@@ -3,7 +3,9 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
 import CheckoutButton from '@/components/ui/CheckoutButton'
+import { PrivacyToggle } from '@/components/settings/PrivacyToggle'
 import type { Plan } from '@/types'
 
 export const metadata: Metadata = {
@@ -16,6 +18,12 @@ export default async function SettingsPage() {
 
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'
   const isPremium = plan === 'premium'
+
+  const userRow = await db.user.findUnique({
+    where:  { id: session.user.id },
+    select: { isPublic: true },
+  })
+  const isPublic = userRow?.isPublic ?? true
 
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-2xl mx-auto w-full animate-enter">
@@ -127,6 +135,16 @@ export default async function SettingsPage() {
             <p className="text-text-primary font-semibold text-sm mb-0.5">Nombre</p>
             <p className="text-text-muted text-sm">{session.user.name ?? '—'}</p>
           </div>
+        </div>
+      </section>
+
+      {/* ── Privacy ── */}
+      <section className="mb-6">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3 px-1">
+          Privacidad
+        </h2>
+        <div className="bg-bg-secondary border border-border-default rounded-2xl overflow-hidden">
+          <PrivacyToggle initialIsPublic={isPublic} />
         </div>
       </section>
 

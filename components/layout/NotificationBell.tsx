@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface NotifItem {
   id:        string
@@ -16,6 +19,19 @@ interface NotifItem {
 interface NotifData {
   notifications: NotifItem[]
   unreadCount:   number
+}
+
+interface FollowRequestItem {
+  id:        string
+  from:      { id: string; name: string | null; image: string | null }
+  createdAt: string
+}
+
+interface GroupInvitationItem {
+  id:      string
+  group:   { id: string; name: string }
+  inviter: { id: string; name: string | null }
+  createdAt: string
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -39,7 +55,7 @@ function notifIcon(type: string): string {
   return '🔔'
 }
 
-// ─── Item ─────────────────────────────────────────────────────────────────────
+// ─── Regular notification item ────────────────────────────────────────────────
 
 function NotificationItem({
   notif,
@@ -62,71 +78,179 @@ function NotificationItem({
         notif.read ? 'hover:bg-bg-tertiary' : 'bg-[#FF471A06] hover:bg-[#FF471A0D]',
       ].join(' ')}
     >
-      {/* Icon */}
       <div className={[
         'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base',
         notif.read ? 'bg-bg-tertiary' : 'bg-[#FF471A15]',
       ].join(' ')}>
         {notifIcon(notif.type)}
       </div>
-
-      {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className={[
-          'text-sm leading-snug',
-          notif.read ? 'text-text-secondary' : 'text-text-primary font-semibold',
-        ].join(' ')}>
+        <p className={['text-sm leading-snug', notif.read ? 'text-text-secondary' : 'text-text-primary font-semibold'].join(' ')}>
           {notif.title}
         </p>
-        {notif.body && (
-          <p className="text-text-muted text-xs mt-0.5 leading-snug">{notif.body}</p>
-        )}
+        {notif.body && <p className="text-text-muted text-xs mt-0.5 leading-snug">{notif.body}</p>}
         <p className="text-text-muted text-[10px] mt-1.5 tabular-nums">{timeAgo(notif.createdAt)}</p>
       </div>
-
-      {/* Unread dot */}
-      {!notif.read && (
-        <div className="w-2 h-2 bg-[#FF471A] rounded-full mt-1.5 shrink-0" />
-      )}
+      {!notif.read && <div className="w-2 h-2 bg-[#FF471A] rounded-full mt-1.5 shrink-0" />}
     </div>
   )
 
-  if (notif.href) {
-    return (
-      <Link href={notif.href} onClick={handleClick} className="block">
-        {body}
-      </Link>
-    )
+  if (notif.href) return <Link href={notif.href} onClick={handleClick} className="block">{body}</Link>
+  return <button type="button" className="w-full text-left" onClick={handleClick}>{body}</button>
+}
+
+// ─── Follow request item ──────────────────────────────────────────────────────
+
+function FollowRequestRow({
+  req,
+  onDone,
+}: {
+  req:    FollowRequestItem
+  onDone: (id: string) => void
+}) {
+  const [loading, setLoading] = useState<'accept' | 'reject' | null>(null)
+
+  async function handle(action: 'accept' | 'reject') {
+    setLoading(action)
+    const method = action === 'accept' ? 'POST' : 'DELETE'
+    await fetch(`/api/social/follow-requests/${req.id}`, { method })
+    onDone(req.id)
   }
+
   return (
-    <button type="button" className="w-full text-left" onClick={handleClick}>
-      {body}
-    </button>
+    <div className="flex items-center gap-3 px-4 py-3 bg-[#FF471A06]">
+      <div className="w-9 h-9 rounded-xl bg-[#FF471A15] border border-[#FF471A30] flex items-center justify-center shrink-0 overflow-hidden">
+        {req.from.image
+          /* eslint-disable-next-line @next/next/no-img-element */
+          ? <img src={req.from.image} alt="" className="w-full h-full object-cover" />
+          : <span className="text-base">👤</span>
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-text-primary text-xs font-semibold leading-tight truncate">
+          {req.from.name ?? 'Alguien'} quiere seguirte
+        </p>
+        <p className="text-text-muted text-[10px] mt-0.5">{timeAgo(req.createdAt)}</p>
+      </div>
+      <div className="flex gap-1.5 shrink-0">
+        <button
+          type="button"
+          disabled={loading !== null}
+          onClick={() => handle('accept')}
+          className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-[#FF471A] text-white disabled:opacity-50 transition-all active:scale-95"
+        >
+          {loading === 'accept' ? '…' : 'Aceptar'}
+        </button>
+        <button
+          type="button"
+          disabled={loading !== null}
+          onClick={() => handle('reject')}
+          className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-bg-tertiary border border-border-default text-text-muted hover:text-red-400 disabled:opacity-50 transition-all active:scale-95"
+        >
+          {loading === 'reject' ? '…' : 'Rechazar'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Group invitation item ────────────────────────────────────────────────────
+
+function GroupInvitationRow({
+  inv,
+  onDone,
+}: {
+  inv:    GroupInvitationItem
+  onDone: (id: string) => void
+}) {
+  const router = useRouter()
+  const [loading, setLoading] = useState<'accept' | 'reject' | null>(null)
+
+  async function handle(action: 'accept' | 'reject') {
+    setLoading(action)
+    const method = action === 'accept' ? 'POST' : 'DELETE'
+    const res = await fetch(`/api/groups/invitations/${inv.id}`, { method })
+    if (action === 'accept' && res.ok) {
+      const data = await res.json() as { groupId?: string }
+      if (data.groupId) router.push(`/groups/${data.groupId}`)
+    }
+    onDone(inv.id)
+  }
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 bg-[#FF471A06]">
+      <div className="w-9 h-9 rounded-xl bg-[#FF471A15] border border-[#FF471A30] flex items-center justify-center shrink-0 text-base">
+        👥
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-text-primary text-xs font-semibold leading-tight">
+          <span className="truncate">{inv.inviter.name ?? 'Alguien'}</span>
+          {' '}te invita a{' '}
+          <span className="text-[#FF471A] truncate">"{inv.group.name}"</span>
+        </p>
+        <p className="text-text-muted text-[10px] mt-0.5">{timeAgo(inv.createdAt)}</p>
+      </div>
+      <div className="flex gap-1.5 shrink-0">
+        <button
+          type="button"
+          disabled={loading !== null}
+          onClick={() => handle('accept')}
+          className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-[#FF471A] text-white disabled:opacity-50 transition-all active:scale-95"
+        >
+          {loading === 'accept' ? '…' : 'Unirse'}
+        </button>
+        <button
+          type="button"
+          disabled={loading !== null}
+          onClick={() => handle('reject')}
+          className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-bg-tertiary border border-border-default text-text-muted hover:text-red-400 disabled:opacity-50 transition-all active:scale-95"
+        >
+          {loading === 'reject' ? '…' : 'Rechazar'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+
+function SectionHeader({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="flex items-center gap-2 px-4 py-2 bg-bg-tertiary border-b border-border-default">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{label}</span>
+      <span className="text-[9px] bg-[#FF471A] text-white font-black px-1.5 py-0.5 rounded-full">{count}</span>
+    </div>
   )
 }
 
 // ─── Bell ─────────────────────────────────────────────────────────────────────
 
 export function NotificationBell() {
-  const [data, setData]   = useState<NotifData>({ notifications: [], unreadCount: 0 })
-  const [open, setOpen]   = useState(false)
-  const ref               = useRef<HTMLDivElement>(null)
+  const [data, setData]               = useState<NotifData>({ notifications: [], unreadCount: 0 })
+  const [followReqs, setFollowReqs]   = useState<FollowRequestItem[]>([])
+  const [groupInvs, setGroupInvs]     = useState<GroupInvitationItem[]>([])
+  const [open, setOpen]               = useState(false)
+  const ref                           = useRef<HTMLDivElement>(null)
 
-  const fetchNotifs = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     try {
-      const res = await fetch('/api/notifications')
-      if (res.ok) setData(await res.json())
+      const [notifRes, reqRes, invRes] = await Promise.all([
+        fetch('/api/notifications'),
+        fetch('/api/social/follow-requests'),
+        fetch('/api/groups/invitations'),
+      ])
+      if (notifRes.ok) setData(await notifRes.json())
+      if (reqRes.ok)   setFollowReqs((await reqRes.json() as { requests: FollowRequestItem[] }).requests)
+      if (invRes.ok)   setGroupInvs((await invRes.json() as { invitations: GroupInvitationItem[] }).invitations)
     } catch {}
   }, [])
 
-  // Initial fetch + polling every 60 s
   useEffect(() => {
-    fetchNotifs()
-    const id = setInterval(fetchNotifs, 60_000)
+    fetchAll()
+    const id = setInterval(fetchAll, 60_000)
     return () => clearInterval(id)
-  }, [fetchNotifs])
+  }, [fetchAll])
 
-  // Close on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -137,28 +261,25 @@ export function NotificationBell() {
 
   async function markAllRead() {
     await fetch('/api/notifications', { method: 'PATCH' })
-    setData(prev => ({
-      unreadCount: 0,
-      notifications: prev.notifications.map(n => ({ ...n, read: true })),
-    }))
+    setData(prev => ({ unreadCount: 0, notifications: prev.notifications.map(n => ({ ...n, read: true })) }))
   }
 
   function markOneRead(id: string) {
     setData(prev => ({
-      unreadCount: Math.max(
-        0,
-        prev.unreadCount - (prev.notifications.find(n => n.id === id && !n.read) ? 1 : 0),
-      ),
+      unreadCount: Math.max(0, prev.unreadCount - (prev.notifications.find(n => n.id === id && !n.read) ? 1 : 0)),
       notifications: prev.notifications.map(n => n.id === id ? { ...n, read: true } : n),
     }))
     fetch(`/api/notifications/${id}/read`, { method: 'PATCH' }).catch(() => undefined)
   }
 
-  const hasUnread = data.unreadCount > 0
+  function removeFollowReq(id: string) { setFollowReqs(prev => prev.filter(r => r.id !== id)) }
+  function removeGroupInv(id: string)  { setGroupInvs(prev => prev.filter(i => i.id !== id)) }
+
+  const pendingCount = data.unreadCount + followReqs.length + groupInvs.length
+  const hasAny = pendingCount > 0
 
   return (
     <div ref={ref} className="relative">
-      {/* Bell button */}
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
@@ -169,12 +290,11 @@ export function NotificationBell() {
           <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 01-3.46 0"/>
         </svg>
-        {hasUnread && (
+        {hasAny && (
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF471A] rounded-full ring-2 ring-[var(--bg-glass)]" />
         )}
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 bg-bg-secondary border border-border-default rounded-2xl shadow-2xl overflow-hidden z-50 animate-enter">
 
@@ -182,46 +302,65 @@ export function NotificationBell() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border-default">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-text-primary">Notificaciones</span>
-              {hasUnread && (
+              {pendingCount > 0 && (
                 <span className="text-[10px] bg-[#FF471A] text-white font-bold px-1.5 py-0.5 rounded-full leading-none">
-                  {data.unreadCount > 9 ? '9+' : data.unreadCount}
+                  {pendingCount > 9 ? '9+' : pendingCount}
                 </span>
               )}
             </div>
-            {hasUnread && (
-              <button
-                onClick={markAllRead}
-                className="text-[#FF471A] text-xs font-semibold hover:underline transition-opacity"
-              >
+            {data.unreadCount > 0 && (
+              <button onClick={markAllRead} className="text-[#FF471A] text-xs font-semibold hover:underline">
                 Marcar leídas
               </button>
             )}
           </div>
 
-          {/* List */}
-          <div className="max-h-[360px] overflow-y-auto divide-y divide-border-default">
-            {data.notifications.length === 0 ? (
+          <div className="max-h-[420px] overflow-y-auto divide-y divide-border-default">
+
+            {/* Follow requests */}
+            {followReqs.length > 0 && (
+              <div>
+                <SectionHeader label="Solicitudes de seguimiento" count={followReqs.length} />
+                {followReqs.map(r => (
+                  <FollowRequestRow key={r.id} req={r} onDone={removeFollowReq} />
+                ))}
+              </div>
+            )}
+
+            {/* Group invitations */}
+            {groupInvs.length > 0 && (
+              <div>
+                <SectionHeader label="Invitaciones a grupos" count={groupInvs.length} />
+                {groupInvs.map(i => (
+                  <GroupInvitationRow key={i.id} inv={i} onDone={removeGroupInv} />
+                ))}
+              </div>
+            )}
+
+            {/* Regular notifications */}
+            {data.notifications.length > 0 && (
+              <div>
+                {(followReqs.length > 0 || groupInvs.length > 0) && (
+                  <SectionHeader label="Notificaciones" count={data.notifications.length} />
+                )}
+                {data.notifications.map(n => (
+                  <NotificationItem key={n.id} notif={n} onRead={markOneRead} onClose={() => setOpen(false)} />
+                ))}
+              </div>
+            )}
+
+            {followReqs.length === 0 && groupInvs.length === 0 && data.notifications.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 gap-2">
                 <span className="text-3xl opacity-60">🔔</span>
                 <p className="text-text-muted text-sm">Sin notificaciones</p>
               </div>
-            ) : (
-              data.notifications.map(n => (
-                <NotificationItem
-                  key={n.id}
-                  notif={n}
-                  onRead={markOneRead}
-                  onClose={() => setOpen(false)}
-                />
-              ))
             )}
           </div>
 
-          {/* Footer */}
-          {data.notifications.length > 0 && (
+          {(data.notifications.length > 0 || followReqs.length > 0 || groupInvs.length > 0) && (
             <div className="px-4 py-2.5 border-t border-border-default text-center">
               <span className="text-text-muted text-xs">
-                Últimas {data.notifications.length} notificaciones
+                {data.notifications.length + followReqs.length + groupInvs.length} elemento{data.notifications.length + followReqs.length + groupInvs.length !== 1 ? 's' : ''}
               </span>
             </div>
           )}

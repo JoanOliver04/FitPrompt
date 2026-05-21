@@ -182,6 +182,27 @@ export interface WeeklyCheckIn {
   updatedAt: Date
 }
 
+// ─── Social ───────────────────────────────────────────────────────────────────
+
+export interface SocialUser {
+  id:               string
+  name:             string | null
+  image:            string | null
+  plan:             string
+  isPublic:         boolean
+  totalXP:          number
+  currentStreak:    number
+  workoutCount:     number
+  achievementCount: number
+  level:            number
+  levelName:        string
+  xpCurrent:        number
+  xpMax:            number
+  isFollowing:      boolean
+  hasPendingRequest: boolean
+  isMe:             boolean
+}
+
 // ─── Groups ───────────────────────────────────────────────────────────────────
 
 export interface Group {

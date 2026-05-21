@@ -13,10 +13,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { groupId } = await params
-  const group = await db.group.findUnique({
-    where: { id: groupId },
-    select: { name: true },
-  })
+  const group = await db.group.findUnique({ where: { id: groupId }, select: { name: true } })
   return { title: group?.name ?? 'Grupo' }
 }
 
@@ -39,19 +36,50 @@ export default async function GroupDetailPage({ params }: Props) {
 
   if (!group) notFound()
 
-  const isMember = group.members.some((m) => m.userId === userId)
+  const isMember = group.members.some(m => m.userId === userId)
   if (!isMember) notFound()
 
   const isCreator = group.createdBy === userId
-  const memberIds = new Set(group.members.map((m) => m.userId))
+  const memberIds = new Set(group.members.map(m => m.userId))
 
-  // Inviteable: people creator follows who are not already members
-  const inviteable = isCreator
-    ? await db.follow.findMany({
-        where: { followerId: userId },
-        include: { following: { select: { id: true, name: true, image: true } } },
-      }).then((rows) => rows.filter((r) => !memberIds.has(r.followingId)))
-    : []
+  // Inviteable: mutual follows not already in the group, showing pending invitation state
+  type InviteCandidate = {
+    id:        string
+    name:      string | null
+    image:     string | null
+    isPending: boolean
+  }
+
+  let inviteable: InviteCandidate[] = []
+
+  if (isCreator) {
+    const [mutualFollows, pendingInvitations] = await Promise.all([
+      // People who I follow AND who follow me back
+      db.user.findMany({
+        where: {
+          AND: [
+            { id: { notIn: [...memberIds] } },
+            { followers: { some: { followerId: userId } } },   // I follow them
+            { following: { some: { followingId: userId } } },  // They follow me
+          ],
+        },
+        select: { id: true, name: true, image: true },
+      }),
+      db.groupInvitation.findMany({
+        where:  { groupId },
+        select: { inviteeId: true },
+      }),
+    ])
+
+    const pendingSet = new Set(pendingInvitations.map(i => i.inviteeId))
+
+    inviteable = mutualFollows.map(u => ({
+      id:        u.id,
+      name:      u.name,
+      image:     u.image,
+      isPending: pendingSet.has(u.id),
+    }))
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl mx-auto w-full">
@@ -59,7 +87,6 @@ export default async function GroupDetailPage({ params }: Props) {
       {/* Back */}
       <Link
         href="/groups"
-
         className="inline-flex items-center gap-1.5 text-text-muted hover:text-text-primary text-sm mb-6 transition-colors"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -112,21 +139,14 @@ export default async function GroupDetailPage({ params }: Props) {
               <li key={user.id} className="flex items-center gap-3 py-3">
                 {user.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.image}
-                    alt={user.name ?? ''}
-                    referrerPolicy="no-referrer"
-                    className="w-9 h-9 rounded-xl object-cover shrink-0"
-                  />
+                  <img src={user.image} alt={user.name ?? ''} referrerPolicy="no-referrer" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                 ) : (
                   <div className="w-9 h-9 rounded-xl bg-bg-tertiary border border-border-default flex items-center justify-center shrink-0">
                     <span className="text-base">👤</span>
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-text-primary text-sm font-medium truncate">
-                    {user.name ?? 'Atleta'}
-                  </p>
+                  <p className="text-text-primary text-sm font-medium truncate">{user.name ?? 'Atleta'}</p>
                   <p className="text-text-muted text-xs">
                     {user.id === group.createdBy ? 'Admin · ' : ''}
                     desde {new Date(joinedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
@@ -148,35 +168,39 @@ export default async function GroupDetailPage({ params }: Props) {
       {isCreator && (
         <Card>
           <CardHeader
-            title="Invitar"
-            description="Personas que sigues que aún no están en el grupo"
+            title="Invitar contactos"
+            description="Solo puedes invitar a contactos mutuos (os seguís mutuamente)"
           />
           <CardContent className="pt-0">
             {inviteable.length === 0 ? (
               <p className="text-text-muted text-sm py-2">
-                Todos tus seguidos ya son miembros, o aún no sigues a nadie.
+                Sin contactos mutuos disponibles para invitar.
               </p>
             ) : (
               <ul className="divide-y divide-border-default">
-                {inviteable.map(({ following }) => (
-                  <li key={following.id} className="flex items-center gap-3 py-3">
-                    {following.image ? (
+                {inviteable.map(candidate => (
+                  <li key={candidate.id} className="flex items-center gap-3 py-3">
+                    {candidate.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={following.image}
-                        alt={following.name ?? ''}
-                        referrerPolicy="no-referrer"
-                        className="w-9 h-9 rounded-xl object-cover shrink-0"
-                      />
+                      <img src={candidate.image} alt={candidate.name ?? ''} referrerPolicy="no-referrer" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                     ) : (
                       <div className="w-9 h-9 rounded-xl bg-bg-tertiary border border-border-default flex items-center justify-center shrink-0">
                         <span className="text-base">👤</span>
                       </div>
                     )}
                     <p className="flex-1 text-text-primary text-sm font-medium truncate">
-                      {following.name ?? 'Atleta'}
+                      {candidate.name ?? 'Atleta'}
                     </p>
-                    <InviteButton groupId={group.id} userId={following.id} />
+                    {candidate.isPending
+                      ? <span className="text-xs font-semibold text-[#FF471A] flex items-center gap-1">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                          </svg>
+                          Invitación enviada
+                        </span>
+                      : <InviteButton groupId={group.id} userId={candidate.id} />
+                    }
                   </li>
                 ))}
               </ul>

@@ -87,6 +87,7 @@ model User {
   password  String?
   plan        Plan      @default(free)
   role        Role      @default(USER)
+  isPublic    Boolean   @default(true)
   lastLoginAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -107,6 +108,10 @@ model User {
   groupMembers  GroupMember[]  @relation("GroupMemberships")
   notifications Notification[]
   routines      Routine[]
+  sentFollowRequests     FollowRequest[]  @relation("SentFollowRequests")
+  receivedFollowRequests FollowRequest[]  @relation("ReceivedFollowRequests")
+  sentGroupInvitations   GroupInvitation[] @relation("SentGroupInvitations")
+  receivedGroupInvitations GroupInvitation[] @relation("ReceivedGroupInvitations")
 }
 
 model UserProfile {
@@ -242,6 +247,7 @@ model Group {
   createdBy String
   creator   User          @relation("GroupCreator", fields: [createdBy], references: [id], onDelete: Cascade)
   members   GroupMember[]
+  invitations GroupInvitation[]
   createdAt DateTime      @default(now())
 }
 
@@ -321,4 +327,31 @@ model WeeklyCheckIn {
   updatedAt     DateTime @updatedAt
 
   @@unique([userId, weekStart])
+}
+
+model FollowRequest {
+  id         String   @id @default(cuid())
+  fromUserId String
+  from       User     @relation("SentFollowRequests",     fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  to         User     @relation("ReceivedFollowRequests", fields: [toUserId],   references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+model GroupInvitation {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId],   references: [id], onDelete: Cascade)
+  inviterId String
+  inviter   User     @relation("SentGroupInvitations",     fields: [inviterId], references: [id], onDelete: Cascade)
+  inviteeId String
+  invitee   User     @relation("ReceivedGroupInvitations", fields: [inviteeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([groupId, inviteeId])
+  @@index([inviteeId])
 }
