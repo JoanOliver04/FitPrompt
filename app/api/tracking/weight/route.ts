@@ -43,6 +43,19 @@ export const POST = defineHandler(
       select: { id: true, weight: true, date: true },
     })
 
+    // Keep userProfile.weight in sync with the most recent weightLog entry
+    const mostRecent = await db.weightLog.findFirst({
+      where:   { userId: session.user.id },
+      orderBy: { date: 'desc' },
+      select:  { weight: true },
+    })
+    if (mostRecent) {
+      await db.userProfile.updateMany({
+        where: { userId: session.user.id },
+        data:  { weight: mostRecent.weight },
+      })
+    }
+
     const levelUp: LevelUpInfo | null = await addXP(session.user.id, XP_REWARDS.WEIGHT_LOG).catch(() => null)
     const xpGained = XP_REWARDS.WEIGHT_LOG
     const badge = await checkAndAwardWeigher(session.user.id).catch(() => null)

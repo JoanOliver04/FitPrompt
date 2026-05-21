@@ -39,32 +39,25 @@ export const POST = defineHandler(
       return NextResponse.json({ error: 'Fecha inválida' }, { status: 422 })
     }
 
-    const [row, profile] = await Promise.all([
-      db.workoutLog.create({
-        data: {
-          userId:    session.user.id,
-          date,
-          exercises: body.exercises as unknown as Parameters<typeof db.workoutLog.create>[0]['data']['exercises'],
-          duration:  body.duration,
-          completed: body.completed,
-          notes:     body.notes || null,
-        },
-        select: { id: true, date: true, exercises: true, duration: true, completed: true, notes: true },
-      }),
-      db.userProfile.findUnique({
-        where:  { userId: session.user.id },
-        select: { daysPerWeek: true },
-      }),
-    ])
+    const row = await db.workoutLog.create({
+      data: {
+        userId:    session.user.id,
+        date,
+        exercises: body.exercises as unknown as Parameters<typeof db.workoutLog.create>[0]['data']['exercises'],
+        duration:  body.duration,
+        completed: body.completed,
+        notes:     body.notes || null,
+      },
+      select: { id: true, date: true, exercises: true, duration: true, completed: true, notes: true },
+    })
 
     let levelUp: LevelUpInfo | null = null
     let newBadge: { id: string; name: string; icon: string } | null = null
     const xpGained = body.completed ? XP_REWARDS.WORKOUT_COMPLETE : 0
 
     if (body.completed) {
-      const daysPerWeek = profile?.daysPerWeek ?? 4
       levelUp = await addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => null)
-      updateStreakIfWeekComplete(session.user.id, daysPerWeek).catch(() => undefined)
+      updateStreakIfWeekComplete(session.user.id).catch(() => undefined)
       notifyRankSurpassed(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => undefined)
       const badge = await checkAndAwardConsistency(session.user.id).catch(() => null)
       if (badge) newBadge = { id: badge.id, name: badge.name, icon: badge.icon }

@@ -2,23 +2,44 @@ import { db } from '@/lib/db'
 import { resolveStreak } from '@/lib/streak'
 import { getXP, LEVEL_THRESHOLDS } from '@/lib/xp'
 
+export interface WeekDaySetDetail {
+  weight: number
+  reps:   number
+}
+
+export interface WeekDayExercise {
+  name:        string
+  sets:        number
+  reps:        number
+  weight:      number
+  setDetails?: WeekDaySetDetail[]
+}
+
+export interface WeekDayWorkout {
+  dayIndex:  number  // 0=Mon … 6=Sun
+  id:        string
+  duration:  number
+  notes:     string
+  exercises: WeekDayExercise[]
+}
+
 export interface DashboardData {
-  name:                  string
-  streak:                number
-  bestStreak:            number
-  weekComplete:          boolean
-  weight:                number | null
-  completionRate:        number
-  xpLevel:               number
-  xpLevelName:           string
-  xpCurrent:             number
-  xpMax:                 number
-  completedDaysThisWeek: number[] // 0=Mon … 6=Sun
+  name:          string
+  streak:        number
+  bestStreak:    number
+  weekComplete:  boolean
+  weight:        number | null
+  completionRate: number
+  xpLevel:       number
+  xpLevelName:   string
+  xpCurrent:     number
+  xpMax:         number
+  weekWorkouts:  WeekDayWorkout[]  // entrenos de esta semana (Mon=0…Sun=6)
   // Progress stats
-  totalWorkouts:         number
-  activeDays:            number
-  avgDuration:           number | null // minutes
-  weightInitial:         number | null
+  totalWorkouts: number
+  activeDays:    number
+  avgDuration:   number | null // minutes
+  weightInitial: number | null
 }
 
 
@@ -62,17 +83,6 @@ function calculateWeeklyCompletion(dates: Date[], daysPerWeek: number): number {
   return Math.round(Math.min(completed / expected, 1) * 100)
 }
 
-function getCompletedDaysThisWeek(dates: Date[]): number[] {
-  const monday  = getMondayOfWeek(new Date())
-  const today   = startOfDay(new Date())
-  const indices = new Set<number>()
-  for (const d of dates) {
-    const day = startOfDay(d)
-    if (day >= monday && day <= today) indices.add(toWeekIndex(day))
-  }
-  return Array.from(indices)
-}
-
 
 export async function getDashboardData(
   userId:   string,
@@ -88,7 +98,7 @@ export async function getDashboardData(
     }),
     db.workoutLog.findMany({
       where:   { userId, completed: true, date: { gte: thirtyDaysAgo } },
-      select:  { date: true },
+      select:  { date: true, id: true, exercises: true, duration: true, notes: true },
       orderBy: { date: 'desc' },
     }),
     db.userProfile.findUnique({
@@ -109,7 +119,22 @@ export async function getDashboardData(
 
   const daysPerWeek    = profile?.daysPerWeek ?? 4
   const completedDates = workoutLogs.map(l => l.date)
-  const streakData     = await resolveStreak(userId, daysPerWeek)
+  const streakData     = await resolveStreak(userId)
+
+  const monday = getMondayOfWeek(new Date())
+  const today  = startOfDay(new Date())
+  const weekWorkouts: WeekDayWorkout[] = workoutLogs
+    .filter(l => {
+      const day = startOfDay(l.date)
+      return day >= monday && day <= today
+    })
+    .map(l => ({
+      dayIndex:  toWeekIndex(l.date),
+      id:        l.id,
+      duration:  l.duration,
+      notes:     l.notes ?? '',
+      exercises: (Array.isArray(l.exercises) ? l.exercises : []) as unknown as WeekDayExercise[],
+    }))
 
   // Prefer logged weight over profile weight (onboarding value)
   const weight = latestWeight?.weight ?? profile?.weight ?? null
@@ -132,7 +157,7 @@ export async function getDashboardData(
     xpLevelName:           xp.levelName,
     xpCurrent:             xp.current,
     xpMax:                 xp.max,
-    completedDaysThisWeek: getCompletedDaysThisWeek(completedDates),
+    weekWorkouts,
     totalWorkouts,
     activeDays,
     avgDuration,
@@ -151,7 +176,7 @@ export const FALLBACK_DASHBOARD: DashboardData = {
   xpLevelName:           'Novato',
   xpCurrent:             0,
   xpMax:                 LEVEL_THRESHOLDS[1], // 300 — XP needed for level 2
-  completedDaysThisWeek: [],
+  weekWorkouts:          [],
   totalWorkouts:         0,
   activeDays:            0,
   avgDuration:           null,

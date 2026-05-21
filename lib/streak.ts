@@ -59,10 +59,7 @@ function getSundayOfWeek(monday: Date): Date {
 
 // Reads the streak record, resets currentStreak to 0 if a week was skipped,
 // and returns current/best streak plus whether the current week is already complete.
-export async function resolveStreak(
-  userId:      string,
-  daysPerWeek: number,
-): Promise<StreakData> {
+export async function resolveStreak(userId: string): Promise<StreakData> {
   const now         = new Date()
   const currentWeek = getISOWeek(now)
   const monday      = getMondayOfWeek(now)
@@ -75,18 +72,33 @@ export async function resolveStreak(
     }),
   ])
 
-  const weekComplete = completedThisWeek >= daysPerWeek
+  const weekComplete = completedThisWeek >= 1
 
-  // Streak is broken when lastCompletedWeek is neither the current nor the
-  // previous week (user skipped an entire week without completing it)
-  if (streak?.currentStreak && streak.lastCompletedWeek) {
+  // Week is complete but not yet recorded → upsert streak now
+  // (handles cases where updateStreakIfWeekComplete wasn't called, e.g. old workouts)
+  if (weekComplete && streak?.lastCompletedWeek !== currentWeek) {
+    const prev       = prevISOWeek(currentWeek)
+    const newCurrent = streak?.lastCompletedWeek === prev
+      ? (streak.currentStreak + 1)
+      : 1
+    const newBest = Math.max(newCurrent, streak?.bestStreak ?? 0)
+    await db.streak.upsert({
+      where:  { userId },
+      update: { currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
+      create: { userId, currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
+    })
+    return { currentStreak: newCurrent, bestStreak: newBest, weekComplete: true }
+  }
+
+  // Streak broken: user skipped an entire week (record is neither this nor last week)
+  if (!weekComplete && streak?.currentStreak && streak.lastCompletedWeek) {
     const prev    = prevISOWeek(currentWeek)
     const isStale =
       streak.lastCompletedWeek !== currentWeek &&
       streak.lastCompletedWeek !== prev
     if (isStale) {
       await db.streak.update({ where: { userId }, data: { currentStreak: 0 } })
-      return { currentStreak: 0, bestStreak: streak.bestStreak, weekComplete }
+      return { currentStreak: 0, bestStreak: streak.bestStreak, weekComplete: false }
     }
   }
 
@@ -102,10 +114,7 @@ export async function resolveStreak(
 // Checks if the user has now completed all planned workouts for the current
 // week. If yes, increments currentStreak (or starts a new one) and updates
 // bestStreak. Idempotent: re-calling for the same week is a no-op.
-export async function updateStreakIfWeekComplete(
-  userId:      string,
-  daysPerWeek: number,
-): Promise<void> {
+export async function updateStreakIfWeekComplete(userId: string): Promise<void> {
   const now         = new Date()
   const currentWeek = getISOWeek(now)
   const monday      = getMondayOfWeek(now)
@@ -115,7 +124,7 @@ export async function updateStreakIfWeekComplete(
     where: { userId, completed: true, date: { gte: monday, lte: sunday } },
   })
 
-  if (completedThisWeek < daysPerWeek) return // week not yet complete
+  if (completedThisWeek < 1) return // no workout this week yet
 
   const streak = await db.streak.findUnique({ where: { userId } })
 

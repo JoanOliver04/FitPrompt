@@ -2,28 +2,28 @@ import Link from 'next/link'
 
 const actions = [
   {
-    icon: '🏋️',
-    label: 'Registrar entrenamiento',
+    icon:        '🏋️',
+    label:       'Registrar entreno',
     description: 'Anota tu sesión de hoy',
-    href: '/tracking',
+    href:        '/tracking',
   },
   {
-    icon: '📚',
-    label: 'Ver ejercicios',
-    description: 'Biblioteca completa',
-    href: '/chat',
+    icon:        '💬',
+    label:       'Chat con IA',
+    description: 'Rutinas, dietas y consejos',
+    href:        '/chat',
   },
   {
-    icon: '🛒',
-    label: 'Lista de la compra',
-    description: 'Genera tu lista semanal',
-    href: '/chat',
+    icon:        '🏆',
+    label:       'Social',
+    description: 'Ranking y seguidores',
+    href:        '/social',
   },
 ]
 
 export default function QuickActions() {
   return (
-    <div>
+    <div className="mb-8">
       <h2 className="text-text-primary font-bold mb-4">Accesos rápidos</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {actions.map((action, i) => (
