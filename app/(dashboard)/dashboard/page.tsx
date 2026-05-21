@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { getServerSession } from 'next-auth'
-import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import CheckoutSuccessAlert from '@/components/ui/CheckoutSuccessAlert'
 import { getDashboardData, FALLBACK_DASHBOARD } from '@/lib/dashboard'
@@ -23,7 +22,7 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
 
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'
 

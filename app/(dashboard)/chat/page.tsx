@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserChats, getDailyCount, countUserChats } from '@/lib/chat'
@@ -20,7 +19,7 @@ interface PageProps {
 
 export default async function ChatListPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
 
   const userId = session.user.id
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'

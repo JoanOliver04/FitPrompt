@@ -252,7 +252,7 @@ function ScoreBanner({
 
 export default async function ComparePage({ params }: Props) {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
 
   const { userId: theirId } = await params
   const myId = session.user.id

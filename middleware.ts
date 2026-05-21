@@ -2,6 +2,33 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
+// ─── Auth redirect architecture ────────────────────────────────────────────────
+//
+//  Layer 1 — Middleware (this file, runs on every request via Edge runtime)
+//    Uses getToken() for a fast, DB-free JWT check.
+//    • Unauthenticated requests to protected routes → /login?callbackUrl=[path]
+//    • Authenticated requests to /login or /register  → /dashboard
+//    • Non-admin requests to /admin routes            → /403
+//
+//  Layer 2 — Dashboard layout (app/(dashboard)/layout.tsx)
+//    Uses getServerSession() as a backup server-side guard for all pages
+//    under the (dashboard) route group. Catches edge cases where the JWT
+//    is still valid but the session has been revoked (e.g. password change).
+//    Individual pages must NOT add their own redirect('/login') — that
+//    creates redundant hops and risks loops if the architecture changes.
+//
+//  Layer 3 — Pages and API routes
+//    Call getServerSession() solely to read user data.
+//    Only redirect for business logic (plan limits, resource not found, etc.).
+//    Never redirect to /login — that belongs to Layers 1 and 2.
+//
+//  WHY public pages must be listed in PUBLIC_PAGES (bypass auth check):
+//    Without this guard an unauthenticated visit to /login triggers a redirect
+//    back to /login → ERR_TOO_MANY_REDIRECTS. The token check must be skipped
+//    entirely for auth and marketing pages, not just for API internals.
+//
+// ───────────────────────────────────────────────────────────────────────────────
+
 // API routes that DO NOT require an authenticated session.
 const PUBLIC_API_ROUTES = new Set<string>([
   '/api/health',
@@ -10,6 +37,7 @@ const PUBLIC_API_ROUTES = new Set<string>([
 ])
 
 // Page routes accessible without a session.
+// ADD new public pages here — never add them to the protected route list.
 const PUBLIC_PAGES = new Set<string>(['/', '/login', '/register', '/pricing', '/403'])
 
 function isNextAuthRoute(path: string): boolean {

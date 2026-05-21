@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ChatPage({ params }: Props) {
   const { id } = await params
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) redirect('/login')
+  if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
 
   const userId = session.user.id
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'
