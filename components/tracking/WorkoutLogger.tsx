@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useLevelUp } from '@/context/LevelUpContext'
 import { useToast } from '@/context/ToastContext'
 import type { LevelUpInfo } from '@/lib/xp'
@@ -492,9 +493,9 @@ export function WorkoutLogger({ initialLogs, routines = [], preRoutineId, preDay
             {routines.length === 0 ? (
               <div className="text-center py-6">
                 <p className="text-text-muted text-sm mb-3">No tienes rutinas guardadas todavía.</p>
-                <a href="/routines" className="text-xs font-semibold text-[#FF471A] hover:underline">
+                <Link href="/routines" className="text-xs font-semibold text-[#FF471A] hover:underline">
                   Crear rutina desde el chat →
-                </a>
+                </Link>
               </div>
             ) : (
               <>

@@ -1,33 +1,47 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { requireAdminApi } from '@/lib/roles'
+import { NextResponse } from 'next/server'
+import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
+import { cuidString } from '@/lib/schemas'
+import { logger } from '@/lib/logger'
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> },
-) {
-  const denied = await requireAdminApi()
-  if (denied) return denied
+export const runtime = 'nodejs'
 
-  const session = await getServerSession(authOptions)
-  const { userId } = await params
+export const DELETE = defineHandler(
+  {
+    auth: 'admin',
+    params: ({ userId }) => ({ userId: cuidString.parse(userId) }),
+    rateLimit: { key: ({ userId }) => `admin-delete:${userId}`, limit: 30, windowSec: 60 },
+  },
+  async ({ session, params }) => {
+    if (params.userId === session.user.id) {
+      return NextResponse.json(
+        { error: 'No puedes eliminar tu propia cuenta desde el panel' },
+        { status: 400 },
+      )
+    }
 
-  if (userId === session!.user.id) {
-    return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta desde el panel' }, { status: 400 })
-  }
+    const target = await db.user.findUnique({
+      where:  { id: params.userId },
+      select: { role: true },
+    })
+    if (!target) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+    if (target.role === 'ADMIN') {
+      return NextResponse.json({ error: 'No puedes eliminar a otro administrador' }, { status: 403 })
+    }
 
-  const target = await db.user.findUnique({ where: { id: userId }, select: { role: true } })
-  if (!target) {
-    return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-  }
+    await db.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: 'admin.delete_user',
+        target: params.userId,
+      },
+    }).catch((err) => logger.warn('audit_log_failed', { err: String(err) }))
 
-  if (target.role === 'ADMIN') {
-    return NextResponse.json({ error: 'No puedes eliminar a otro administrador' }, { status: 403 })
-  }
+    await db.user.delete({ where: { id: params.userId } })
 
-  await db.user.delete({ where: { id: userId } })
-
-  return NextResponse.json({ ok: true })
-}
+    logger.info('admin_deleted_user', { adminId: session.user.id, targetId: params.userId })
+    return NextResponse.json({ ok: true })
+  },
+)

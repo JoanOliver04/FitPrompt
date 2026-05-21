@@ -92,6 +92,16 @@ model User {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  // Auth / session management
+  emailVerified      DateTime?
+  emailVerifyToken   String?   @unique
+  emailVerifyExpires DateTime?
+  googleSub          String?   @unique
+  sessionVersion     Int       @default(0)
+
+  // Stripe
+  stripeCustomerId String? @unique
+
   profile      UserProfile?
   chats        Chat[]
   workoutLogs  WorkoutLog[]
@@ -112,6 +122,40 @@ model User {
   receivedFollowRequests FollowRequest[]  @relation("ReceivedFollowRequests")
   sentGroupInvitations   GroupInvitation[] @relation("SentGroupInvitations")
   receivedGroupInvitations GroupInvitation[] @relation("ReceivedGroupInvitations")
+}
+
+// ─── Security infrastructure ─────────────────────────────────────────────────
+
+model RateLimit {
+  id          String   @id @default(cuid())
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@unique([key, windowStart])
+  @@index([windowStart])
+}
+
+model StripeEvent {
+  id         String   @id // Stripe event id — natural primary key prevents replay
+  type       String
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // e.g. "user.delete", "plan.upgrade", "admin.delete_user"
+  target    String?  // target id (other user, chat, etc.)
+  ip        String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
 }
 
 model UserProfile {

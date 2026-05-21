@@ -20,7 +20,7 @@ export default function Button({
     'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 active:scale-[0.97] active:duration-75 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF471A] focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary'
 
   const variants = {
-    primary:   'bg-[#FF471A] hover:bg-[#e03d15] text-white',
+    primary:   'bg-[#FF471A] hover:bg-[#e03d15] text-white hover:shadow-[0_0_20px_rgba(255,71,26,0.35)] active:shadow-none',
     secondary: 'bg-bg-tertiary hover:bg-border-default border border-border-default text-text-secondary hover:text-text-primary',
     ghost:     'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary',
     danger:    'bg-red-900/30 hover:bg-red-900/50 border border-red-800/40 text-red-400 hover:text-red-300',

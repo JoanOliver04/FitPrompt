@@ -69,14 +69,16 @@ export default function BottomNav() {
               href={item.href}
               className={[
                 'flex-1 flex flex-col items-center justify-center gap-1 relative',
-                'transition-all duration-150 active:scale-95',
+                'transition-all duration-200 active:scale-90',
                 isActive ? 'text-[#FF471A]' : 'text-text-muted hover:text-text-subtle',
               ].join(' ')}
             >
               {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#FF471A] rounded-full" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-[#FF471A] rounded-full animate-scale-in" />
               )}
-              {item.icon}
+              <span className={['transition-transform duration-200', isActive ? 'scale-110' : 'scale-100'].join(' ')}>
+                {item.icon}
+              </span>
               <span className="text-[10px] font-semibold tracking-wide">{item.label}</span>
             </Link>
           )

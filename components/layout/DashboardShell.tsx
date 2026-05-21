@@ -19,12 +19,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   return (
     <div className="flex h-screen bg-bg-primary overflow-hidden">
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      <div
+        className={[
+          'fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden transition-all duration-300',
+          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+        ].join(' ')}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
 
       <Sidebar
         collapsed={collapsed}

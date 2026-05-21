@@ -40,6 +40,8 @@ const config: Config = {
         'pulse-dot': 'pulseDot 1.4s infinite ease-in-out',
         'enter':     'enter 0.4s ease-out both',
         'shimmer':   'shimmer 1.6s infinite linear',
+        'scale-in':  'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'slide-down': 'slideDown 0.25s ease-out both',
       },
       keyframes: {
         fadeIn: {
@@ -61,6 +63,14 @@ const config: Config = {
         shimmer: {
           '0%':   { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        scaleIn: {
+          '0%':   { transform: 'scale(0)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        slideDown: {
+          '0%':   { transform: 'translateY(-8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)',     opacity: '1' },
         },
       },
       boxShadow: {

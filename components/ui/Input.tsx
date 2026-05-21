@@ -23,10 +23,10 @@ export default function Input({ label, error, hint, className, id, ...props }: I
       <input
         id={inputId}
         className={cn(
-          'w-full bg-bg-tertiary border text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors',
+          'w-full bg-bg-tertiary border text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-all duration-150',
           error
-            ? 'border-red-500 focus:border-red-400'
-            : 'border-border-default focus:border-[#FF471A]',
+            ? 'border-red-500 focus:border-red-400 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]'
+            : 'border-border-default focus:border-[#FF471A] focus:shadow-[0_0_0_3px_rgba(255,71,26,0.12)]',
           className,
         )}
         {...props}
