@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import CheckoutButton from '@/components/ui/CheckoutButton'
 import { PrivacyToggle } from '@/components/settings/PrivacyToggle'
+import { DeleteAccountButton } from '@/components/settings/DeleteAccountButton'
+import { ChangePasswordForm } from '@/components/settings/ChangePasswordForm'
+import { NotificationPrefs } from '@/components/settings/NotificationPrefs'
 import type { Plan } from '@/types'
 
 export const metadata: Metadata = {
@@ -20,9 +23,18 @@ export default async function SettingsPage() {
 
   const userRow = await db.user.findUnique({
     where:  { id: session.user.id },
-    select: { isPublic: true },
+    select: { isPublic: true, password: true, notificationPrefs: true },
   })
-  const isPublic = userRow?.isPublic ?? true
+  const isPublic    = userRow?.isPublic ?? true
+  const hasPassword = !!userRow?.password
+  const notifPrefs  = {
+    new_follower:   true,
+    group_invite:   true,
+    rank_surpassed: true,
+    ...(typeof userRow?.notificationPrefs === 'object' && userRow.notificationPrefs !== null
+      ? userRow.notificationPrefs as Record<string, boolean>
+      : {}),
+  }
 
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-2xl mx-auto w-full animate-enter">
@@ -137,6 +149,22 @@ export default async function SettingsPage() {
         </div>
       </section>
 
+      {/* ── Security ── */}
+      {hasPassword && (
+        <section className="mb-6">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3 px-1">
+            Seguridad
+          </h2>
+          <div className="bg-bg-secondary border border-border-default rounded-2xl overflow-hidden">
+            <div className="px-5 pt-5 pb-1">
+              <p className="text-text-primary font-semibold text-sm mb-0.5">Cambiar contraseña</p>
+              <p className="text-text-muted text-xs">Al cambiar la contraseña, todas las sesiones activas serán cerradas.</p>
+            </div>
+            <ChangePasswordForm />
+          </div>
+        </section>
+      )}
+
       {/* ── Privacy ── */}
       <section className="mb-6">
         <h2 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3 px-1">
@@ -147,16 +175,16 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      {/* ── Notifications placeholder ── */}
+      {/* ── Notifications ── */}
       <section className="mb-6">
         <h2 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3 px-1">
           Notificaciones
         </h2>
-        <div className="bg-bg-secondary border border-border-default rounded-2xl p-5">
-          <p className="text-text-secondary text-sm">
-            Las preferencias de notificaciones estarán disponibles próximamente.
-          </p>
-        </div>
+        <NotificationPrefs initialPrefs={{
+          new_follower:   notifPrefs.new_follower   !== false,
+          group_invite:   notifPrefs.group_invite   !== false,
+          rank_surpassed: notifPrefs.rank_surpassed !== false,
+        }} />
       </section>
 
       {/* ── Danger zone ── */}
@@ -169,12 +197,7 @@ export default async function SettingsPage() {
           <p className="text-text-muted text-xs mb-4 leading-relaxed">
             Se eliminarán todos tus datos permanentemente. Esta acción no se puede deshacer.
           </p>
-          <button
-            type="button"
-            className="text-red-400 hover:text-red-300 border border-red-900/40 hover:border-red-800/60 text-xs font-semibold px-4 py-2 rounded-lg transition-all"
-          >
-            Eliminar mi cuenta
-          </button>
+          <DeleteAccountButton />
         </div>
       </section>
     </div>

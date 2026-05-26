@@ -93,11 +93,14 @@ model User {
   updatedAt   DateTime  @updatedAt
 
   // Auth / session management
-  emailVerified      DateTime?
-  emailVerifyToken   String?   @unique
-  emailVerifyExpires DateTime?
-  googleSub          String?   @unique
-  sessionVersion     Int       @default(0)
+  emailVerified        DateTime?
+  emailVerifyToken     String?   @unique
+  emailVerifyExpires   DateTime?
+  googleSub            String?   @unique
+  sessionVersion       Int       @default(0)
+  resetPasswordToken   String?   @unique
+  resetPasswordExpires DateTime?
+  notificationPrefs    Json?
 
   // Stripe
   stripeCustomerId String? @unique

@@ -8,7 +8,6 @@ import { addXP, XP_REWARDS, type LevelUpInfo } from '@/lib/xp'
 import { checkAndAwardConsistency } from '@/lib/badges'
 import { notifyRankSurpassed } from '@/lib/notifications'
 import { workoutLogSchema } from '@/lib/schemas'
-import type { WorkoutExercise } from '@/components/tracking/WorkoutLogger'
 
 export const runtime = 'nodejs'
 
@@ -20,7 +19,6 @@ export async function GET(): Promise<NextResponse> {
   const rows = await db.workoutLog.findMany({
     where:   { userId: session.user.id },
     orderBy: { date: 'desc' },
-    take:    50,
     select:  {
       id: true, date: true, duration: true, completed: true, notes: true,
       exercises: {
@@ -47,14 +45,29 @@ export const POST = defineHandler(
 
     const row = await db.workoutLog.create({
       data: {
-        userId:    session.user.id,
+        userId:       session.user.id,
         date,
-        exercises: body.exercises as unknown as Parameters<typeof db.workoutLog.create>[0]['data']['exercises'],
-        duration:  body.duration,
-        completed: body.completed,
-        notes:     body.notes || null,
+        duration:     body.duration,
+        completed:    body.completed,
+        notes:        body.notes || null,
+        routineId:    body.routineId    ?? null,
+        routineDayId: body.routineDayId ?? null,
+        exercises: {
+          create: body.exercises.map((ex, i) => ({
+            userId: session.user.id,
+            date,
+            name:   ex.name,
+            sets:   ex.sets,
+            reps:   ex.reps,
+            weight: ex.weight,
+            order:  i,
+          })),
+        },
       },
-      select: { id: true, date: true, exercises: true, duration: true, completed: true, notes: true },
+      select: {
+        id: true, date: true, duration: true, completed: true, notes: true,
+        exercises: { orderBy: { order: 'asc' }, select: { name: true, sets: true, reps: true, weight: true } },
+      },
     })
 
     let levelUp: LevelUpInfo | null = null
@@ -80,7 +93,7 @@ function serialize(row: {
   return {
     id:        row.id,
     date:      row.date.toISOString(),
-    exercises: row.exercises as WorkoutExercise[],
+    exercises: row.exercises,
     duration:  row.duration,
     completed: row.completed,
     notes:     row.notes ?? '',

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
 import { groupInviteSchema, cuidString } from '@/lib/schemas'
+import { notifyGroupInvite } from '@/lib/notifications'
 
 export const runtime = 'nodejs'
 
@@ -20,7 +21,7 @@ export const POST = defineHandler(
 
     const group = await db.group.findUnique({
       where:  { id: groupId },
-      select: { id: true, createdBy: true },
+      select: { id: true, name: true, createdBy: true },
     })
     if (!group) return NextResponse.json({ error: 'Grupo no encontrado' }, { status: 404 })
     if (group.createdBy !== inviterId) return NextResponse.json({ error: 'Solo el creador puede invitar' }, { status: 403 })
@@ -47,12 +48,20 @@ export const POST = defineHandler(
     })
     if (isMember) return NextResponse.json({ error: 'Ya es miembro' }, { status: 409 })
 
-    // Upsert invitation (idempotent)
+    const existingInvite = await db.groupInvitation.findUnique({
+      where: { groupId_inviteeId: { groupId, inviteeId } },
+    })
+
     await db.groupInvitation.upsert({
       where:  { groupId_inviteeId: { groupId, inviteeId } },
       create: { groupId, inviterId, inviteeId },
       update: {},
     })
+
+    // Fire-and-forget: only notify on fresh invitations
+    if (!existingInvite) {
+      notifyGroupInvite(inviterId, inviteeId, groupId, group.name).catch(() => null)
+    }
 
     return NextResponse.json({ ok: true })
   },

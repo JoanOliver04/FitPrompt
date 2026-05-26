@@ -55,3 +55,15 @@ export async function PATCH() {
 
   return NextResponse.json({ ok: true })
 }
+
+// ─── DELETE — delete all notifications ───────────────────────────────────────
+
+export async function DELETE() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  await db.notification.deleteMany({ where: { userId: session.user.id } })
+  return NextResponse.json({ ok: true })
+}

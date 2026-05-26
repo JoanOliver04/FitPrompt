@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+
+const REMEMBER_KEY = 'fitprompt_remember_email'
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   OAuthAccountNotLinked: 'Este email ya tiene cuenta con contraseña. Usa el formulario de abajo.',
@@ -28,14 +30,25 @@ function LoginFormInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail]               = useState('')
+  const [password, setPassword]         = useState('')
+  const [rememberMe, setRememberMe]     = useState(false)
+  const [loading, setLoading]           = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(() => {
     const e = searchParams.get('error')
     return e ? (AUTH_ERROR_MESSAGES[e] ?? AUTH_ERROR_MESSAGES.Default) : null
   })
+  const resetSuccess = searchParams.get('reset') === 'success'
+
+  // Pre-fill email if previously remembered
+  useEffect(() => {
+    const saved = localStorage.getItem(REMEMBER_KEY)
+    if (saved) {
+      setEmail(saved)
+      setRememberMe(true)
+    }
+  }, [])
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true)
@@ -48,10 +61,16 @@ function LoginFormInner() {
     e.preventDefault()
 
     if (!email.trim()) { setError('Introduce tu email'); return }
-    if (!password) { setError('Introduce tu contraseña'); return }
+    if (!password)     { setError('Introduce tu contraseña'); return }
 
     setLoading(true)
     setError(null)
+
+    if (rememberMe) {
+      localStorage.setItem(REMEMBER_KEY, email.toLowerCase().trim())
+    } else {
+      localStorage.removeItem(REMEMBER_KEY)
+    }
 
     const result = await signIn('credentials', {
       email: email.toLowerCase().trim(),
@@ -74,6 +93,12 @@ function LoginFormInner() {
     <div className="bg-bg-secondary border border-border-default rounded-2xl p-8 animate-slide-up">
       <h1 className="text-2xl font-black text-text-primary mb-1">Bienvenido de nuevo</h1>
       <p className="text-text-secondary text-sm mb-8">Continúa tu entrenamiento donde lo dejaste</p>
+
+      {resetSuccess && (
+        <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-sm rounded-xl px-4 py-3 mb-6">
+          Contraseña restablecida. Ya puedes iniciar sesión.
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3 mb-6">
@@ -135,6 +160,31 @@ function LoginFormInner() {
             className="w-full bg-bg-tertiary border border-border-default focus:border-[#FF471A] text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors"
           />
         </div>
+
+        {/* Remember me */}
+        <label className="flex items-center gap-3 cursor-pointer select-none group">
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={rememberMe}
+            onClick={() => setRememberMe(v => !v)}
+            className={[
+              'w-5 h-5 rounded flex items-center justify-center border transition-all shrink-0',
+              rememberMe
+                ? 'bg-[#FF471A] border-[#FF471A]'
+                : 'bg-bg-tertiary border-border-default group-hover:border-text-subtle',
+            ].join(' ')}
+          >
+            {rememberMe && (
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </button>
+          <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">
+            Recuérdame
+          </span>
+        </label>
 
         <button
           type="submit"

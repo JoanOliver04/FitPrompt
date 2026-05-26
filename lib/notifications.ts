@@ -14,9 +14,25 @@ export async function createNotification(data: {
   return db.notification.create({ data }).catch(() => null)
 }
 
+// ─── Preference check ─────────────────────────────────────────────────────────
+
+async function prefEnabled(userId: string, type: NotificationType): Promise<boolean> {
+  const user = await db.user.findUnique({
+    where:  { id: userId },
+    select: { notificationPrefs: true },
+  })
+  const prefs = user?.notificationPrefs
+  if (!prefs || typeof prefs !== 'object') return true
+  const key = type as string
+  const val = (prefs as Record<string, unknown>)[key]
+  return val !== false
+}
+
 // ─── new_follower ─────────────────────────────────────────────────────────────
 
 export async function notifyNewFollower(followerId: string, followingId: string) {
+  if (!(await prefEnabled(followingId, 'new_follower'))) return
+
   const existing = await db.notification.findFirst({
     where: { userId: followingId, type: 'new_follower', fromUserId: followerId },
   })
@@ -49,7 +65,6 @@ export async function notifyRankSurpassed(userId: string, xpAdded: number) {
   const me = await db.user.findUnique({ where: { id: userId }, select: { name: true } })
   const myName = me?.name ?? 'Un atleta'
 
-  // Social contacts whose XP falls between old and new value (just surpassed)
   const surpassed = await db.userXP.findMany({
     where: {
       totalXP: { gt: prevXP, lte: newXP },
@@ -65,16 +80,17 @@ export async function notifyRankSurpassed(userId: string, xpAdded: number) {
   })
 
   await Promise.all(
-    surpassed.map(u =>
-      createNotification({
+    surpassed.map(async u => {
+      if (!(await prefEnabled(u.userId, 'rank_surpassed'))) return
+      return createNotification({
         userId:     u.userId,
         type:       'rank_surpassed',
         title:      `¡${myName} te ha superado en XP!`,
         body:       'Sigue entrenando para recuperar tu posición.',
         href:       `/compare/${userId}`,
         fromUserId: userId,
-      }),
-    ),
+      })
+    }),
   )
 }
 
@@ -86,6 +102,8 @@ export async function notifyGroupInvite(
   groupId: string,
   groupName: string,
 ) {
+  if (!(await prefEnabled(targetUserId, 'group_invite'))) return
+
   const inviter = await db.user.findUnique({
     where:  { id: fromUserId },
     select: { name: true },
