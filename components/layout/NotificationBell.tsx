@@ -60,21 +60,36 @@ function notifIcon(type: string): string {
 function NotificationItem({
   notif,
   onRead,
+  onDelete,
   onClose,
 }: {
-  notif:   NotifItem
-  onRead:  (id: string) => void
-  onClose: () => void
+  notif:    NotifItem
+  onRead:   (id: string) => void
+  onDelete: (id: string) => void
+  onClose:  () => void
 }) {
   const handleClick = () => {
     if (!notif.read) onRead(notif.id)
     onClose()
   }
 
+  const deleteBtn = (
+    <button
+      type="button"
+      onClick={e => { e.preventDefault(); e.stopPropagation(); onDelete(notif.id) }}
+      title="Eliminar notificación"
+      className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-text-muted hover:text-red-400 transition-all shrink-0"
+    >
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  )
+
   const body = (
     <div
       className={[
-        'flex gap-3 px-4 py-3.5 transition-colors',
+        'group flex gap-3 px-4 py-3.5 transition-colors',
         notif.read ? 'hover:bg-bg-tertiary' : 'bg-[#FF471A06] hover:bg-[#FF471A0D]',
       ].join(' ')}
     >
@@ -92,6 +107,7 @@ function NotificationItem({
         <p className="text-text-muted text-[10px] mt-1.5 tabular-nums">{timeAgo(notif.createdAt)}</p>
       </div>
       {!notif.read && <div className="w-2 h-2 bg-[#FF471A] rounded-full mt-1.5 shrink-0" />}
+      {deleteBtn}
     </div>
   )
 
@@ -272,6 +288,20 @@ export function NotificationBell() {
     fetch(`/api/notifications/${id}/read`, { method: 'PATCH' }).catch(() => undefined)
   }
 
+  function deleteOne(id: string) {
+    const wasUnread = data.notifications.find(n => n.id === id && !n.read)
+    setData(prev => ({
+      unreadCount: Math.max(0, prev.unreadCount - (wasUnread ? 1 : 0)),
+      notifications: prev.notifications.filter(n => n.id !== id),
+    }))
+    fetch(`/api/notifications/${id}`, { method: 'DELETE' }).catch(() => undefined)
+  }
+
+  async function deleteAll() {
+    await fetch('/api/notifications', { method: 'DELETE' })
+    setData({ notifications: [], unreadCount: 0 })
+  }
+
   function removeFollowReq(id: string) { setFollowReqs(prev => prev.filter(r => r.id !== id)) }
   function removeGroupInv(id: string)  { setGroupInvs(prev => prev.filter(i => i.id !== id)) }
 
@@ -308,11 +338,18 @@ export function NotificationBell() {
                 </span>
               )}
             </div>
-            {data.unreadCount > 0 && (
-              <button onClick={markAllRead} className="text-[#FF471A] text-xs font-semibold hover:underline">
-                Marcar leídas
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {data.unreadCount > 0 && (
+                <button onClick={markAllRead} className="text-[#FF471A] text-xs font-semibold hover:underline">
+                  Marcar leídas
+                </button>
+              )}
+              {data.notifications.length > 0 && (
+                <button onClick={deleteAll} className="text-text-muted text-xs hover:text-red-400 transition-colors">
+                  Borrar todo
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="max-h-[420px] overflow-y-auto divide-y divide-border-default">
@@ -344,7 +381,7 @@ export function NotificationBell() {
                   <SectionHeader label="Notificaciones" count={data.notifications.length} />
                 )}
                 {data.notifications.map(n => (
-                  <NotificationItem key={n.id} notif={n} onRead={markOneRead} onClose={() => setOpen(false)} />
+                  <NotificationItem key={n.id} notif={n} onRead={markOneRead} onDelete={deleteOne} onClose={() => setOpen(false)} />
                 ))}
               </div>
             )}

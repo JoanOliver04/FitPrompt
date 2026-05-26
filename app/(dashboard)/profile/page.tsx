@@ -42,7 +42,7 @@ function formatBirthDate(date: Date): string {
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)
 
-  const [followersCount, followingCount, profile, userMeta, streakData, xpData] = session?.user?.id
+  const [followersCount, followingCount, profile, userMeta, streakData, xpData, latestWeightLog] = session?.user?.id
     ? await Promise.all([
         db.follow.count({ where: { followingId: session.user.id } }),
         db.follow.count({ where: { followerId:  session.user.id } }),
@@ -50,8 +50,9 @@ export default async function ProfilePage() {
         db.user.findUnique({ where: { id: session.user.id }, select: { lastLoginAt: true, image: true, isPublic: true } }),
         db.streak.findUnique({ where: { userId: session.user.id } }),
         db.userXP.findUnique({ where: { userId: session.user.id } }),
+        db.weightLog.findFirst({ where: { userId: session.user.id }, orderBy: { date: 'desc' }, select: { weight: true } }),
       ])
-    : [0, 0, null, null, null, null]
+    : [0, 0, null, null, null, null, null]
 
   const currentImage = userMeta?.image ?? session?.user?.image ?? null
   const totalXP    = xpData?.totalXP ?? 0
@@ -79,7 +80,7 @@ export default async function ProfilePage() {
       title:       'Datos físicos',
       editSection: 'physical' as const,
       items: [
-        { label: 'Peso',     value: profile ? `${profile.weight} kg` : '—' },
+        { label: 'Peso',     value: (latestWeightLog?.weight ?? profile?.weight) ? `${latestWeightLog?.weight ?? profile?.weight} kg` : '—' },
         { label: 'Altura',   value: profile ? `${profile.height} cm` : '—' },
         { label: 'Objetivo', value: profile ? (GOAL_LABEL[profile.goal] ?? profile.goal) : '—' },
       ],

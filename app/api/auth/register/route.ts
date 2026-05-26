@@ -52,10 +52,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const existing = await db.user.findUnique({ where: { email }, select: { id: true } })
     if (!existing) {
+      const image = `https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${encodeURIComponent(email)}&backgroundColor=FF471A,b6e3f4,c0aede,d1d4f9&backgroundType=gradientLinear`
       await db.user.create({
         data: {
           email,
           name,
+          image,
           password: hashed,
           plan: 'free',
           emailVerifyToken:   verifyToken,

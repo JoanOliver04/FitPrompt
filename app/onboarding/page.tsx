@@ -404,13 +404,13 @@ export default function OnboardingPage() {
                     aria-checked={data.isPublic}
                     onClick={() => setPublic(!data.isPublic)}
                     className={[
-                      'relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 mt-0.5',
+                      'relative p-0 w-11 h-6 rounded-full transition-colors duration-200 shrink-0 mt-0.5',
                       data.isPublic ? 'bg-[#FF471A]' : 'bg-bg-secondary border border-border-default',
                     ].join(' ')}
                   >
                     <span className={[
-                      'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
-                      data.isPublic ? 'translate-x-5' : 'translate-x-0.5',
+                      'absolute left-0 top-[2px] w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                      data.isPublic ? 'translate-x-[22px]' : 'translate-x-[2px]',
                     ].join(' ')} />
                   </button>
                 </div>

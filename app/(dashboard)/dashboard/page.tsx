@@ -5,14 +5,11 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import CheckoutSuccessAlert from '@/components/ui/CheckoutSuccessAlert'
 import { getDashboardData, FALLBACK_DASHBOARD } from '@/lib/dashboard'
-import { getUserChats } from '@/lib/chat'
 import WelcomeHeader from '@/components/dashboard/WelcomeHeader'
+import TodayCard from '@/components/dashboard/TodayCard'
 import MetricsGrid from '@/components/dashboard/MetricsGrid'
 import WeekCalendar from '@/components/dashboard/WeekCalendar'
-import TodayWorkout from '@/components/dashboard/TodayWorkout'
 import QuickActions from '@/components/dashboard/QuickActions'
-import { PlanDownloadCard } from '@/components/dashboard/PlanDownloadCard'
-import ProgressCards from '@/components/dashboard/ProgressCards'
 import WeeklyCheckIn from '@/components/dashboard/WeeklyCheckIn'
 import type { Plan } from '@/types'
 
@@ -20,27 +17,26 @@ export const metadata: Metadata = {
   title: 'Dashboard — FitPrompt',
 }
 
+function todayDayIndex(): number {
+  const d = new Date().getDay()
+  return d === 0 ? 6 : d - 1   // Mon=0 … Sun=6
+}
+
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
+  if (!session?.user?.id) return null
 
   const plan = (session.user as { plan?: Plan }).plan ?? 'free'
 
   let data = FALLBACK_DASHBOARD
-  let latestChat: { id: string; title: string } | null = null
-
   try {
-    const [dashboardData, chats] = await Promise.all([
-      getDashboardData(session.user.id, session.user.name ?? ''),
-      getUserChats(session.user.id),
-    ])
-    data = dashboardData
-    // getUserChats orders by updatedAt desc — first entry is most recent.
-    const first = chats[0]
-    if (first) latestChat = { id: first.id, title: first.title }
+    data = await getDashboardData(session.user.id, session.user.name ?? '')
   } catch {
     // DB unreachable — render with fallback values
   }
+
+  const todayIdx    = todayDayIndex()
+  const todayWorkout = data.weekWorkouts.find(w => w.dayIndex === todayIdx) ?? null
 
   return (
     <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full animate-enter">
@@ -48,35 +44,48 @@ export default async function DashboardPage() {
         <CheckoutSuccessAlert />
       </Suspense>
 
+      {/* ── Cabecera ──────────────────────────────────────── */}
       <WelcomeHeader
         name={data.name}
         streak={data.streak}
         bestStreak={data.bestStreak}
         weekComplete={data.weekComplete}
       />
-      <WeeklyCheckIn />
+
+      {/* ── ¿Entrenaste hoy? ──────────────────────────────── */}
+      <TodayCard
+        todayWorkout={todayWorkout}
+        totalWorkouts={data.totalWorkouts}
+      />
+
+      {/* ── Semana actual ─────────────────────────────────── */}
+      <WeekCalendar weekWorkouts={data.weekWorkouts} />
+
+      {/* ── Estadísticas ──────────────────────────────────── */}
       <MetricsGrid
         streak={data.streak}
         bestStreak={data.bestStreak}
         weekComplete={data.weekComplete}
         weight={data.weight}
+        weightInitial={data.weightInitial}
         completionRate={data.completionRate}
         xpLevel={data.xpLevel}
         xpLevelName={data.xpLevelName}
         xpCurrent={data.xpCurrent}
         xpMax={data.xpMax}
-      />
-      <WeekCalendar completedDays={data.completedDaysThisWeek} />
-      <ProgressCards
-        weightCurrent={data.weight}
-        weightInitial={data.weightInitial}
         totalWorkouts={data.totalWorkouts}
-        activeDays={data.activeDays}
         avgDuration={data.avgDuration}
       />
+
+      {/* ── Accesos rápidos ───────────────────────────────── */}
       <QuickActions />
 
-      {/* Premium upsell — only for free plan users */}
+      {/* ── Check-in semanal ──────────────────────────────── */}
+      <div className="mt-6">
+        <WeeklyCheckIn />
+      </div>
+
+      {/* ── Upsell Premium ────────────────────────────────── */}
       {plan === 'free' && (
         <Link href="/pricing" className="block mt-6 group">
           <div className="relative overflow-hidden bg-bg-secondary border border-[#FF471A]/20 hover:border-[#FF471A]/45 rounded-2xl p-4 transition-all duration-200">
@@ -96,16 +105,6 @@ export default async function DashboardPage() {
           </div>
         </Link>
       )}
-
-      {/* Plan download — only shown when the user has at least one chat */}
-      {latestChat && (
-        <div className="mt-6">
-          <h2 className="text-text-primary font-bold mb-4">Tu plan</h2>
-          <PlanDownloadCard chatId={latestChat.id} chatTitle={latestChat.title} />
-        </div>
-      )}
-
-      <TodayWorkout />
     </div>
   )
 }

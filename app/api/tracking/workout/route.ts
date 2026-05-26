@@ -8,7 +8,6 @@ import { addXP, XP_REWARDS, type LevelUpInfo } from '@/lib/xp'
 import { checkAndAwardConsistency } from '@/lib/badges'
 import { notifyRankSurpassed } from '@/lib/notifications'
 import { workoutLogSchema } from '@/lib/schemas'
-import type { WorkoutExercise } from '@/components/tracking/WorkoutLogger'
 
 export const runtime = 'nodejs'
 
@@ -20,7 +19,6 @@ export async function GET(): Promise<NextResponse> {
   const rows = await db.workoutLog.findMany({
     where:   { userId: session.user.id },
     orderBy: { date: 'desc' },
-    take:    50,
     select:  {
       id: true, date: true, duration: true, completed: true, notes: true,
       exercises: {
@@ -45,48 +43,40 @@ export const POST = defineHandler(
       return NextResponse.json({ error: 'Fecha inválida' }, { status: 422 })
     }
 
-    const [row, profile] = await Promise.all([
-      db.workoutLog.create({
-        data: {
-          userId:    session.user.id,
-          date,
-          duration:  body.duration,
-          completed: body.completed,
-          notes:     body.notes || null,
-          exercises: {
-            create: body.exercises.map((ex, i) => ({
-              userId: session.user.id,
-              date,
-              name:   ex.name,
-              sets:   ex.sets,
-              reps:   ex.reps,
-              weight: ex.weight,
-              order:  i,
-            })),
-          },
+    const row = await db.workoutLog.create({
+      data: {
+        userId:       session.user.id,
+        date,
+        duration:     body.duration,
+        completed:    body.completed,
+        notes:        body.notes || null,
+        routineId:    body.routineId    ?? null,
+        routineDayId: body.routineDayId ?? null,
+        exercises: {
+          create: body.exercises.map((ex, i) => ({
+            userId: session.user.id,
+            date,
+            name:   ex.name,
+            sets:   ex.sets,
+            reps:   ex.reps,
+            weight: ex.weight,
+            order:  i,
+          })),
         },
-        select: {
-          id: true, date: true, duration: true, completed: true, notes: true,
-          exercises: {
-            orderBy: { order: 'asc' },
-            select:  { name: true, sets: true, reps: true, weight: true },
-          },
-        },
-      }),
-      db.userProfile.findUnique({
-        where:  { userId: session.user.id },
-        select: { daysPerWeek: true },
-      }),
-    ])
+      },
+      select: {
+        id: true, date: true, duration: true, completed: true, notes: true,
+        exercises: { orderBy: { order: 'asc' }, select: { name: true, sets: true, reps: true, weight: true } },
+      },
+    })
 
     let levelUp: LevelUpInfo | null = null
     let newBadge: { id: string; name: string; icon: string } | null = null
     const xpGained = body.completed ? XP_REWARDS.WORKOUT_COMPLETE : 0
 
     if (body.completed) {
-      const daysPerWeek = profile?.daysPerWeek ?? 4
       levelUp = await addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => null)
-      updateStreakIfWeekComplete(session.user.id, daysPerWeek).catch(() => undefined)
+      updateStreakIfWeekComplete(session.user.id).catch(() => undefined)
       notifyRankSurpassed(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => undefined)
       const badge = await checkAndAwardConsistency(session.user.id).catch(() => null)
       if (badge) newBadge = { id: badge.id, name: badge.name, icon: badge.icon }
@@ -103,7 +93,7 @@ function serialize(row: {
   return {
     id:        row.id,
     date:      row.date.toISOString(),
-    exercises: row.exercises as WorkoutExercise[],
+    exercises: row.exercises,
     duration:  row.duration,
     completed: row.completed,
     notes:     row.notes ?? '',

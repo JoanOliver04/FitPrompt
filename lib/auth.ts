@@ -16,8 +16,8 @@ interface GoogleOidcProfile extends Profile {
 
 export const authOptions: NextAuthOptions = {
   // 24h JWT; cookie expires alongside it. Sliding refresh every hour.
-  session: { strategy: 'jwt', maxAge: 60 * 60 * 24, updateAge: 60 * 60 },
-  jwt:     { maxAge: 60 * 60 * 24 },
+  session: { strategy: 'jwt', maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 },
+  jwt:     { maxAge: 60 * 60 * 24 * 30 },
   useSecureCookies: process.env.NODE_ENV === 'production',
 
   providers: [

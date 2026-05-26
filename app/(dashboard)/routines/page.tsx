@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import RoutineList from '@/components/routines/RoutineList'
 
 export const metadata: Metadata = { title: 'Mis Rutinas — FitPrompt' }
 
@@ -57,37 +58,10 @@ export default async function RoutinesPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {routines.map((routine) => (
-            <Link
-              key={routine.id}
-              href={`/routines/${routine.id}`}
-              className="block bg-bg-secondary border border-border-default hover:border-[#FF471A44] rounded-2xl p-5 transition-all group"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-text-primary font-bold text-base group-hover:text-[#FF471A] transition-colors truncate">
-                    {routine.name}
-                  </h2>
-                  <p className="text-text-muted text-xs mt-1">
-                    {routine.createdAt.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </p>
-                </div>
-                <span className="text-text-muted group-hover:text-text-secondary transition-colors text-lg">›</span>
-              </div>
-
-              <div className="flex flex-wrap gap-2 mt-4">
-                {routine.days.map((day) => (
-                  <div key={day.id} className="bg-bg-tertiary rounded-lg px-3 py-1.5 text-xs">
-                    <span className="text-text-secondary font-medium">Día {day.dayIndex + 1}</span>
-                    <span className="text-text-muted ml-1">· {day.name}</span>
-                    <span className="text-text-muted ml-1.5">({day._count.exercises} ejercicios)</span>
-                  </div>
-                ))}
-              </div>
-            </Link>
-          ))}
-        </div>
+        <RoutineList routines={routines.map(r => ({
+          ...r,
+          createdAt: r.createdAt.toISOString(),
+        }))} />
       )}
     </div>
   )

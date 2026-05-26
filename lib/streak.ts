@@ -13,11 +13,9 @@ export interface StreakData {
 
 // ─── ISO week helpers ─────────────────────────────────────────────────────────
 
-// Returns "YYYY-Www" for the ISO week containing `date`
 function getISOWeek(date: Date): string {
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
-  // Thursday of the current week determines the ISO year
   d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
   const year    = d.getFullYear()
   const jan4    = new Date(year, 0, 4)
@@ -25,16 +23,13 @@ function getISOWeek(date: Date): string {
   return `${year}-W${String(weekNum).padStart(2, '0')}`
 }
 
-// Returns the ISO week string for the week immediately before `isoWeek`
 function prevISOWeek(isoWeek: string): string {
   const [yearStr, weekStr] = isoWeek.split('-W')
   const year    = parseInt(yearStr, 10)
   const week    = parseInt(weekStr, 10)
-  // Monday of ISO week 1
   const jan4    = new Date(year, 0, 4)
   const week1Mon = new Date(jan4)
   week1Mon.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7))
-  // Monday of target week (week - 1, i.e. delta = week - 2 from week1)
   const targetMon = new Date(week1Mon)
   targetMon.setDate(week1Mon.getDate() + (week - 2) * 7)
   return getISOWeek(targetMon)
@@ -57,16 +52,12 @@ function getSundayOfWeek(monday: Date): Date {
 
 // ─── Read — called from getDashboardData ──────────────────────────────────────
 
-// Reads the streak record, resets currentStreak to 0 if a week was skipped,
-// and returns current/best streak plus whether the current week is already complete.
-export async function resolveStreak(
-  userId:      string,
-  daysPerWeek: number,
-): Promise<StreakData> {
+export async function resolveStreak(userId: string): Promise<StreakData> {
   const now         = new Date()
   const currentWeek = getISOWeek(now)
   const monday      = getMondayOfWeek(now)
   const sunday      = getSundayOfWeek(monday)
+  const prev        = prevISOWeek(currentWeek)
 
   const [streak, completedThisWeek] = await Promise.all([
     db.streak.findUnique({ where: { userId } }),
@@ -75,19 +66,42 @@ export async function resolveStreak(
     }),
   ])
 
-  const weekComplete = completedThisWeek >= daysPerWeek
+  const weekComplete = completedThisWeek >= 1
 
-  // Streak is broken when lastCompletedWeek is neither the current nor the
-  // previous week (user skipped an entire week without completing it)
-  if (streak?.currentStreak && streak.lastCompletedWeek) {
-    const prev    = prevISOWeek(currentWeek)
-    const isStale =
-      streak.lastCompletedWeek !== currentWeek &&
-      streak.lastCompletedWeek !== prev
-    if (isStale) {
-      await db.streak.update({ where: { userId }, data: { currentStreak: 0 } })
-      return { currentStreak: 0, bestStreak: streak.bestStreak, weekComplete }
+  // ── Week done but not yet recorded → self-heal ────────────────────────────
+  if (weekComplete && streak?.lastCompletedWeek !== currentWeek) {
+    const newCurrent = streak?.lastCompletedWeek === prev
+      ? (streak.currentStreak + 1)
+      : 1
+    const newBest = Math.max(newCurrent, streak?.bestStreak ?? 0)
+    await db.streak.upsert({
+      where:  { userId },
+      update: { currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
+      create: { userId, currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
+    })
+    return { currentStreak: newCurrent, bestStreak: newBest, weekComplete: true }
+  }
+
+  // ── Already recorded this week ────────────────────────────────────────────
+  if (weekComplete && streak?.lastCompletedWeek === currentWeek) {
+    return { currentStreak: streak.currentStreak, bestStreak: streak.bestStreak, weekComplete: true }
+  }
+
+  // ── New week, not trained yet — preserve streak if last week was completed ─
+  if (!weekComplete && streak?.lastCompletedWeek === prev) {
+    // Streak is still alive; fix DB if it was incorrectly zeroed
+    const display = Math.max(streak.currentStreak, 1)
+    if (streak.currentStreak === 0) {
+      await db.streak.update({ where: { userId }, data: { currentStreak: 1 } })
     }
+    return { currentStreak: display, bestStreak: streak.bestStreak, weekComplete: false }
+  }
+
+  // ── Streak broken: gap of 2+ weeks without training ───────────────────────
+  if (streak && streak.currentStreak > 0 && streak.lastCompletedWeek &&
+      streak.lastCompletedWeek !== currentWeek && streak.lastCompletedWeek !== prev) {
+    await db.streak.update({ where: { userId }, data: { currentStreak: 0 } })
+    return { currentStreak: 0, bestStreak: streak.bestStreak, weekComplete: false }
   }
 
   return {
@@ -99,13 +113,7 @@ export async function resolveStreak(
 
 // ─── Write — called from workout API after a completed workout is saved ───────
 
-// Checks if the user has now completed all planned workouts for the current
-// week. If yes, increments currentStreak (or starts a new one) and updates
-// bestStreak. Idempotent: re-calling for the same week is a no-op.
-export async function updateStreakIfWeekComplete(
-  userId:      string,
-  daysPerWeek: number,
-): Promise<void> {
+export async function updateStreakIfWeekComplete(userId: string): Promise<void> {
   const now         = new Date()
   const currentWeek = getISOWeek(now)
   const monday      = getMondayOfWeek(now)
@@ -115,11 +123,11 @@ export async function updateStreakIfWeekComplete(
     where: { userId, completed: true, date: { gte: monday, lte: sunday } },
   })
 
-  if (completedThisWeek < daysPerWeek) return // week not yet complete
+  if (completedThisWeek < 1) return
 
   const streak = await db.streak.findUnique({ where: { userId } })
 
-  if (streak?.lastCompletedWeek === currentWeek) return // already counted this week
+  if (streak?.lastCompletedWeek === currentWeek) return
 
   const prev       = prevISOWeek(currentWeek)
   const newCurrent = streak?.lastCompletedWeek === prev
@@ -134,6 +142,6 @@ export async function updateStreakIfWeekComplete(
       create: { userId, currentStreak: newCurrent, bestStreak: newBest, lastCompletedWeek: currentWeek },
     }),
     addXP(userId, XP_REWARDS.WEEK_COMPLETE),
-    awardBadge(userId, BadgeId.week_1), // idempotent — only fires once
+    awardBadge(userId, BadgeId.week_1),
   ])
 }

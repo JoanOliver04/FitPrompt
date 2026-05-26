@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { WeightTracker } from '@/components/tracking/WeightTracker'
 import { WorkoutLogger } from '@/components/tracking/WorkoutLogger'
 import PremiumGate from '@/components/ui/PremiumGate'
+import AdvancedMetrics from '@/components/tracking/AdvancedMetrics'
 import type { WeightEntry } from '@/components/tracking/WeightTracker'
 import type { WorkoutEntry, WorkoutExercise, RoutineSummary } from '@/components/tracking/WorkoutLogger'
 import type { Plan } from '@/types'
@@ -51,7 +52,6 @@ async function getWorkoutLogs(userId: string): Promise<WorkoutEntry[]> {
     const rows = await db.workoutLog.findMany({
       where:   { userId },
       orderBy: { date: 'desc' },
-      take:    50,
       select:  {
         id: true, date: true, duration: true, completed: true, notes: true,
         exercises: {
@@ -63,7 +63,7 @@ async function getWorkoutLogs(userId: string): Promise<WorkoutEntry[]> {
     return rows.map((r) => ({
       id:        r.id,
       date:      r.date.toISOString(),
-      exercises: r.exercises as WorkoutExercise[],
+      exercises: (Array.isArray(r.exercises) ? r.exercises : []) as unknown as WorkoutExercise[],
       duration:  r.duration,
       completed: r.completed,
       notes:     r.notes ?? '',
@@ -133,9 +133,20 @@ export default async function TrackingPage({
           </h2>
         </div>
         {isPremium ? (
-          <div className="bg-bg-secondary border border-border-default rounded-2xl p-5 text-center">
-            <p className="text-text-muted text-sm">Próximamente — análisis detallado de progreso.</p>
-          </div>
+          <AdvancedMetrics
+            weightLogs={weightLogs.map(w => ({ weight: w.weight, date: w.date }))}
+            workoutLogs={workoutLogs.map(w => ({
+              date:      w.date,
+              duration:  w.duration,
+              completed: w.completed,
+              exercises: w.exercises.map(ex => ({
+                name:   ex.name,
+                sets:   ex.sets,
+                reps:   ex.reps,
+                weight: ex.weight,
+              })),
+            }))}
+          />
         ) : (
           <PremiumGate
             feature="Métricas avanzadas"
