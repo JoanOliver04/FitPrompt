@@ -3,6 +3,7 @@ import { defineHandler } from '@/lib/api-handler'
 import { saveMessage, verifyChatOwnership } from '@/lib/chat'
 import { stripHtml } from '@/lib/sanitize'
 import { userSavedMessageSchema } from '@/lib/schemas'
+import { checkAndAwardChatBadges } from '@/lib/badges'
 
 export const runtime = 'nodejs'
 
@@ -22,6 +23,7 @@ export const POST = defineHandler(
       return NextResponse.json({ error: 'Chat not found' }, { status: 404 })
     }
     const message = await saveMessage(body.chatId, 'user', stripHtml(body.content))
+    checkAndAwardChatBadges(session.user.id).catch(() => undefined)
     return NextResponse.json({ message }, { status: 201 })
   },
 )

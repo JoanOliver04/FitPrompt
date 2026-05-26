@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
-import { WEEKLY_CHALLENGES, getChallengeProgress, getWeekStart } from '@/lib/challenges'
+import { WEEKLY_CHALLENGES, getWeekStart } from '@/lib/challenges'
+import { getChallengeProgress } from '@/lib/challenges-server'
 import { addXP } from '@/lib/xp'
+import { checkAndAwardChallengeBadges } from '@/lib/badges'
 
 export const runtime = 'nodejs'
 
@@ -44,7 +46,11 @@ export const POST = defineHandler(
       data:  { completed: true, completedAt: new Date() },
     })
 
-    const levelUp = await addXP(userId, def.xpReward).catch(() => null)
-    return NextResponse.json({ xpGained: def.xpReward, levelUp })
+    const [levelUp, newBadge] = await Promise.all([
+      addXP(userId, def.xpReward).catch(() => null),
+      checkAndAwardChallengeBadges(userId).catch(() => null),
+    ])
+    const badgePayload = newBadge ? { id: newBadge.id, name: newBadge.name, icon: newBadge.icon } : null
+    return NextResponse.json({ xpGained: def.xpReward, levelUp, newBadge: badgePayload })
   },
 )

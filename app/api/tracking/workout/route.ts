@@ -5,7 +5,12 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { updateStreakIfWeekComplete } from '@/lib/streak'
 import { addXP, XP_REWARDS, type LevelUpInfo } from '@/lib/xp'
-import { checkAndAwardConsistency } from '@/lib/badges'
+import {
+  checkAndAwardConsistency,
+  checkAndAwardWorkoutMilestones,
+  checkAndAwardVolumeMilestone,
+  checkAndAwardLevel5,
+} from '@/lib/badges'
 import { notifyRankSurpassed } from '@/lib/notifications'
 import { workoutLogSchema } from '@/lib/schemas'
 
@@ -78,8 +83,16 @@ export const POST = defineHandler(
       levelUp = await addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => null)
       updateStreakIfWeekComplete(session.user.id).catch(() => undefined)
       notifyRankSurpassed(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => undefined)
-      const badge = await checkAndAwardConsistency(session.user.id).catch(() => null)
-      if (badge) newBadge = { id: badge.id, name: badge.name, icon: badge.icon }
+
+      // Badge checks — first match wins for the response (all run regardless)
+      const [consistency, milestones, volume, level5] = await Promise.all([
+        checkAndAwardConsistency(session.user.id).catch(() => null),
+        checkAndAwardWorkoutMilestones(session.user.id).catch(() => null),
+        checkAndAwardVolumeMilestone(session.user.id).catch(() => null),
+        checkAndAwardLevel5(session.user.id).catch(() => null),
+      ])
+      const firstBadge = consistency ?? milestones ?? volume ?? level5
+      if (firstBadge) newBadge = { id: firstBadge.id, name: firstBadge.name, icon: firstBadge.icon }
     }
 
     return NextResponse.json({ log: serialize(row), levelUp, xpGained, newBadge }, { status: 201 })

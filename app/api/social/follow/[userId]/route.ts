@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
 import { notifyNewFollower } from '@/lib/notifications'
+import { checkAndAwardSocialBadges } from '@/lib/badges'
 import { cuidString } from '@/lib/schemas'
 
 export const runtime = 'nodejs'
@@ -36,6 +37,7 @@ export const POST = defineHandler(
       })
       await db.followRequest.deleteMany({ where: { fromUserId: followerId, toUserId: followingId } })
       notifyNewFollower(followerId, followingId).catch(() => undefined)
+      checkAndAwardSocialBadges(followingId).catch(() => undefined)
       return NextResponse.json({ ok: true, status: 'following' })
     }
 

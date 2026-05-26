@@ -69,6 +69,15 @@ enum BadgeId {
   premium
   challenge_done
   group_top
+  iron_will
+  centurion
+  volume_king
+  social_butterfly
+  group_founder
+  challenger_3
+  chat_starter
+  streak_3weeks
+  level_5_badge
 }
 
 enum NotificationType {

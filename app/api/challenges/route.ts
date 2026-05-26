@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { WEEKLY_CHALLENGES, getChallengeProgress, getWeekStart } from '@/lib/challenges'
+import { WEEKLY_CHALLENGES, getWeekStart } from '@/lib/challenges'
+import { getChallengeProgress } from '@/lib/challenges-server'
 
 export async function GET() {
   const session = await getServerSession(authOptions)

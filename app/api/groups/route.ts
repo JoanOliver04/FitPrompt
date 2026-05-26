@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
 import { groupCreateSchema } from '@/lib/schemas'
+import { checkAndAwardGroupFounder } from '@/lib/badges'
 
 export const runtime = 'nodejs'
 
@@ -22,6 +23,7 @@ export const POST = defineHandler(
       },
       select: { id: true, name: true, createdBy: true, createdAt: true },
     })
+    checkAndAwardGroupFounder(session.user.id).catch(() => undefined)
     return NextResponse.json(group, { status: 201 })
   },
 )
