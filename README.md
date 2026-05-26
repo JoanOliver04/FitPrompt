@@ -2,7 +2,7 @@
 
 > **AI-powered fitness companion that turns a user's body, goals and lifestyle into a fully personalized training and nutrition plan.**
 
-FitPrompt is a production-grade web application that combines a personalized AI coach, a structured workout tracker, a gamification layer (XP, badges, streaks) and a social fitness graph (followers, groups, weekly challenges). It is built on a modern serverless stack with a strict TypeScript codebase, a 16-table relational schema and a two-tier AI pipeline (Groq for the free plan, Anthropic Claude for Premium).
+FitPrompt is a production-grade web application that combines a personalized AI coach, a structured workout tracker, a gamification layer (XP, badges, streaks) and a social fitness graph (followers, groups, weekly challenges). It is built on a modern serverless stack with a strict TypeScript codebase, a 25-table relational schema and a Groq-powered AI pipeline (Llama 3.3 70B) that grounds every response on the user's real profile.
 
 **Authors:** Joan V. Oliver Rosell & Iván Cucarella Pozo
 **License:** Proprietary — see [LICENSE](LICENSE)
@@ -44,11 +44,13 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 | **Language** | TypeScript (strict, no `any`) | Compile-time safety end-to-end, including DB enums via Prisma |
 | **Styling** | TailwindCSS v3 (dark-first) | Design tokens locked to the brand palette in `globals.css` |
 | **Auth** | NextAuth.js v4 | Google OAuth + Credentials (bcryptjs) with JWT session strategy |
-| **AI — Free** | Groq API · `llama3-70b-8192` | Sub-second time-to-first-token for the free tier |
-| **AI — Premium** | Anthropic Claude · `claude-sonnet-4-6` | Higher reasoning quality for Premium plan generation |
+| **AI** | Groq API · `llama-3.3-70b-versatile` | Sub-second time-to-first-token; same model across all plans |
 | **Database** | PostgreSQL on Supabase | Managed Postgres + connection pooling via PgBouncer |
 | **ORM** | Prisma v7 with `@prisma/adapter-pg` driver adapter | Serverless-friendly pool delegation to `pg` |
 | **Payments** | Stripe Checkout | Subscription upgrades (Free → Premium) |
+| **Email** | Resend | Transactional email — account verification & password reset |
+| **Validation** | Zod v4 | Runtime schema validation at every API boundary |
+| **Sanitization** | isomorphic-dompurify | Strips HTML from all user-supplied text |
 | **PDF** | `@react-pdf/renderer` | Server-rendered PDF export of generated plans |
 | **Deployment** | Vercel (web) + Supabase (DB) | Fully serverless, zero-ops |
 | **Tooling** | ESLint 9, PostCSS, Turbopack | Modern, fast dev loop (`next dev --turbopack`) |
@@ -68,8 +70,8 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
                 │  │                routines, tracking, social,      │
                 │  │                groups, challenges, settings...  │
                 │  └─ /api/*        Route Handlers (Node runtime)    │
-                │       ├─ auth     NextAuth + register              │
-                │       ├─ ai       generate-plan (Groq / Claude)    │
+                │       ├─ auth     NextAuth + register + verify     │
+                │       ├─ ai       generate-plan (Groq)             │
                 │       ├─ chat     CRUD chats + streamed messages   │
                 │       ├─ user     profile, plan, limits            │
                 │       ├─ payment  Stripe Checkout + webhook        │
@@ -81,8 +83,8 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
                           │ Prisma v7             │ HTTPS
                           ▼                       ▼
             ┌─────────────────────────┐   ┌─────────────────────┐
-            │  PostgreSQL (Supabase)  │   │  Groq  /  Anthropic │
-            │  16 tables, RLS-ready   │   │  (LLM providers)    │
+            │  PostgreSQL (Supabase)  │   │  Groq (Llama 3.3)   │
+            │  25 tables, RLS-ready   │   │  Resend (email)     │
             └─────────────────────────┘   └─────────────────────┘
 ```
 
@@ -92,7 +94,8 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 - **Singleton Prisma client** on `globalThis` to survive Next.js hot-reload without exhausting the Supabase pool.
 - **Driver-adapter pattern** (`PrismaPg` over `pg`) instead of Prisma's binary engine — the recommended mode for serverless Postgres.
 - **All plan limits validated server-side** in `lib/limits.ts` — the UI may surface CTAs, but enforcement never lives in the frontend.
-- **Middleware** (`middleware.ts`) gates every protected route (`/dashboard/*`, `/chat/*`, `/profile/*`, `/onboarding`) against the NextAuth JWT before the page renders.
+- **One hardened request pipeline.** Every API route is declared through `defineHandler` (`lib/api-handler.ts`), which centralizes auth, Zod body/param validation, per-user rate limiting, body-size caps and plan-limit checks before the handler body runs.
+- **Middleware** (`middleware.ts`) gates every protected route (`/dashboard/*`, `/chat/*`, `/profile/*`, `/onboarding`) against the NextAuth JWT before the page renders, and sets a strict CSP.
 - **Strict typing of the session.** `types/next-auth.d.ts` augments `session.user` with `id` and `plan` so authorization checks are type-safe.
 
 ---
@@ -102,16 +105,19 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 ### Authentication & onboarding
 - Email/password (bcryptjs) and Google OAuth, both flowing through NextAuth credentials provider with JWT sessions.
 - Double validation (client + server) on registration, automatic sign-in after sign-up.
+- **Email verification & password reset** via Resend, with single-use expiring tokens stored on `User` (`emailVerifyToken`, `resetPasswordToken`). Verification is opt-in behind the `REQUIRE_EMAIL_VERIFICATION` flag.
+- **Session versioning** (`User.sessionVersion`) invalidates all existing JWTs on password change or account-security events.
 - 5-step onboarding form that captures the full `UserProfile` — the single source of truth used by every AI prompt thereafter.
 
 ### AI chat
-- Two-tier model routing: Groq (`llama3-70b-8192`) for Free, Anthropic Claude (`claude-sonnet-4-6`) for Premium.
-- The system prompt is **built from the database, not hard-coded**: `buildUserContext()` (in `lib/prompts.ts`) serializes the user's profile and metabolic calculations into two Markdown tables that are injected as the `system` message on every call.
-- Streamed responses with a typing indicator, Markdown rendering, and a structured-plan parser that splits a 4-week response into five sections (routine, diet, recovery, roadmap, FAQ).
+- A single Groq provider (`llama-3.3-70b-versatile`) serves every plan — the **prompt is personalized, not the model**. Premium lifts the daily message cap rather than swapping providers.
+- The system prompt is **built from the database, not hard-coded**: `generarSystemPrompt()` (in `lib/prompts.ts`, fed by `lib/ai-profile.ts`) serializes the user's profile and metabolic calculations into Markdown tables that are injected as the `system` message on every call.
+- **Prompt-injection hardening**: the system prompt explicitly marks profile/user content as *data, not instructions*, and chat history is sanitized before it reaches the model.
+- Responses render as Markdown with a typing indicator, plus a structured-plan parser that splits a 4-week response into five sections (routine, diet, recovery, roadmap, FAQ), and an intent detector that turns "what should I buy?" into a structured JSON shopping list.
 - Saveable artifacts directly from the chat: **Save as Routine**, **Export to PDF**, **Generate shopping list**.
 
 ### Workout tracker
-- `WorkoutLog` stores exercises as JSON (`[{ name, sets: [{ reps, weight }] }]`) so total volume and load progression can be derived without schema churn.
+- `WorkoutLog` → `WorkoutExercise` (one row per exercise, with `userId`/`date` denormalized onto the child) so per-exercise progression — e.g. bench-press load over time, or group rankings — is a single indexed query rather than a JSON scan.
 - Routines persist as a normalized 3-table tree (`Routine` → `RoutineDay` → `RoutineExercise`) so they can be edited, reordered and reused across weeks.
 - Weekly streak (`Streak`) tracked by ISO week to avoid timezone ambiguity, with `currentStreak` / `bestStreak` and an idempotent upsert on workout completion.
 
@@ -122,8 +128,9 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 
 ### Social
 - Self-referential follow graph (`Follow`, unique on `[followerId, followingId]`, indexed both ways).
-- Premium-only groups (`Group` + `GroupMember`, unique on `[groupId, userId]`) with ranking against group members.
-- In-app notification feed (`Notification`) with compound indexes on `(userId, createdAt)` and `(userId, read)` for unread counters.
+- **Private accounts** (`User.isPublic`): following a private user creates a `FollowRequest` the owner approves or rejects, instead of an immediate follow.
+- Premium-only groups (`Group` + `GroupMember`, unique on `[groupId, userId]`) with ranking against group members, plus an invitation flow (`GroupInvitation`).
+- In-app notification feed (`Notification`) with compound indexes on `(userId, createdAt)` and `(userId, read)` for unread counters, and per-user notification preferences (`User.notificationPrefs`).
 
 ### Progress & analytics
 - Premium weight tracking (`WeightLog`) feeds time-series charts of body-weight evolution.
@@ -137,19 +144,28 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 - Role-based access via `User.role` (`USER` | `ADMIN`).
 - Admins bypass plan limits (centralized in `checkUserLimits()`), enabling internal QA and moderation without test accounts.
 
+### Security & hardening
+- **Zod validation** of every request body and route param at the boundary (`lib/schemas.ts`), with per-route body-size caps.
+- **HTML sanitization** (`lib/sanitize.ts`, isomorphic-dompurify) on all user-supplied text before it is stored or sent to the model.
+- **Database-backed rate limiting** (`RateLimit` table, `lib/rate-limit.ts`) keyed per user/IP and route.
+- **Stripe webhook replay protection** via the `StripeEvent` table (the Stripe event id is the primary key, so an event is processed at most once).
+- **Audit logging** (`AuditLog`) for sensitive actions — account deletion, plan changes, admin moderation — with IP and user-agent.
+- **Structured logging** (`lib/logger.ts`) that never echoes secrets or raw provider error bodies.
+
 ---
 
 ## 5. Database design
 
-PostgreSQL on Supabase, 16 tables, organized in five functional domains:
+PostgreSQL on Supabase, 25 tables, organized in six functional domains:
 
 | Domain | Tables |
 |---|---|
 | **Identity & access** | `User`, `UserProfile` |
 | **Chat & AI** | `Chat`, `Message`, `DailyMessageCount`, `WeeklyCheckIn` |
-| **Physical progress** | `WorkoutLog`, `WeightLog`, `Streak`, `Routine`, `RoutineDay`, `RoutineExercise` |
+| **Physical progress** | `WorkoutLog`, `WorkoutExercise`, `WeightLog`, `Streak`, `Routine`, `RoutineDay`, `RoutineExercise` |
 | **Gamification** | `Achievement`, `UserXP`, `UserChallenge` |
-| **Social** | `Follow`, `Group`, `GroupMember`, `Notification` |
+| **Social** | `Follow`, `FollowRequest`, `Group`, `GroupMember`, `GroupInvitation`, `Notification` |
+| **Security & infra** | `RateLimit`, `StripeEvent`, `AuditLog` |
 
 ### Relationship diagram
 
@@ -157,7 +173,7 @@ PostgreSQL on Supabase, 16 tables, organized in five functional domains:
 User ──────────────── UserProfile          (1:1)
   │
   ├── Chat ─── Message                     (1:N → 1:N)
-  ├── WorkoutLog                           (1:N)
+  ├── WorkoutLog ─── WorkoutExercise       (1:N → 1:N)
   ├── WeightLog                            (1:N)
   ├── Achievement                          (1:N)
   ├── DailyMessageCount                    (1:N)
@@ -167,11 +183,16 @@ User ──────────────── UserProfile          (1:1)
   ├── WeeklyCheckIn                        (1:N)
   ├── Notification                         (1:N)
   ├── Follow [follower] ←→ Follow [following]   (N:N self-referencing)
+  ├── FollowRequest [sent] ←→ [received]   (N:N self-referencing)
   ├── Group (creator)                      (1:N)
   ├── GroupMember                          (1:N)
+  ├── GroupInvitation [sent] ←→ [received] (N:N)
   └── Routine ─── RoutineDay ─── RoutineExercise  (1:N → 1:N → 1:N)
 
 Group ─── GroupMember                      (1:N)
+Group ─── GroupInvitation                  (1:N)
+
+RateLimit · StripeEvent · AuditLog         (standalone infra tables)
 ```
 
 ### Design highlights
@@ -180,6 +201,7 @@ Group ─── GroupMember                      (1:N)
 - **All user-owned tables cascade-delete from `User`**, making account deletion a single transaction.
 - **Uniqueness constraints encode invariants**: one profile per user, one daily-message-count row per user/day, one streak per user, one check-in per user/week, no duplicate follows, no duplicate group memberships, no duplicate badge unlocks.
 - **Composite indexes** on `Notification(userId, createdAt)` and `Notification(userId, read)` keep the notification dropdown fast as the table grows.
+- **Dedicated infra tables encode security invariants**: `StripeEvent` uses the Stripe event id as its primary key (webhook replay is impossible), `RateLimit` is unique on `[key, windowStart]`, and `AuditLog` is indexed on `(userId, createdAt)` and `(action, createdAt)`.
 - **Driver-adapter Prisma client** (`@prisma/adapter-pg`) with `pgbouncer=true&connection_limit=1` keeps the Supabase pool healthy under bursty serverless traffic.
 - **Singleton pattern on `globalThis`** in [lib/db.ts](lib/db.ts) prevents Next.js hot-reload from leaking Prisma instances.
 
@@ -194,8 +216,8 @@ The AI layer is split across three files for separation of concerns:
 | File | Responsibility |
 |---|---|
 | [lib/prompts.ts](lib/prompts.ts) | Builds the system + user prompts from a `UserProfile` |
-| [lib/groq.ts](lib/groq.ts) / [lib/anthropic.ts](lib/anthropic.ts) | Provider clients (Free / Premium) |
-| [lib/ai.ts](lib/ai.ts) | Orchestration: model selection, generation, parsing into the 5 plan sections |
+| [lib/ai-profile.ts](lib/ai-profile.ts) | Loads the user's profile from the DB and prepares it for prompt building |
+| [lib/ai.ts](lib/ai.ts) | Orchestration: Groq client, plan generation, parsing into the 5 plan sections (with a mock fallback when `GROQ_API_KEY` is unset) |
 
 ### How a generation flows
 
@@ -203,7 +225,7 @@ The AI layer is split across three files for separation of concerns:
 2. The handler loads the user and their `UserProfile` via Prisma.
 3. `lib/limits.ts` validates the user's plan and increments `DailyMessageCount` atomically (rate-limit upsert with `count + 1` and `HTTP 429` if the free quota is exhausted).
 4. `generarSystemPrompt(profile)` assembles the system message — including the profile table and a metabolic-data table (BMR, TDEE, target calories/protein/carbs/fat, BMI, activity multiplier).
-5. The provider is chosen from `User.plan`. Groq for Free, Claude for Premium.
+5. Groq (`llama-3.3-70b-versatile`) generates the response — the same model for every plan; the plan only governs the daily message quota.
 6. The response is parsed by `parsePlanSections()` into structured chunks the UI can render as interactive components (routine card, diet table, shopping list, PDF download).
 
 ### Specialized prompt builders
@@ -231,7 +253,7 @@ Beyond the combined plan, the system exposes four targeted prompts — each draw
 |---|---|---|
 | AI messages / day | 5 | Unlimited |
 | Saved chats | 3 | Unlimited |
-| AI provider | Groq (Llama 3 70B) | Anthropic Claude Sonnet 4.6 |
+| AI model | Groq · Llama 3.3 70B | Groq · Llama 3.3 70B |
 | Progress charts | ✗ | ✓ |
 | Social groups | ✗ | ✓ |
 | Badges | First 4 | All 12 |
@@ -252,19 +274,21 @@ app/
 │                       exercises, achievements, compare, settings, admin
 ├── onboarding/         5-step profile capture
 ├── pricing/            plan comparison + Stripe Checkout entry
-└── api/                Route Handlers
-    ├── auth/           NextAuth + register
+└── api/                Route Handlers (all via defineHandler)
+    ├── auth/           NextAuth, register, verify, forgot/reset-password
     ├── ai/             generate-plan
-    ├── chat/           CRUD chats, messages, streaming
-    ├── user/           profile, plan
-    ├── payment/        Stripe Checkout + webhook
-    ├── tracking/       workouts, weight, XP, streak
+    ├── chat/           CRUD chats, messages, export-pdf
+    ├── user/           profile, onboarding, avatar, password, privacy,
+    │                   notifications, delete
+    ├── payment/        Stripe Checkout (create-checkout)
+    ├── stripe/         webhook (replay-protected)
+    ├── tracking/       workout, weight
     ├── checkin/        weekly check-in + AI suggestions
-    ├── social/         follow / unfollow, feed
-    ├── groups/         create, join, leaderboard
+    ├── social/         follow, followers, following, follow-requests
+    ├── groups/         create, join, leaderboard, invitations
     ├── notifications/  list + mark-as-read
     ├── routines/       save / fetch / delete
-    ├── shopping-list/  generated from current diet
+    ├── shopping-list/  export-pdf
     ├── challenges/     accept / complete
     ├── admin/          role-gated endpoints
     └── health/         liveness probe
@@ -285,13 +309,15 @@ components/
 ├── auth/               LoginForm, RegisterForm
 └── pdf/                @react-pdf/renderer templates
 
-lib/                    db, auth, ai, groq, anthropic, prompts, limits,
-                        roles, xp, streak, badges, challenges, chat,
-                        checkin, dashboard, exercises, notifications,
-                        pdf-parser, routineParser, age, utils
+lib/                    db, auth, ai, ai-profile, prompts, limits, roles,
+                        xp, streak, badges, challenges, chat, checkin,
+                        dashboard, exercises, notifications, avatars,
+                        pdf-parser, routineParser, age, utils,
+                        api-handler, schemas, sanitize, rate-limit,
+                        http, logger, email, stripe
 
 prisma/
-├── schema.prisma       single source of truth (16 models, 8 enums)
+├── schema.prisma       single source of truth (25 models, 10 enums)
 └── migrations/         versioned SQL migrations
 
 types/                  shared TS types + next-auth.d.ts augmentation
@@ -305,15 +331,17 @@ middleware.ts           route protection
 
 ## 9. Local setup
 
-**Prerequisites:** Node.js ≥ 20, npm, a Supabase project, Groq + Anthropic API keys, a Stripe account (test mode is fine), and a Google OAuth client.
+**Prerequisites:** Node.js ≥ 20, npm, a Supabase project, a Groq API key, a Stripe account (test mode is fine), and a Google OAuth client. A Resend API key is optional (email verification & password reset fall back to logging when it is absent).
 
 ```bash
 npm install
-cp .env.local.example .env.local
+cp .env.example .env.local
 # Fill in: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL,
 #          GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-#          GROQ_API_KEY, ANTHROPIC_API_KEY,
-#          STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID
+#          GROQ_API_KEY,
+#          STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY,
+#          STRIPE_WEBHOOK_SECRET, STRIPE_PREMIUM_PRICE_ID
+# Optional: RESEND_API_KEY, REQUIRE_EMAIL_VERIFICATION
 
 npx prisma generate
 npx prisma migrate deploy       # applies migrations to Supabase
@@ -352,6 +380,7 @@ npm run dev                     # http://localhost:3000
 - **TypeScript strict, no `any`.** Every public type lives in `types/index.ts`. Prisma enums propagate up to the React layer.
 - **Server-first.** Server Components by default; `'use client'` is a deliberate choice, not the norm.
 - **Authorization is server-side.** UI hides what the user can't use; the backend enforces what the user can't do.
+- **Defense in depth.** Every route runs through one `defineHandler` pipeline — auth, Zod validation, body-size caps, rate limiting and plan checks — before any business logic. User text is HTML-sanitized, the AI system prompt treats profile data as data (not instructions), Stripe webhooks are replay-protected, and sensitive actions are audit-logged.
 - **Idempotent writes.** XP increments, streak updates, badge unlocks, daily message counts and weekly check-ins are all expressed as upserts with unique constraints — replaying the same event never double-counts.
 - **Derive, don't store.** Age is derived from `birthDate`. Level is derived from `totalXP`. Macros, BMR and TDEE are recomputed from `UserProfile` on every prompt. Less to keep in sync, less to migrate.
 - **Single asset convention.** All static assets live under `assets/<category>/` and are imported statically (`import logo from '@/assets/logo/logo.png'`). Nothing in `public/`. This keeps the bundler in charge of hashing and caching.
@@ -365,8 +394,9 @@ The project is built phase by phase. Major phases delivered:
 
 - **Phase 01** — Scaffolding: Next.js 15, Tailwind v3, dark mode, design tokens, base layout.
 - **Phase 02** — Authentication: NextAuth (Google + Credentials), middleware-protected routes, register flow with auto-login, session typing.
-- **Phase 03** — Core AI: Groq + Anthropic clients, prompt builders, `/api/ai/generate-plan`, streaming chat, plan limits.
-- **Phase 04+** — Database (Prisma + Supabase), workout tracking, gamification (XP, streaks, badges), social (followers, groups, challenges), Stripe billing, PDF export, weekly check-in, admin panel.
+- **Phase 03** — Core AI: Groq client, prompt builders, `/api/ai/generate-plan`, chat, plan limits.
+- **Phase 04+** — Database (Prisma + Supabase), workout tracking, gamification (XP, streaks, badges), social (followers, private accounts, groups, challenges), Stripe billing, PDF export, weekly check-in, admin panel.
+- **Phase 05** — Security hardening: centralized `defineHandler` pipeline, Zod validation, HTML sanitization, rate limiting, webhook replay protection, audit logging, email verification & password reset.
 
 Active areas: deeper analytics, mobile-first polish, automated test coverage and observability.
 
