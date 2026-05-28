@@ -18,7 +18,7 @@ export default async function AchievementsPage() {
     select: { badge: true, unlockedAt: true },
   })
 
-  const earnedMap   = new Map(achievements.map(a => [a.badge, a.unlockedAt]))
+  const earnedMap   = new Map(achievements.map((a: { badge: string; unlockedAt: Date }) => [a.badge, a.unlockedAt]))
   const earnedCount = achievements.length
   const totalCount  = BADGE_DEFINITIONS.length
   const progress    = totalCount > 0 ? (earnedCount / totalCount) * 100 : 0
