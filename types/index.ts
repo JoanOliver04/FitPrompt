@@ -224,6 +224,20 @@ export interface GroupMemberInfo {
   joinedAt: Date
 }
 
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export interface NotificationPrefs {
+  new_follower:   boolean
+  group_invite:   boolean
+  rank_surpassed: boolean
+}
+
+export const DEFAULT_PREFS: NotificationPrefs = {
+  new_follower:   true,
+  group_invite:   true,
+  rank_surpassed: true,
+}
+
 // ─── API Responses ────────────────────────────────────────────────────────────
 
 export interface ApiError {

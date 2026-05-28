@@ -2,18 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-
-export interface NotificationPrefs {
-  new_follower:  boolean
-  group_invite:  boolean
-  rank_surpassed: boolean
-}
-
-export const DEFAULT_PREFS: NotificationPrefs = {
-  new_follower:  true,
-  group_invite:  true,
-  rank_surpassed: true,
-}
+import { type NotificationPrefs, DEFAULT_PREFS } from '@/types'
 
 function parsePrefs(raw: unknown): NotificationPrefs {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_PREFS }
