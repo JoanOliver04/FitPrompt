@@ -202,6 +202,7 @@ export interface SocialUser {
   isFollowing:      boolean
   hasPendingRequest: boolean
   isMe:             boolean
+  isMutual:         boolean
 }
 
 // ─── Groups ───────────────────────────────────────────────────────────────────

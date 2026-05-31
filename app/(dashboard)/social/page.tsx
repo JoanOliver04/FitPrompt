@@ -29,7 +29,7 @@ export default async function SocialPage() {
     _count: { select: { workoutLogs: true, achievements: true } },
   } as const
 
-  const [myFollowIds, rawOthers, rawMe, sentRequests, rawFollowers] = await Promise.all([
+  const [myFollowIds, rawOthers, rawMe, sentRequests, rawFollowers, myFollowerIds] = await Promise.all([
     db.follow.findMany({ where: { followerId: userId }, select: { followingId: true } }),
     db.user.findMany({ where: { id: { not: userId } }, select, take: 100 }),
     db.user.findUnique({ where: { id: userId }, select }),
@@ -40,15 +40,17 @@ export default async function SocialPage() {
       orderBy: { createdAt: 'desc' },
       take:    100,
     }),
+    db.follow.findMany({ where: { followingId: userId }, select: { followerId: true } }),
   ])
 
   if (!rawMe) notFound()
 
   const followingIds = new Set(myFollowIds.map(f => f.followingId))
+  const followerIds  = new Set(myFollowerIds.map(f => f.followerId))
   const pendingIds   = new Set(sentRequests.map(r => r.toUserId))
 
   type Raw = typeof rawOthers[number]
-  function toSocialUser(u: Raw, opts: { isFollowing: boolean; hasPendingRequest: boolean; isMe: boolean }): SocialUser {
+  function toSocialUser(u: Raw, opts: { isFollowing: boolean; hasPendingRequest: boolean; isMe: boolean; isMutual: boolean }): SocialUser {
     const totalXP = u.xp?.totalXP ?? 0
     const info    = deriveLevel(totalXP)
     return {
@@ -69,26 +71,31 @@ export default async function SocialPage() {
       isFollowing:      opts.isFollowing,
       hasPendingRequest: opts.hasPendingRequest,
       isMe:             opts.isMe,
+      isMutual:         opts.isMutual,
     }
   }
 
-  const otherUsers: SocialUser[] = rawOthers.map(u =>
-    toSocialUser(u, {
-      isFollowing:       followingIds.has(u.id),
+  const otherUsers: SocialUser[] = rawOthers.map(u => {
+    const isFollowing = followingIds.has(u.id)
+    return toSocialUser(u, {
+      isFollowing,
       hasPendingRequest: pendingIds.has(u.id),
       isMe:              false,
+      isMutual:          isFollowing && followerIds.has(u.id),
     })
-  )
+  })
 
-  const followers: SocialUser[] = rawFollowers.map(f =>
-    toSocialUser(f.follower, {
-      isFollowing:       followingIds.has(f.follower.id),
+  const followers: SocialUser[] = rawFollowers.map(f => {
+    const isFollowing = followingIds.has(f.follower.id)
+    return toSocialUser(f.follower, {
+      isFollowing,
       hasPendingRequest: pendingIds.has(f.follower.id),
       isMe:              false,
+      isMutual:          isFollowing, // every entry here already follows me
     })
-  )
+  })
 
-  const meUser: SocialUser = toSocialUser(rawMe, { isFollowing: false, hasPendingRequest: false, isMe: true })
+  const meUser: SocialUser = toSocialUser(rawMe, { isFollowing: false, hasPendingRequest: false, isMe: true, isMutual: false })
 
   const rankingUsers: SocialUser[] = [...otherUsers, meUser]
     .sort((a, b) => b.totalXP - a.totalXP)

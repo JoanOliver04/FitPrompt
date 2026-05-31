@@ -26,11 +26,10 @@ export function SocialClient({ otherUsers, followers, rankingUsers, me, myRank }
     tab === 'Siguiendo'  ? following  :
     tab === 'Seguidores' ? followers  :
     tab === 'Descubrir'  ? discover   : rankingUsers
+  // Only search by @username for public discovery so the real name (shown only
+  // to mutuals) can't be used to find people indirectly.
   const filtered = q
-    ? base.filter(u =>
-        u.name?.toLowerCase().includes(q) ||
-        u.username?.toLowerCase().includes(q),
-      )
+    ? base.filter(u => u.username?.toLowerCase().includes(q))
     : base
 
   const xpPct = Math.min(100, Math.round((me.xpCurrent / me.xpMax) * 100))
@@ -56,11 +55,11 @@ export function SocialClient({ otherUsers, followers, rankingUsers, me, myRank }
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-text-primary font-black text-lg leading-tight truncate">
-                    {me.name ?? 'Atleta'}
+                    {me.username ?? me.name ?? 'Atleta'}
                   </p>
-                  {me.username && (
+                  {me.username && me.name && (
                     <p className="text-text-muted text-xs leading-tight truncate">
-                      @{me.username}
+                      {me.name}
                     </p>
                   )}
                   <p className="text-text-muted text-xs mt-0.5">
@@ -325,7 +324,7 @@ function Podium({ top3 }: { top3: SocialUser[] }) {
               {/* Name */}
               <div className="text-center w-full px-1">
                 <p className={`text-xs font-bold truncate ${i === 1 ? 'text-text-primary' : 'text-text-secondary'}`}>
-                  {user.name?.split(' ')[0] ?? 'Atleta'}
+                  {user.username ?? user.name?.split(' ')[0] ?? 'Atleta'}
                   {user.isMe && <span className="text-[#FF471A]"> ★</span>}
                 </p>
                 <p className={`text-[10px] font-bold tabular-nums mt-0.5 ${textColor}`}>

@@ -65,7 +65,7 @@ export default async function ProfilePage() {
       editSection: 'personal' as const,
       items: [
         { label: 'Nombre',              value: session?.user?.name ?? '—' },
-        { label: 'Nombre de usuario',   value: userMeta?.username ? `@${userMeta.username}` : '—' },
+        { label: 'Nombre de usuario',   value: userMeta?.username ?? '—' },
         { label: 'Email',               value: session?.user?.email ?? '—' },
         { label: 'Rol',                 value: session?.user?.role ?? 'USER' },
         {

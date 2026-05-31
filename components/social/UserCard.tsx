@@ -46,10 +46,11 @@ export function UserCard({ user, rank }: Props) {
       {/* Info */}
       <div className="flex-1 min-w-0">
 
-        {/* Name row */}
+        {/* Name row — @username is the public identity. The real name is only
+            shown when the relationship is mutual (or it's me). */}
         <div className="flex items-center gap-1.5 mb-0.5">
           <p className="text-text-primary text-sm font-bold truncate">
-            {user.name ?? 'Atleta'}
+            {user.username ?? user.name ?? 'Atleta'}
           </p>
           {!user.isPublic && (
             <svg className="text-text-muted shrink-0" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -69,8 +70,8 @@ export function UserCard({ user, rank }: Props) {
           )}
         </div>
 
-        {user.username && (
-          <p className="text-text-muted text-xs truncate mb-1">@{user.username}</p>
+        {(user.isMutual || user.isMe) && user.name && user.username && (
+          <p className="text-text-muted text-xs truncate mb-1">{user.name}</p>
         )}
 
         {/* Stats chips */}

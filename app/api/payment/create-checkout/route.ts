@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
-import { getStripe } from '@/lib/stripe'
-import { logger } from '@/lib/logger'
+import { getStripe, stripeIsConfigured } from '@/lib/stripe'
 
 export const runtime = 'nodejs'
 
@@ -12,12 +11,6 @@ export const POST = defineHandler(
     rateLimit: { key: ({ userId }) => `checkout:${userId}`, limit: 5, windowSec: 60 * 60 },
   },
   async ({ session }) => {
-    const priceId = process.env.STRIPE_PREMIUM_PRICE_ID
-    if (!priceId) {
-      logger.error('stripe_price_id_missing', {})
-      return NextResponse.json({ error: 'Payments are not configured yet' }, { status: 503 })
-    }
-
     const user = await db.user.findUnique({
       where:  { id: session.user.id },
       select: { id: true, email: true, plan: true, stripeCustomerId: true },
@@ -27,10 +20,14 @@ export const POST = defineHandler(
       return NextResponse.json({ error: 'Already premium' }, { status: 400 })
     }
 
-    let stripe
-    try { stripe = getStripe() } catch {
-      return NextResponse.json({ error: 'Payments are not configured yet' }, { status: 503 })
+    // Stripe not wired up → route the user through the fictional checkout so
+    // local/dev installs can still exercise the premium flow end-to-end.
+    if (!stripeIsConfigured()) {
+      return NextResponse.json({ url: '/mock-checkout' })
     }
+
+    const priceId = process.env.STRIPE_PREMIUM_PRICE_ID!
+    const stripe = getStripe()
 
     let customerId = user.stripeCustomerId
     if (!customerId) {
