@@ -187,6 +187,7 @@ export interface WeeklyCheckIn {
 export interface SocialUser {
   id:               string
   name:             string | null
+  username:         string | null
   image:            string | null
   plan:             string
   isPublic:         boolean

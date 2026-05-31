@@ -37,8 +37,32 @@ export const POST = defineHandler(
       extraInfo:       body.extraInfo ?? null,
     }
 
+    // Only set username if the user doesn't already have one (Google flow).
+    // Existing users can't reassign their handle here; that belongs to settings.
+    const currentUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { username: true },
+    })
+    const userUpdate: { name: string; isPublic: boolean; username?: string } = {
+      name: body.name,
+      isPublic: body.isPublic ?? true,
+    }
+    if (body.username && !currentUser?.username) {
+      const taken = await db.user.findUnique({
+        where: { username: body.username },
+        select: { id: true },
+      })
+      if (taken && taken.id !== session.user.id) {
+        return NextResponse.json(
+          { error: 'Username taken', issues: [{ path: ['username'], message: 'Ese nombre de usuario ya está en uso' }] },
+          { status: 409 },
+        )
+      }
+      userUpdate.username = body.username
+    }
+
     await db.$transaction([
-      db.user.update({ where: { id: session.user.id }, data: { name: body.name, isPublic: body.isPublic ?? true } }),
+      db.user.update({ where: { id: session.user.id }, data: userUpdate }),
       db.userProfile.upsert({
         where:  { userId: session.user.id },
         update: data,

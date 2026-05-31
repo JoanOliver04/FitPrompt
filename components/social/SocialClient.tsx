@@ -26,7 +26,12 @@ export function SocialClient({ otherUsers, followers, rankingUsers, me, myRank }
     tab === 'Siguiendo'  ? following  :
     tab === 'Seguidores' ? followers  :
     tab === 'Descubrir'  ? discover   : rankingUsers
-  const filtered = q ? base.filter(u => u.name?.toLowerCase().includes(q)) : base
+  const filtered = q
+    ? base.filter(u =>
+        u.name?.toLowerCase().includes(q) ||
+        u.username?.toLowerCase().includes(q),
+      )
+    : base
 
   const xpPct = Math.min(100, Math.round((me.xpCurrent / me.xpMax) * 100))
 
@@ -53,6 +58,11 @@ export function SocialClient({ otherUsers, followers, rankingUsers, me, myRank }
                   <p className="text-text-primary font-black text-lg leading-tight truncate">
                     {me.name ?? 'Atleta'}
                   </p>
+                  {me.username && (
+                    <p className="text-text-muted text-xs leading-tight truncate">
+                      @{me.username}
+                    </p>
+                  )}
                   <p className="text-text-muted text-xs mt-0.5">
                     Nv.{me.level} · {me.levelName}
                   </p>

@@ -10,6 +10,7 @@ import type { UserProfile } from '@/types'
 
 export interface OnboardingData {
   name: string
+  username: string
   birthDate: string
   weight: string
   height: string
@@ -27,6 +28,8 @@ export interface OnboardingData {
   isPublic: boolean
 }
 
+export const USERNAME_RE = /^[a-z0-9_]{3,20}$/
+
 export type StepErrors = Partial<Record<keyof OnboardingData, string>>
 
 export const STEPS = [
@@ -41,6 +44,7 @@ export const STEPS = [
 
 const INITIAL_DATA: OnboardingData = {
   name: '',
+  username: '',
   birthDate: '',
   weight: '',
   height: '',
@@ -60,11 +64,15 @@ const INITIAL_DATA: OnboardingData = {
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
-function validateStep(step: number, data: OnboardingData): StepErrors {
+function validateStep(step: number, data: OnboardingData, needsUsername: boolean): StepErrors {
   const e: StepErrors = {}
   switch (step) {
     case 0: {
       if (!data.name.trim()) e.name = 'El nombre es obligatorio'
+
+      if (needsUsername && !USERNAME_RE.test(data.username)) {
+        e.username = 'Usuario inválido: 3-20 caracteres, minúsculas, números y _'
+      }
 
       if (!data.birthDate) {
         e.birthDate = 'Introduce tu fecha de nacimiento'
@@ -159,7 +167,8 @@ export function toUserProfile(
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useOnboarding() {
+export function useOnboarding(options: { needsUsername?: boolean } = {}) {
+  const needsUsername = options.needsUsername ?? false
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [errors, setErrors] = useState<StepErrors>({})
@@ -193,7 +202,7 @@ export function useOnboarding() {
   )
 
   const goNext = useCallback(async () => {
-    const stepErrors = validateStep(step, data)
+    const stepErrors = validateStep(step, data, needsUsername)
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors)
       return
@@ -204,11 +213,19 @@ export function useOnboarding() {
       setIsSubmitting(true)
       try {
         const profile = toUserProfile(data)
-        await fetch('/api/user/onboarding', {
+        const payload: Record<string, unknown> = { ...profile, isPublic: data.isPublic }
+        if (needsUsername) payload.username = data.username.toLowerCase().trim()
+        const res = await fetch('/api/user/onboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...profile, isPublic: data.isPublic }),
+          body: JSON.stringify(payload),
         })
+        if (!res.ok && res.status === 409) {
+          setErrors({ username: 'Ese nombre de usuario ya está en uso' })
+          setStep(0)
+          setIsSubmitting(false)
+          return
+        }
         removeValue()
       } catch {
         // network error — don't block the user
@@ -219,7 +236,7 @@ export function useOnboarding() {
     } else {
       setStep((s) => s + 1)
     }
-  }, [step, data, router, removeValue])
+  }, [step, data, router, removeValue, needsUsername])
 
   const goBack = useCallback(() => {
     setErrors({})

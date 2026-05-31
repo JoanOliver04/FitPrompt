@@ -1,15 +1,19 @@
 'use client'
 
+import { useSession } from 'next-auth/react'
 import { useOnboarding, STEPS, maxBirthDate, minBirthDate } from '@/hooks/useOnboarding'
 import Logo from '@/components/ui/Logo'
 
 export default function OnboardingPage() {
+  const { data: session, status } = useSession()
+  const needsUsername = status === 'authenticated' && !session?.user?.username
+
   const { step, data, errors, isSubmitting, isHydrated, set, setPublic, toggleFoodPref, goNext, goBack } =
-    useOnboarding()
+    useOnboarding({ needsUsername })
 
   const isLastStep = step === STEPS.length - 1
 
-  if (!isHydrated) {
+  if (!isHydrated || status === 'loading') {
     return (
       <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#FF471A] border-t-transparent rounded-full animate-spin" />
@@ -54,6 +58,29 @@ export default function OnboardingPage() {
                 <h2 className="text-2xl font-black text-text-primary mb-1">Cuéntanos sobre ti</h2>
                 <p className="text-text-secondary text-sm">Empecemos con tus datos básicos</p>
               </div>
+
+              {needsUsername && (
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
+                    Nombre de usuario
+                  </label>
+                  <input
+                    type="text"
+                    autoComplete="username"
+                    placeholder="ivan_07"
+                    value={data.username}
+                    onChange={(e) => set('username', e.target.value.toLowerCase())}
+                    className={`w-full bg-bg-tertiary border text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors focus:border-[#FF471A] ${
+                      errors.username ? 'border-red-500' : 'border-border-default'
+                    }`}
+                  />
+                  {errors.username ? (
+                    <p className="text-red-400 text-xs mt-1">{errors.username}</p>
+                  ) : (
+                    <p className="text-text-muted text-xs mt-1">3-20 caracteres, solo minúsculas, números y _</p>
+                  )}
+                </div>
+              )}
 
               {(
                 [

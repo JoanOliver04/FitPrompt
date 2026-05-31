@@ -69,6 +69,10 @@ export function UserCard({ user, rank }: Props) {
           )}
         </div>
 
+        {user.username && (
+          <p className="text-text-muted text-xs truncate mb-1">@{user.username}</p>
+        )}
+
         {/* Stats chips */}
         <div className="flex items-center gap-2.5 text-[11px] mb-2 flex-wrap">
           <span className="text-text-secondary font-semibold">Nv.{user.level} · {user.levelName}</span>

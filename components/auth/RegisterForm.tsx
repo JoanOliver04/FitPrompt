@@ -5,10 +5,17 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-function validate(name: string, email: string, password: string, confirm: string): string | null {
-  if (!name.trim()) return 'El nombre es obligatorio'
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/
+
+function validate(username: string, email: string, password: string, confirm: string): string | null {
+  if (!USERNAME_RE.test(username)) {
+    return 'Nombre de usuario inválido: 3-20 caracteres, solo minúsculas, números y _'
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Introduce un email válido'
-  if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres'
+  if (password.length < 12) return 'La contraseña debe tener al menos 12 caracteres'
+  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) {
+    return 'La contraseña debe incluir mayúsculas, minúsculas y al menos un número'
+  }
   if (password !== confirm) return 'Las contraseñas no coinciden'
   return null
 }
@@ -29,7 +36,7 @@ const Spinner = () => (
 export default function RegisterForm() {
   const router = useRouter()
 
-  const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -49,7 +56,7 @@ export default function RegisterForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    const validationError = validate(name, email, password, confirm)
+    const validationError = validate(username, email, password, confirm)
     if (validationError) { setError(validationError); return }
 
     setLoading(true)
@@ -58,13 +65,24 @@ export default function RegisterForm() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), email: email.toLowerCase().trim(), password }),
+      body: JSON.stringify({
+        username: username.toLowerCase().trim(),
+        email:    email.toLowerCase().trim(),
+        password,
+      }),
     })
 
-    const data = (await res.json()) as { error?: string }
+    const data = (await res.json()) as {
+      error?: string
+      issues?: { path: (string | number)[]; message: string }[]
+    }
 
     if (!res.ok) {
-      setError(data.error ?? 'Error al crear la cuenta')
+      const firstIssue = data.issues?.[0]
+      const issueMsg = firstIssue
+        ? `${String(firstIssue.path[0] ?? 'campo')}: ${firstIssue.message}`
+        : null
+      setError(issueMsg ?? data.error ?? 'Error al crear la cuenta')
       setLoading(false)
       return
     }
@@ -118,18 +136,21 @@ export default function RegisterForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
-          <label htmlFor="name" className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
-            Nombre completo
+          <label htmlFor="username" className="block text-xs font-semibold text-text-secondary uppercase tracking-wide mb-2">
+            Nombre de usuario
           </label>
           <input
-            id="name"
+            id="username"
             type="text"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Tu nombre"
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.toLowerCase())}
+            placeholder="ivan_07"
             className="w-full bg-bg-tertiary border border-border-default focus:border-[#FF471A] text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors"
           />
+          {username.length > 0 && !USERNAME_RE.test(username) && (
+            <p className="text-amber-400 text-xs mt-1">3-20 caracteres, solo minúsculas, números y _</p>
+          )}
         </div>
 
         <div>
@@ -157,11 +178,14 @@ export default function RegisterForm() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mínimo 8 caracteres"
+            placeholder="Mínimo 12 caracteres, mayús, minús y número"
             className="w-full bg-bg-tertiary border border-border-default focus:border-[#FF471A] text-text-primary placeholder-text-muted rounded-xl px-4 py-3 text-sm outline-none transition-colors"
           />
-          {password.length > 0 && password.length < 8 && (
-            <p className="text-amber-400 text-xs mt-1">Mínimo 8 caracteres ({8 - password.length} restantes)</p>
+          {password.length > 0 && password.length < 12 && (
+            <p className="text-amber-400 text-xs mt-1">Mínimo 12 caracteres ({12 - password.length} restantes)</p>
+          )}
+          {password.length >= 12 && (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password)) && (
+            <p className="text-amber-400 text-xs mt-1">Debe incluir mayúsculas, minúsculas y al menos un número</p>
           )}
         </div>
 

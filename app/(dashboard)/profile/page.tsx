@@ -47,7 +47,7 @@ export default async function ProfilePage() {
         db.follow.count({ where: { followingId: session.user.id } }),
         db.follow.count({ where: { followerId:  session.user.id } }),
         db.userProfile.findUnique({ where: { userId: session.user.id } }),
-        db.user.findUnique({ where: { id: session.user.id }, select: { lastLoginAt: true, image: true, isPublic: true } }),
+        db.user.findUnique({ where: { id: session.user.id }, select: { lastLoginAt: true, image: true, isPublic: true, username: true } }),
         db.streak.findUnique({ where: { userId: session.user.id } }),
         db.userXP.findUnique({ where: { userId: session.user.id } }),
         db.weightLog.findFirst({ where: { userId: session.user.id }, orderBy: { date: 'desc' }, select: { weight: true } }),
@@ -65,6 +65,7 @@ export default async function ProfilePage() {
       editSection: 'personal' as const,
       items: [
         { label: 'Nombre',              value: session?.user?.name ?? '—' },
+        { label: 'Nombre de usuario',   value: userMeta?.username ? `@${userMeta.username}` : '—' },
         { label: 'Email',               value: session?.user?.email ?? '—' },
         { label: 'Rol',                 value: session?.user?.role ?? 'USER' },
         {
@@ -98,6 +99,7 @@ export default async function ProfilePage() {
 
   const profileData = {
     name:        session?.user?.name  ?? '',
+    username:    userMeta?.username   ?? '',
     birthDate:   profile?.birthDate   ? profile.birthDate.toISOString().slice(0, 10) : null,
     weight:      profile?.weight      ?? null,
     height:      profile?.height      ?? null,

@@ -20,6 +20,7 @@ export default async function SocialPage() {
   const select = {
     id:       true,
     name:     true,
+    username: true,
     image:    true,
     plan:     true,
     isPublic: true,
@@ -53,6 +54,7 @@ export default async function SocialPage() {
     return {
       id:               u.id,
       name:             u.name,
+      username:         u.username,
       image:            u.image,
       plan:             u.plan,
       isPublic:         u.isPublic,

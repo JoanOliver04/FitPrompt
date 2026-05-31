@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation'
 
 type Section = 'personal' | 'physical' | 'training'
 
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/
+
 interface ProfileData {
   name:         string
+  username:     string
   birthDate:    string | null   // ISO date string "YYYY-MM-DD"
   weight:       number | null
   height:       number | null
@@ -36,13 +39,48 @@ export default function ProfileSections({ data, profileSections }: Props) {
 
   async function save() {
     setError(null)
+
+    // Only send fields that actually changed for this section to avoid
+    // accidentally re-asserting (and re-validating) untouched values.
+    const payload: Partial<ProfileData> = {}
+    if (editing === 'personal') {
+      if (form.name !== data.name) payload.name = form.name
+      if (form.username !== data.username) {
+        if (!USERNAME_RE.test(form.username)) {
+          setError('Usuario inválido: 3-20 caracteres, minúsculas, números y _')
+          return
+        }
+        payload.username = form.username
+      }
+      if (form.birthDate !== data.birthDate && form.birthDate) {
+        payload.birthDate = form.birthDate
+      }
+    } else if (editing === 'physical') {
+      if (form.weight !== data.weight) payload.weight = form.weight
+      if (form.height !== data.height) payload.height = form.height
+      if (form.goal   !== data.goal)   payload.goal   = form.goal
+    } else if (editing === 'training') {
+      if (form.level       !== data.level)       payload.level       = form.level
+      if (form.daysPerWeek !== data.daysPerWeek) payload.daysPerWeek = form.daysPerWeek
+      if (form.workoutType !== data.workoutType) payload.workoutType = form.workoutType
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setEditing(null)
+      return
+    }
+
     const res = await fetch('/api/user/profile', {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(form),
+      body:    JSON.stringify(payload),
     })
     if (!res.ok) {
-      setError('Error al guardar. Inténtalo de nuevo.')
+      const body = (await res.json().catch(() => null)) as
+        | { error?: string; issues?: { path: (string | number)[]; message: string }[] }
+        | null
+      const firstIssue = body?.issues?.[0]
+      setError(firstIssue?.message ?? body?.error ?? 'Error al guardar. Inténtalo de nuevo.')
       return
     }
     setEditing(null)
@@ -102,6 +140,17 @@ export default function ProfileSections({ data, profileSections }: Props) {
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       className={inputCls}
                     />
+                  </Field>
+                  <Field label="Nombre de usuario">
+                    <input
+                      type="text"
+                      autoComplete="username"
+                      placeholder="ivan_07"
+                      value={form.username}
+                      onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })}
+                      className={inputCls}
+                    />
+                    <p className="text-text-muted text-[11px] mt-1">3-20 caracteres, solo minúsculas, números y _</p>
                   </Field>
                   <Field label="Fecha de nacimiento">
                     <input

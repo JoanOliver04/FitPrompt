@@ -43,7 +43,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const { name, email, password } = parsed.data
+  const { username, email, password } = parsed.data
+
+  // Username uniqueness is publicly observable (handles are queryable), so we
+  // can surface this collision without leaking PII like account existence.
+  const usernameTaken = await db.user.findUnique({ where: { username }, select: { id: true } })
+  if (usernameTaken) {
+    return NextResponse.json(
+      { error: 'Username taken', issues: [{ path: ['username'], message: 'Ese nombre de usuario ya está en uso' }] },
+      { status: 409 },
+    )
+  }
 
   // Always run bcrypt + token gen so timing does not reveal account existence.
   const hashed = await hash(password, 12)
@@ -56,7 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await db.user.create({
         data: {
           email,
-          name,
+          username,
           image,
           password: hashed,
           plan: 'free',

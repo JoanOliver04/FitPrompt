@@ -13,7 +13,7 @@ export const PUT = defineHandler(
     rateLimit: { key: ({ userId }) => `profile:${userId}`, limit: 30, windowSec: 60 },
   },
   async ({ session, body }) => {
-    const { name, birthDate, ...profile } = body
+    const { name, username, birthDate, ...profile } = body
     const profileKeys = Object.keys(profile)
     const needsProfileWrite = profileKeys.length > 0 || birthDate !== undefined
 
@@ -26,9 +26,27 @@ export const PUT = defineHandler(
       }
     }
 
+    if (username !== undefined) {
+      const taken = await db.user.findUnique({
+        where: { username }, select: { id: true },
+      })
+      if (taken && taken.id !== session.user.id) {
+        return NextResponse.json(
+          { error: 'Username taken', issues: [{ path: ['username'], message: 'Ese nombre de usuario ya está en uso' }] },
+          { status: 409 },
+        )
+      }
+    }
+
     await db.$transaction(async (tx) => {
-      if (name !== undefined) {
-        await tx.user.update({ where: { id: session.user.id }, data: { name } })
+      if (name !== undefined || username !== undefined) {
+        await tx.user.update({
+          where: { id: session.user.id },
+          data: {
+            ...(name     !== undefined && { name }),
+            ...(username !== undefined && { username }),
+          },
+        })
       }
       if (needsProfileWrite) {
         await tx.userProfile.update({

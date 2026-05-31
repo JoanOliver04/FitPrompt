@@ -86,12 +86,13 @@ export const authOptions: NextAuthOptions = {
         })
 
         return {
-          id:    user.id,
-          email: user.email,
-          name:  user.name ?? '',
-          image: user.image,
-          plan:  user.plan as Plan,
-          role:  user.role as Role,
+          id:       user.id,
+          email:    user.email,
+          name:     user.name ?? '',
+          image:    user.image,
+          plan:     user.plan as Plan,
+          role:     user.role as Role,
+          username: user.username ?? null,
         }
       },
     }),
@@ -126,9 +127,10 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account, trigger }) {
       // First sign-in: hydrate from the user object returned by the provider.
       if (user) {
-        token.id   = user.id
-        token.plan = (user as { plan?: Plan }).plan ?? 'free'
-        token.role = (user as { role?: Role }).role ?? 'USER'
+        token.id       = user.id
+        token.plan     = (user as { plan?: Plan }).plan ?? 'free'
+        token.role     = (user as { role?: Role }).role ?? 'USER'
+        token.username = (user as { username?: string | null }).username ?? null
       }
 
       // Google: provision user / link the OIDC subject.
@@ -146,10 +148,11 @@ export const authOptions: NextAuthOptions = {
               lastLoginAt:   new Date(),
             },
           })
-          token.id   = created.id
-          token.plan = 'free'
-          token.role = 'USER'
-          token.ver  = 0
+          token.id       = created.id
+          token.plan     = 'free'
+          token.role     = 'USER'
+          token.ver      = 0
+          token.username = null
         } else {
           await db.user.update({
             where: { id: existing.id },
@@ -159,10 +162,11 @@ export const authOptions: NextAuthOptions = {
               emailVerified: existing.emailVerified ?? new Date(),
             },
           })
-          token.id   = existing.id
-          token.plan = existing.plan
-          token.role = existing.role as Role
-          token.ver  = existing.sessionVersion
+          token.id       = existing.id
+          token.plan     = existing.plan
+          token.role     = existing.role as Role
+          token.ver      = existing.sessionVersion
+          token.username = existing.username
         }
       }
 
@@ -170,12 +174,13 @@ export const authOptions: NextAuthOptions = {
       if (trigger === 'update' && token.id) {
         const row = await db.user.findUnique({
           where:  { id: token.id as string },
-          select: { plan: true, role: true, image: true, sessionVersion: true },
+          select: { plan: true, role: true, image: true, sessionVersion: true, username: true },
         })
         if (row) {
-          token.plan = row.plan
-          token.role = row.role as Role
-          token.ver  = row.sessionVersion
+          token.plan     = row.plan
+          token.role     = row.role as Role
+          token.ver      = row.sessionVersion
+          token.username = row.username
         }
       }
 
@@ -184,14 +189,15 @@ export const authOptions: NextAuthOptions = {
       if (!user && !account && token.id && token.ver !== undefined) {
         const row = await db.user.findUnique({
           where:  { id: token.id as string },
-          select: { sessionVersion: true, plan: true, role: true },
+          select: { sessionVersion: true, plan: true, role: true, username: true },
         })
         if (!row || row.sessionVersion !== token.ver) {
           // Returning an empty token forces NextAuth to treat the session as invalid.
           return {}
         }
-        token.plan = row.plan
-        token.role = row.role as Role
+        token.plan     = row.plan
+        token.role     = row.role as Role
+        token.username = row.username
       }
 
       return token
@@ -199,9 +205,10 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (session.user) {
-        session.user.id   = token.id as string
-        session.user.plan = (token.plan ?? 'free') as Plan
-        session.user.role = (token.role ?? 'USER') as Role
+        session.user.id       = token.id as string
+        session.user.plan     = (token.plan ?? 'free') as Plan
+        session.user.role     = (token.role ?? 'USER') as Role
+        session.user.username = token.username ?? null
       }
       return session
     },
