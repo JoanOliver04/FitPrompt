@@ -3,23 +3,36 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
+type Mode = '1rep' | 'volume'
+
 interface Props {
   exercise: string  // canonical name, e.g. "Press banca"
-  initial: { weight: number; reps: number } | null
+  mode:     Mode    // which ranking this PR feeds — UI changes per mode
+  initial:  { weight: number; reps: number } | null
 }
 
-export default function EditPRButton({ exercise, initial }: Props) {
+const MODE_TITLE: Record<Mode, string> = {
+  '1rep':   'PR a 1 rep',
+  'volume': 'Mejor set (peso × reps)',
+}
+
+const MODE_HINT: Record<Mode, string> = {
+  '1rep':   'Indica el peso máximo que has levantado a una sola repetición. Esta marca solo afecta al ranking "PR a 1 rep".',
+  'volume': 'Indica tu mejor serie de muchas repeticiones (peso + reps). Solo afecta al ranking "Más reps, menos peso".',
+}
+
+export default function EditPRButton({ exercise, mode, initial }: Props) {
   const router = useRouter()
-  const [open, setOpen]       = useState(false)
-  const [weight, setWeight]   = useState<string>(initial ? String(initial.weight) : '')
-  const [reps, setReps]       = useState<string>(initial ? String(initial.reps)   : '')
-  const [error, setError]     = useState<string | null>(null)
-  const [saving, setSaving]   = useState(false)
+  const [open, setOpen]     = useState(false)
+  const [weight, setWeight] = useState<string>(initial ? String(initial.weight) : '')
+  const [reps, setReps]     = useState<string>(initial ? String(initial.reps)   : '')
+  const [error, setError]   = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function openModal() {
     setWeight(initial ? String(initial.weight) : '')
-    setReps(initial ? String(initial.reps) : '')
+    setReps(initial ? String(initial.reps) : (mode === '1rep' ? '1' : ''))
     setError(null)
     setOpen(true)
   }
@@ -27,21 +40,25 @@ export default function EditPRButton({ exercise, initial }: Props) {
   async function save() {
     setError(null)
     const w = Number(weight)
-    const r = parseInt(reps, 10)
     if (!Number.isFinite(w) || w < 0 || w > 500) {
       setError('Peso entre 0 y 500 kg')
       return
     }
-    if (!Number.isInteger(r) || r < 1 || r > 50) {
-      setError('Reps entre 1 y 50')
-      return
+
+    let r = 1
+    if (mode === 'volume') {
+      r = parseInt(reps, 10)
+      if (!Number.isInteger(r) || r < 2 || r > 50) {
+        setError('Para "más reps", indica entre 2 y 50 repeticiones')
+        return
+      }
     }
 
     setSaving(true)
     const res = await fetch('/api/user/personal-records', {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ exercise, weight: w, reps: r }),
+      body:    JSON.stringify({ exercise, mode, weight: w, reps: r }),
     })
     setSaving(false)
 
@@ -77,7 +94,7 @@ export default function EditPRButton({ exercise, initial }: Props) {
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}
         >
           <div className="bg-bg-secondary border border-border-default rounded-2xl w-full max-w-sm p-6 animate-enter">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-text-primary font-bold text-lg">{exercise}</h3>
               <button
                 onClick={() => setOpen(false)}
@@ -87,12 +104,13 @@ export default function EditPRButton({ exercise, initial }: Props) {
                 ×
               </button>
             </div>
-
-            <p className="text-text-muted text-xs mb-4">
-              Registra tu mejor serie. Si pones peso corporal, escribe 0 kg.
+            <p className="text-[#FF471A] text-xs font-bold uppercase tracking-wider mb-3">
+              {MODE_TITLE[mode]}
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <p className="text-text-muted text-xs mb-4">{MODE_HINT[mode]}</p>
+
+            {mode === '1rep' ? (
               <div>
                 <label className="block text-text-muted text-xs font-medium mb-1.5">Peso (kg)</label>
                 <input
@@ -102,23 +120,41 @@ export default function EditPRButton({ exercise, initial }: Props) {
                   step="0.5"
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
-                  placeholder="100"
+                  placeholder="120"
                   className={inputCls}
+                  autoFocus
                 />
               </div>
-              <div>
-                <label className="block text-text-muted text-xs font-medium mb-1.5">Reps</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={reps}
-                  onChange={(e) => setReps(e.target.value)}
-                  placeholder="5"
-                  className={inputCls}
-                />
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-text-muted text-xs font-medium mb-1.5">Peso (kg)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="500"
+                    step="0.5"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder="80"
+                    className={inputCls}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-text-muted text-xs font-medium mb-1.5">Reps</label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="50"
+                    value={reps}
+                    onChange={(e) => setReps(e.target.value)}
+                    placeholder="10"
+                    className={inputCls}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {error && (
               <p className="text-red-400 text-xs mt-3" role="alert">{error}</p>

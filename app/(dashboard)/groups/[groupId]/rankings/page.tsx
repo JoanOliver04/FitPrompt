@@ -127,9 +127,14 @@ export default async function GroupRankingsPage({
   if (selected.kind === 'exercise') {
     const exerciseName = selected.exercise
 
+    // Only fetch PRs that belong to the active mode — a "1rep" PR must NOT
+    // surface in the "volume" ranking and vice versa. Logs are also filtered:
+    // for "1rep" we only consider single-rep sets; for "volume" we only look
+    // at multi-rep sets so we don't reward someone for a 1-rep set in a
+    // ranking that's meant to value rep-density.
     const [manualPRs, exerciseRows] = await Promise.all([
       db.userPersonalRecord.findMany({
-        where:  { userId: { in: memberIds }, exercise: exerciseName },
+        where:  { userId: { in: memberIds }, exercise: exerciseName, mode },
         select: { userId: true, weight: true, reps: true },
       }),
       db.workoutExercise.findMany({
@@ -137,6 +142,7 @@ export default async function GroupRankingsPage({
           userId:     { in: memberIds },
           name:       { equals: exerciseName, mode: 'insensitive' },
           workoutLog: { is: { completed: true } },
+          ...(mode === '1rep' ? { reps: 1 } : { reps: { gte: 2 } }),
         },
         select: { userId: true, reps: true, weight: true },
       }),
@@ -157,9 +163,9 @@ export default async function GroupRankingsPage({
       setsByUser.set(pr.userId, arr)
     }
 
-    const manualMap = new Map(manualPRs.map((m) => [m.userId, m]))
-    myCurrentPR = manualMap.get(userId)
-      ? { weight: manualMap.get(userId)!.weight, reps: manualMap.get(userId)!.reps }
+    const myManualPR = manualPRs.find((m) => m.userId === userId)
+    myCurrentPR = myManualPR
+      ? { weight: myManualPR.weight, reps: myManualPR.reps }
       : null
 
     rows = memberIds
@@ -321,7 +327,7 @@ export default async function GroupRankingsPage({
           <p className="text-text-muted text-sm">{categoryBlurb(selected)}</p>
         </div>
         {selected.kind === 'exercise' && (
-          <EditPRButton exercise={selected.exercise} initial={myCurrentPR} />
+          <EditPRButton exercise={selected.exercise} mode={mode} initial={myCurrentPR} />
         )}
       </div>
 

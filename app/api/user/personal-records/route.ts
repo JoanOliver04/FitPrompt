@@ -10,7 +10,7 @@ export const GET = defineHandler(
   async ({ session }) => {
     const records = await db.userPersonalRecord.findMany({
       where:   { userId: session.user.id },
-      select:  { exercise: true, weight: true, reps: true, updatedAt: true },
+      select:  { exercise: true, mode: true, weight: true, reps: true, updatedAt: true },
     })
     return NextResponse.json({ records })
   },
@@ -24,12 +24,16 @@ export const PUT = defineHandler(
     rateLimit: { key: ({ userId }) => `pr:${userId}`, limit: 30, windowSec: 60 },
   },
   async ({ session, body }) => {
-    const { exercise, weight, reps } = body
+    const { exercise, mode, weight } = body
+    // 1rep is a single-rep PR by definition — clamp server-side so the UI
+    // can't sneak in higher reps for the max-load ranking.
+    const reps = mode === '1rep' ? 1 : body.reps
+
     const record = await db.userPersonalRecord.upsert({
-      where:  { userId_exercise: { userId: session.user.id, exercise } },
+      where:  { userId_exercise_mode: { userId: session.user.id, exercise, mode } },
       update: { weight, reps },
-      create: { userId: session.user.id, exercise, weight, reps },
-      select: { exercise: true, weight: true, reps: true, updatedAt: true },
+      create: { userId: session.user.id, exercise, mode, weight, reps },
+      select: { exercise: true, mode: true, weight: true, reps: true, updatedAt: true },
     })
     return NextResponse.json({ record })
   },
