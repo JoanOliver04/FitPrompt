@@ -12,6 +12,8 @@ import { generarPromptListaCompra, generarSystemPrompt } from '@/lib/prompts'
 import { getLastCheckIn } from '@/lib/checkin'
 import { loadAIProfile } from '@/lib/ai-profile'
 import { stripHtml } from '@/lib/sanitize'
+import { db } from '@/lib/db'
+import { hasDietStructure, parseDietIngredients } from '@/lib/pdf-parser'
 import { chatMessageBodySchema, cuidString, shoppingListSchema } from '@/lib/schemas'
 import { logger } from '@/lib/logger'
 import type { Plan, ShoppingList } from '@/types'
@@ -77,6 +79,27 @@ function parseShoppingList(raw: string): Omit<ShoppingList, 'summary'> | null {
   try { json = JSON.parse(match[0]) } catch { return null }
   const parsed = shoppingListSchema.safeParse(json)
   return parsed.success ? parsed.data : null
+}
+
+/**
+ * Walks the user's recent assistant messages (across all their chats) and
+ * returns the ingredient list parsed from the most recent one that looks like
+ * a diet. Returns undefined if none is found within the window so the shopping
+ * list generator can fall back to a generic, profile-only prompt.
+ */
+async function loadLastDietIngredients(
+  userId: string,
+): Promise<Array<{ name: string; quantity: string }> | undefined> {
+  const recent = await db.message.findMany({
+    where:   { role: 'assistant', chat: { userId } },
+    orderBy: { createdAt: 'desc' },
+    take:    30,
+    select:  { content: true },
+  })
+  const dietMsg = recent.find((m) => hasDietStructure(m.content))
+  if (!dietMsg) return undefined
+  const ingredients = parseDietIngredients(dietMsg.content)
+  return ingredients.length > 0 ? ingredients : undefined
 }
 
 function shoppingListToMarkdown(list: Omit<ShoppingList, 'summary'>): string {
@@ -153,9 +176,14 @@ export const POST = defineHandler(
 
         if (profile) {
           try {
+            // Use ingredients from the user's most recent diet (across any chat
+            // they own) to anchor the shopping list to a real plan instead of
+            // generating something disconnected from what they're eating.
+            const lastDietIngredients = await loadLastDietIngredients(userId)
+
             const rawAI = await callGroq(
               [
-                { role: 'system', content: generarPromptListaCompra(profile) },
+                { role: 'system', content: generarPromptListaCompra(profile, lastDietIngredients) },
                 { role: 'user',   content: '¡Genera la lista!' },
               ],
               0.2,

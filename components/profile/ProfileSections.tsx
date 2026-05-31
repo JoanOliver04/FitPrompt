@@ -3,20 +3,26 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
-type Section = 'personal' | 'physical' | 'training'
+type Section = 'personal' | 'physical' | 'training' | 'health'
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/
 
 interface ProfileData {
-  name:         string
-  username:     string
-  birthDate:    string | null   // ISO date string "YYYY-MM-DD"
-  weight:       number | null
-  height:       number | null
-  goal:         string | null
-  level:        string | null
-  daysPerWeek:  number | null
-  workoutType:  string | null
+  name:            string
+  username:        string
+  birthDate:       string | null   // ISO date string "YYYY-MM-DD"
+  weight:          number | null
+  height:          number | null
+  goal:            string | null
+  level:           string | null
+  daysPerWeek:     number | null
+  sessionTime:     string | null
+  workoutType:     string | null
+  schedule:        string | null
+  injuries:        string
+  allergies:       string
+  foodPreferences: string[]
+  extraInfo:       string
 }
 
 interface Props {
@@ -62,7 +68,17 @@ export default function ProfileSections({ data, profileSections }: Props) {
     } else if (editing === 'training') {
       if (form.level       !== data.level)       payload.level       = form.level
       if (form.daysPerWeek !== data.daysPerWeek) payload.daysPerWeek = form.daysPerWeek
+      if (form.sessionTime !== data.sessionTime) payload.sessionTime = form.sessionTime
       if (form.workoutType !== data.workoutType) payload.workoutType = form.workoutType
+      if (form.schedule    !== data.schedule)    payload.schedule    = form.schedule
+    } else if (editing === 'health') {
+      if (form.injuries  !== data.injuries)  payload.injuries  = form.injuries
+      if (form.allergies !== data.allergies) payload.allergies = form.allergies
+      if (form.extraInfo !== data.extraInfo) payload.extraInfo = form.extraInfo
+      // Array comparison: only send if the list changed
+      const oldPrefs = JSON.stringify(data.foodPreferences ?? [])
+      const newPrefs = JSON.stringify(form.foodPreferences ?? [])
+      if (oldPrefs !== newPrefs) payload.foodPreferences = form.foodPreferences
     }
 
     if (Object.keys(payload).length === 0) {
@@ -126,6 +142,7 @@ export default function ProfileSections({ data, profileSections }: Props) {
                 {editing === 'personal'  && 'Datos personales'}
                 {editing === 'physical'  && 'Datos físicos'}
                 {editing === 'training'  && 'Preferencias de entrenamiento'}
+                {editing === 'health'    && 'Salud y restricciones'}
               </h3>
               <button onClick={() => setEditing(null)} className="text-text-muted hover:text-text-primary text-xl leading-none transition-colors">×</button>
             </div>
@@ -217,6 +234,18 @@ export default function ProfileSections({ data, profileSections }: Props) {
                       className={inputCls}
                     />
                   </Field>
+                  <Field label="Duración por sesión">
+                    <select
+                      value={form.sessionTime ?? ''}
+                      onChange={(e) => setForm({ ...form, sessionTime: e.target.value })}
+                      className={inputCls}
+                    >
+                      <option value="<30">Menos de 30 min</option>
+                      <option value="30-45">30 – 45 min</option>
+                      <option value="45-60">45 – 60 min</option>
+                      <option value=">60">Más de 60 min</option>
+                    </select>
+                  </Field>
                   <Field label="Tipo de entrenamiento">
                     <select
                       value={form.workoutType ?? ''}
@@ -227,6 +256,68 @@ export default function ProfileSections({ data, profileSections }: Props) {
                       <option value="home">Casa</option>
                       <option value="bodyweight">Peso corporal</option>
                     </select>
+                  </Field>
+                  <Field label="Horario preferido">
+                    <select
+                      value={form.schedule ?? ''}
+                      onChange={(e) => setForm({ ...form, schedule: e.target.value })}
+                      className={inputCls}
+                    >
+                      <option value="morning">Mañana</option>
+                      <option value="midday">Mediodía</option>
+                      <option value="afternoon">Tarde</option>
+                      <option value="night">Noche</option>
+                    </select>
+                  </Field>
+                </>
+              )}
+
+              {editing === 'health' && (
+                <>
+                  <Field label="Lesiones o limitaciones">
+                    <textarea
+                      rows={2}
+                      placeholder="Ej: dolor lumbar al peso muerto, rodilla derecha sensible…"
+                      value={form.injuries}
+                      onChange={(e) => setForm({ ...form, injuries: e.target.value })}
+                      className={`${inputCls} resize-none`}
+                    />
+                  </Field>
+                  <Field label="Alergias o intolerancias">
+                    <textarea
+                      rows={2}
+                      placeholder="Ej: lactosa, frutos secos…"
+                      value={form.allergies}
+                      onChange={(e) => setForm({ ...form, allergies: e.target.value })}
+                      className={`${inputCls} resize-none`}
+                    />
+                  </Field>
+                  <Field label="Preferencias alimentarias (separadas por coma)">
+                    <input
+                      type="text"
+                      placeholder="vegetariano, sin gluten, mediterráneo…"
+                      value={form.foodPreferences.join(', ')}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          foodPreferences: e.target.value
+                            .split(',')
+                            .map((p) => p.trim())
+                            .filter((p) => p.length > 0)
+                            .slice(0, 20),
+                        })
+                      }
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label="Información adicional">
+                    <textarea
+                      rows={3}
+                      placeholder="Cualquier otra cosa que el coach IA deba saber…"
+                      value={form.extraInfo}
+                      onChange={(e) => setForm({ ...form, extraInfo: e.target.value })}
+                      className={`${inputCls} resize-none`}
+                    />
                   </Field>
                 </>
               )}

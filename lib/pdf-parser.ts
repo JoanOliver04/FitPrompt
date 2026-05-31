@@ -170,6 +170,97 @@ export interface Meal {
   kcal:  string   // "478 kcal" (may be empty)
 }
 
+// ─── Weekly diet parsing ──────────────────────────────────────────────────────
+
+export interface DietDay {
+  name:  string   // "Día 1 — Lunes"
+  meals: Meal[]
+}
+
+/**
+ * Heuristic check used by chat UI to decide whether to show the "Descargar
+ * dieta en PDF" button on an assistant message.
+ */
+export function hasDietStructure(content: string): boolean {
+  // Matches "## 🥗 Día N" or "## 🥗 Plan de Alimentación"
+  return /##[^\n]{0,25}🥗/.test(content) ||
+         /##\s*Plan de Alimentaci/i.test(content) ||
+         /####\s*🕗?\s*\d{1,2}:\d{2}\s*—\s*(?:Desayuno|Almuerzo|Comida|Cena|Pre-entreno|Post-entreno|Merienda)/i.test(content)
+}
+
+/**
+ * Parses a weekly diet markdown into an array of days. If no day-level headers
+ * are present (e.g. single-day diet), returns a single "day" with all meals.
+ */
+export function parseDietDays(dieta: string): DietDay[] {
+  if (!dieta) return []
+
+  // Try splitting by "## 🥗 Día N — Lunes/Martes/..." headers first.
+  const dayRegex = /##[^\n]{0,15}D[ií]a\s+\d+\s*[—\-:][^\n]+/g
+  const dayMatches = [...dieta.matchAll(dayRegex)]
+
+  if (dayMatches.length === 0) {
+    // Single-day diet: treat the whole text as one block.
+    const meals = parseMeals(dieta)
+    return meals.length > 0 ? [{ name: 'Plan diario', meals }] : []
+  }
+
+  const days: DietDay[] = []
+  for (let i = 0; i < dayMatches.length; i++) {
+    const start = dayMatches[i].index!
+    const end   = dayMatches[i + 1]?.index ?? dieta.length
+    const block = dieta.slice(start, end)
+
+    const name  = cleanText(dayMatches[i][0].replace(/^##\s*/, ''))
+    const meals = parseMeals(block)
+    if (meals.length > 0) days.push({ name, meals })
+  }
+
+  return days
+}
+
+/**
+ * Extracts every ingredient row out of a weekly diet markdown so the shopping-
+ * list generator can ask the AI to base its categories on real foods the user
+ * is already eating. Quantities are kept as strings ("150 g", "2 unidades").
+ */
+export interface DietIngredient {
+  name:     string
+  quantity: string
+}
+
+export function parseDietIngredients(dieta: string): DietIngredient[] {
+  if (!dieta) return []
+  const found: DietIngredient[] = []
+  const seen  = new Set<string>()
+
+  for (const line of dieta.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith('|')) continue
+    // Skip header/separator/total rows
+    if (/^\|[\s\-:|]+\|/.test(trimmed)) continue
+    const cells = trimmed.split('|').map((c) => c.trim()).filter(Boolean)
+    if (cells.length < 2) continue
+    const name  = cleanText(cells[0])
+    const qty   = cleanText(cells[1])
+    if (!name) continue
+    // Drop header rows ("Ingrediente"), totals, and macro rows
+    if (/^ingrediente$/i.test(name)) continue
+    if (/total/i.test(name)) continue
+    if (/^(prote|carbo|grasa|kcal)/i.test(name)) continue
+    // Drop rows where the first cell is clearly numeric (macro table from "Resumen")
+    if (/^\d/.test(name)) continue
+    const key = name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    found.push({ name, quantity: qty })
+  }
+
+  return found
+}
+
+// ─── Meal parsing ─────────────────────────────────────────────────────────────
+
 /**
  * Parses PARTE 2 markdown into structured meal cards.
  *

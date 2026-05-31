@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getUserChats, getDailyCount, countUserChats } from '@/lib/chat'
+import { getUserPlan } from '@/lib/limits'
 import { formatRelativeDate, truncate } from '@/lib/utils'
-import type { Plan } from '@/types'
 
 export const metadata: Metadata = {
   title: 'Chat IA — FitPrompt',
@@ -22,13 +22,13 @@ export default async function ChatListPage({ searchParams }: PageProps) {
   if (!session?.user?.id) return null  // unreachable — DashboardLayout guards first
 
   const userId = session.user.id
-  const plan = (session.user as { plan?: Plan }).plan ?? 'free'
   const { limitReached } = await searchParams
 
-  const [chats, messagesUsedToday, chatCount] = await Promise.all([
+  const [chats, messagesUsedToday, chatCount, plan] = await Promise.all([
     getUserChats(userId),
     getDailyCount(userId),
     countUserChats(userId),
+    getUserPlan(userId),
   ])
 
   const isFree = plan === 'free'

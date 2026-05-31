@@ -7,13 +7,23 @@ import type { Message } from '@/types'
 import { SHOPPING_LIST_SENTINEL } from '@/types'
 import { ShoppingListCard } from './ShoppingListCard'
 import SaveRoutineButton from './SaveRoutineButton'
+import DietPdfButton from './DietPdfButton'
 
 interface Props {
   message: Message
+  chatId?: string
 }
 
 function hasRoutineStructure(content: string): boolean {
-  return /#{2,3}[^\n]{0,25}[Dd][íi]a\s+\d+/.test(content)
+  return /#{2,3}[^\n]{0,25}[Dd][íi]a\s+\d+/.test(content) && !/🥗/.test(content)
+}
+
+function hasDietStructure(content: string): boolean {
+  // Day-level diet header (## 🥗 Día N ...) OR plan-level header OR at least
+  // one meal-time block. Matches the heuristic in lib/pdf-parser.ts.
+  return /##[^\n]{0,25}🥗/.test(content) ||
+         /##\s*Plan de Alimentaci/i.test(content) ||
+         /####\s*🕗?\s*\d{1,2}:\d{2}\s*—\s*(?:Desayuno|Almuerzo|Comida|Cena|Pre-entreno|Post-entreno|Merienda)/i.test(content)
 }
 
 // Allowlist of node renderers — anything not listed renders as plain text.
@@ -47,10 +57,11 @@ const components: Components = {
       : <span>{children}</span>,
 }
 
-export default function MessageBubble({ message }: Props) {
+export default function MessageBubble({ message, chatId }: Props) {
   const isUser        = message.role === 'user'
   const isShoppingList = !isUser && message.content.startsWith(SHOPPING_LIST_SENTINEL)
   const isRoutine     = !isUser && !isShoppingList && hasRoutineStructure(message.content)
+  const isDiet        = !isUser && !isShoppingList && hasDietStructure(message.content)
 
   return (
     <div className={`flex gap-3 animate-slide-up ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -82,6 +93,11 @@ export default function MessageBubble({ message }: Props) {
           {isRoutine && (
             <div className="mt-1 ml-1">
               <SaveRoutineButton content={message.content} />
+            </div>
+          )}
+          {isDiet && chatId && (
+            <div className="mt-1 ml-1">
+              <DietPdfButton chatId={chatId} messageId={message.id} />
             </div>
           )}
         </div>

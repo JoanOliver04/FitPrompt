@@ -6,7 +6,6 @@ import { useCallback } from 'react'
 import { useChat } from '@/hooks/useChat'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
-import { ExportPdfButton } from './ExportPdfButton'
 import UpgradeBanner from '@/components/ui/UpgradeBanner'
 import type { Message } from '@/types'
 
@@ -76,17 +75,14 @@ export default function ChatInterface({
           <p className="text-text-muted text-xs">FitCoach · Entrenador IA</p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
-          <ExportPdfButton chatId={chatId} size="compact" />
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
-            <span className="text-text-secondary text-xs hidden sm:inline">Online</span>
-          </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
+          <span className="text-text-secondary text-xs hidden sm:inline">Online</span>
         </div>
       </header>
 
       {/* ── Messages ────────────────────────────────────────────── */}
-      <MessageList messages={messages} isLoading={isLoading} />
+      <MessageList messages={messages} isLoading={isLoading} chatId={chatId} />
 
       {/* ── Error / limit banner ─────────────────────────────────
           Two cases:

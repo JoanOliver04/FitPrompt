@@ -8,9 +8,10 @@ import TypingIndicator from './TypingIndicator'
 interface Props {
   messages: Message[]
   isLoading: boolean
+  chatId?:   string
 }
 
-export default function MessageList({ messages, isLoading }: Props) {
+export default function MessageList({ messages, isLoading, chatId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export default function MessageList({ messages, isLoading }: Props) {
   return (
     <div className="flex-1 overflow-y-auto p-5 space-y-4">
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} />
+        <MessageBubble key={msg.id} message={msg} chatId={chatId} />
       ))}
 
       {isLoading && <TypingIndicator />}

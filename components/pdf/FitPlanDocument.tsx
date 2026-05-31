@@ -391,16 +391,20 @@ function FitPlanDocument({
         </View>
 
         {/* ── Section 2 — Rutina semanal ─────────────────────────────────── */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Rutina semanal</Text>
-          <ExerciseTable days={exerciseDays} />
-        </View>
+        {exerciseDays.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Rutina semanal</Text>
+            <ExerciseTable days={exerciseDays} />
+          </View>
+        )}
 
         {/* ── Section 3 — Plan nutricional ───────────────────────────────── */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Plan nutricional</Text>
-          <MealSection meals={meals} />
-        </View>
+        {meals.length > 0 && (
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Plan nutricional</Text>
+            <MealSection meals={meals} />
+          </View>
+        )}
 
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <View style={s.footer} fixed>

@@ -35,6 +35,20 @@ const WORKOUT_LABEL: Record<string, string> = {
   bodyweight: 'Peso corporal',
 }
 
+const SESSION_TIME_LABEL: Record<string, string> = {
+  '<30':   '< 30 min',
+  '30-45': '30–45 min',
+  '45-60': '45–60 min',
+  '>60':   '+ 60 min',
+}
+
+const SCHEDULE_LABEL: Record<string, string> = {
+  morning:   'Mañana',
+  midday:    'Mediodía',
+  afternoon: 'Tarde',
+  night:     'Noche',
+}
+
 function formatBirthDate(date: Date): string {
   return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
@@ -90,9 +104,21 @@ export default async function ProfilePage() {
       title:       'Preferencias de entrenamiento',
       editSection: 'training' as const,
       items: [
-        { label: 'Nivel',         value: profile ? (LEVEL_LABEL[profile.level] ?? profile.level) : '—' },
-        { label: 'Días/semana',   value: profile ? `${profile.daysPerWeek} días` : '—' },
-        { label: 'Tipo',          value: profile ? (WORKOUT_LABEL[profile.workoutType] ?? profile.workoutType) : '—' },
+        { label: 'Nivel',          value: profile ? (LEVEL_LABEL[profile.level] ?? profile.level) : '—' },
+        { label: 'Días/semana',    value: profile ? `${profile.daysPerWeek} días` : '—' },
+        { label: 'Duración sesión',value: profile ? (SESSION_TIME_LABEL[profile.sessionTime] ?? profile.sessionTime) : '—' },
+        { label: 'Tipo',           value: profile ? (WORKOUT_LABEL[profile.workoutType] ?? profile.workoutType) : '—' },
+        { label: 'Horario',        value: profile ? (SCHEDULE_LABEL[profile.schedule] ?? profile.schedule) : '—' },
+      ],
+    },
+    {
+      title:       'Salud y restricciones',
+      editSection: 'health' as const,
+      items: [
+        { label: 'Lesiones',      value: profile?.injuries ?? '—' },
+        { label: 'Alergias',      value: profile?.allergies ?? '—' },
+        { label: 'Preferencias alimentarias', value: profile?.foodPreferences?.length ? profile.foodPreferences.join(', ') : '—' },
+        { label: 'Info adicional', value: profile?.extraInfo ?? '—' },
       ],
     },
   ]
@@ -106,7 +132,13 @@ export default async function ProfilePage() {
     goal:        profile?.goal        ?? null,
     level:       profile?.level       ?? null,
     daysPerWeek: profile?.daysPerWeek ?? null,
+    sessionTime: profile?.sessionTime ?? null,
     workoutType: profile?.workoutType ?? null,
+    schedule:    profile?.schedule    ?? null,
+    injuries:    profile?.injuries    ?? '',
+    allergies:   profile?.allergies   ?? '',
+    foodPreferences: profile?.foodPreferences ?? [],
+    extraInfo:   profile?.extraInfo   ?? '',
   }
 
   return (

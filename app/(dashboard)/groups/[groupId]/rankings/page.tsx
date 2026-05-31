@@ -48,9 +48,24 @@ const LEGACY_EX_TO_SLUG: Record<string, ExerciseSlug> = {
   'dominadas':   'pullups',
 }
 
-function estimateOrm(weight: number, reps: number): number {
-  if (weight === 0) return 0
-  return weight * (1 + reps / 30)
+// Two ways to rank a member's best set on an exercise:
+//  • "1rep" rewards raw max load — who lifted the heaviest single weight at any rep count
+//  • "volume" rewards total work in the best set — who moved the most weight × reps
+type ExerciseMode = '1rep' | 'volume'
+
+const MODE_LABEL: Record<ExerciseMode, string> = {
+  '1rep':   'PR a 1 rep',
+  'volume': 'Más reps, menos peso',
+}
+
+function scoreSet(weight: number, reps: number, mode: ExerciseMode): number {
+  if (mode === '1rep') return weight
+  return weight * reps   // total volume moved on that set
+}
+
+function formatSet(weight: number, reps: number): string {
+  if (weight === 0) return `Peso corporal × ${reps}`
+  return `${weight} kg × ${reps}`
 }
 
 interface RankingRow {
@@ -71,7 +86,7 @@ export default async function GroupRankingsPage({
   searchParams,
 }: {
   params: Promise<{ groupId: string }>
-  searchParams: Promise<{ cat?: string; ex?: string }>
+  searchParams: Promise<{ cat?: string; ex?: string; mode?: string }>
 }) {
   const [{ groupId }, sp] = await Promise.all([params, searchParams])
   const session = await getServerSession(authOptions)
@@ -85,6 +100,8 @@ export default async function GroupRankingsPage({
     (sp.ex ? LEGACY_EX_TO_SLUG[sp.ex.toLowerCase()] : undefined)
   const selected: Category =
     CATEGORIES.find((c) => c.slug === requested) ?? CATEGORIES[0]
+
+  const mode: ExerciseMode = sp.mode === 'volume' ? 'volume' : '1rep'
 
   // ── Group + membership guard ──────────────────────────────────────────────
   const group = await db.group.findUnique({
@@ -125,23 +142,19 @@ export default async function GroupRankingsPage({
       }),
     ])
 
-    // Compute log-derived best per user (only used as fallback when no manual PR)
-    type Best = { orm: number; bestReps: number; bestWeight: number; maxWeight: number }
-    const logBest = new Map<string, Best>()
+    // Group every available set per user: a self-declared PR (if any) plus
+    // every recorded log. The set with the highest score under the current
+    // mode wins.
+    const setsByUser = new Map<string, Array<{ weight: number; reps: number; isManual: boolean }>>()
     for (const ex of exerciseRows) {
-      const orm = estimateOrm(ex.weight, ex.reps)
-      const cur = logBest.get(ex.userId)
-      if (!cur) {
-        logBest.set(ex.userId, { orm, bestReps: ex.reps, bestWeight: ex.weight, maxWeight: ex.weight })
-      } else {
-        const better = orm > cur.orm
-        logBest.set(ex.userId, {
-          orm:        better ? orm : cur.orm,
-          bestReps:   better ? ex.reps    : cur.bestReps,
-          bestWeight: better ? ex.weight  : cur.bestWeight,
-          maxWeight:  ex.weight > cur.maxWeight ? ex.weight : cur.maxWeight,
-        })
-      }
+      const arr = setsByUser.get(ex.userId) ?? []
+      arr.push({ weight: ex.weight, reps: ex.reps, isManual: false })
+      setsByUser.set(ex.userId, arr)
+    }
+    for (const pr of manualPRs) {
+      const arr = setsByUser.get(pr.userId) ?? []
+      arr.push({ weight: pr.weight, reps: pr.reps, isManual: true })
+      setsByUser.set(pr.userId, arr)
     }
 
     const manualMap = new Map(manualPRs.map((m) => [m.userId, m]))
@@ -151,35 +164,34 @@ export default async function GroupRankingsPage({
 
     rows = memberIds
       .map((id) => {
-        const user   = memberMap.get(id)!
-        const manual = manualMap.get(id)
-        const log    = logBest.get(id)
+        const user = memberMap.get(id)!
+        const sets = setsByUser.get(id) ?? []
 
         let primary   = '—'
         let secondary: string | null = null
         let extra:     string | null = null
         let numeric   = 0
         let hasData   = false
-        const isManual = !!manual
+        let isManual  = false
 
-        if (manual) {
-          const orm = Math.round(estimateOrm(manual.weight, manual.reps) * 10) / 10
-          primary   = orm > 0 ? `${orm} kg 1RM` : `${manual.reps} reps`
-          secondary = manual.weight > 0
-            ? `${manual.weight} kg × ${manual.reps}`
-            : `Peso corporal × ${manual.reps}`
-          extra     = 'marca declarada'
-          numeric   = orm
-          hasData   = true
-        } else if (log) {
-          const orm = Math.round(log.orm * 10) / 10
-          primary   = orm > 0 ? `${orm} kg 1RM` : `${log.bestReps} reps`
-          secondary = log.bestWeight > 0
-            ? `${log.bestWeight} kg × ${log.bestReps}`
-            : `Peso corporal × ${log.bestReps}`
-          extra     = log.maxWeight > 0 ? `max ${log.maxWeight} kg` : null
-          numeric   = orm
-          hasData   = true
+        if (sets.length > 0) {
+          // Pick the set with the highest score under the active mode.
+          const best = sets.reduce((acc, s) =>
+            scoreSet(s.weight, s.reps, mode) > scoreSet(acc.weight, acc.reps, mode) ? s : acc,
+          )
+          numeric = scoreSet(best.weight, best.reps, mode)
+          primary = formatSet(best.weight, best.reps)
+          // Show the secondary metric (the one we're NOT ranking by) for context.
+          secondary = mode === '1rep'
+            ? best.weight > 0
+              ? `volumen ${Math.round(best.weight * best.reps)} kg`
+              : null
+            : best.weight > 0
+              ? `peso máx. ${best.weight} kg`
+              : null
+          extra    = best.isManual ? 'marca declarada' : null
+          isManual = best.isManual
+          hasData  = true
         }
 
         return {
@@ -194,7 +206,9 @@ export default async function GroupRankingsPage({
       .sort(sortRows)
       .map((row, i) => ({ ...row, pos: i + 1 }))
 
-    formulaNote = '1RM estimado: peso × (1 + reps / 30). Tu marca declarada tiene prioridad sobre los logs.'
+    formulaNote = mode === '1rep'
+      ? 'Rankeado por peso máximo levantado. Declara tu marca para subir más rápido.'
+      : 'Rankeado por volumen del mejor set (peso × reps). Útil para hipertrofia.'
 
   } else if (selected.kind === 'workouts') {
     // Total completed workouts per member
@@ -312,7 +326,7 @@ export default async function GroupRankingsPage({
       </div>
 
       {/* Category tabs */}
-      <div className="flex gap-2 flex-wrap mb-6">
+      <div className="flex gap-2 flex-wrap mb-4">
         {CATEGORIES.map((cat) => {
           const isActive = cat.slug === selected.slug
           return (
@@ -332,6 +346,29 @@ export default async function GroupRankingsPage({
           )
         })}
       </div>
+
+      {/* Mode toggle — only for exercise categories */}
+      {selected.kind === 'exercise' && (
+        <div className="flex gap-1 p-1 bg-bg-tertiary rounded-xl mb-6 max-w-md">
+          {(['1rep', 'volume'] as const).map((m) => {
+            const isActive = mode === m
+            return (
+              <Link
+                key={m}
+                href={`/groups/${groupId}/rankings?cat=${selected.slug}&mode=${m}`}
+                className={[
+                  'flex-1 text-center py-2 rounded-lg text-xs font-bold transition-all',
+                  isActive
+                    ? 'bg-[#FF471A] text-white shadow-md'
+                    : 'text-text-muted hover:text-text-secondary',
+                ].join(' ')}
+              >
+                {MODE_LABEL[m]}
+              </Link>
+            )
+          })}
+        </div>
+      )}
 
       {/* My position banner */}
       {myRow && myRow.pos > 3 && myRow.hasData && (
@@ -446,7 +483,7 @@ function sortRows(a: RankingRow, b: RankingRow): number {
 
 function categoryBlurb(c: Category): string {
   switch (c.kind) {
-    case 'exercise': return 'Mejor 1RM estimado por ejercicio'
+    case 'exercise': return 'Compara tus mejores series con el resto del grupo'
     case 'workouts': return 'Total de entrenamientos completados'
     case 'level':    return 'Nivel y XP total acumulado'
     case 'streak':   return 'Racha de semanas activas'
@@ -455,7 +492,7 @@ function categoryBlurb(c: Category): string {
 
 function rightColLabel(c: Category): string {
   switch (c.kind) {
-    case 'exercise': return 'Rendimiento'
+    case 'exercise': return 'Mejor set'
     case 'workouts': return 'Entrenos'
     case 'level':    return 'Nivel'
     case 'streak':   return 'Mejor racha'
