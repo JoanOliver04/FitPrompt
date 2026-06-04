@@ -142,13 +142,10 @@ function LoginFormInner() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-2">
+          <div className="mb-2">
             <label htmlFor="password" className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
               Contraseña
             </label>
-            <Link href="/forgot-password" className="text-xs text-[#FF471A] hover:underline">
-              ¿Olvidaste tu contraseña?
-            </Link>
           </div>
           <input
             id="password"

@@ -33,23 +33,6 @@ function baseTemplate(title: string, body: string): string {
 </html>`
 }
 
-function resetPasswordHtml(url: string): string {
-  return baseTemplate(
-    'Restablece tu contraseña',
-    `<p style="margin:0 0 24px;font-size:15px;color:#ccc;line-height:1.6;">
-      Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Haz clic en el botón de abajo para crear una nueva contraseña.
-    </p>
-    <a href="${url}" style="display:inline-block;background:#FF471A;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:10px;text-decoration:none;">
-      Restablecer contraseña
-    </a>
-    <p style="margin:24px 0 0;font-size:13px;color:#555;line-height:1.5;">
-      Este enlace caduca en <strong style="color:#888;">1 hora</strong>.<br>
-      Si el botón no funciona, copia este enlace en tu navegador:<br>
-      <a href="${url}" style="color:#FF471A;word-break:break-all;">${url}</a>
-    </p>`,
-  )
-}
-
 function verifyEmailHtml(url: string): string {
   return baseTemplate(
     'Verifica tu cuenta',
@@ -107,23 +90,6 @@ export async function sendVerificationEmail(email: string, token: string): Promi
     logger.info('verification_email_sent', { email })
   } catch (err) {
     logger.error('verification_email_failed', { email, err })
-  }
-}
-
-export async function sendPasswordResetEmail(email: string, token: string): Promise<void> {
-  const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-  const url  = `${base}/reset-password?token=${encodeURIComponent(token)}`
-
-  if (!process.env.RESEND_API_KEY) {
-    logger.info('password_reset_email_not_configured', { email, resetUrl: url })
-    return
-  }
-
-  try {
-    await sendEmail(email, 'Restablece tu contraseña de FitPrompt', resetPasswordHtml(url))
-    logger.info('password_reset_email_sent', { email })
-  } catch (err) {
-    logger.error('password_reset_email_failed', { email, err })
   }
 }
 
