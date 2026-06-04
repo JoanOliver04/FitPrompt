@@ -18,8 +18,8 @@ function getISOWeek(date: Date): string {
   d.setHours(0, 0, 0, 0)
   d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
   const year    = d.getFullYear()
-  const jan4    = new Date(year, 0, 4)
-  const weekNum = Math.ceil(((d.getTime() - jan4.getTime()) / 86400000 + 1) / 7)
+  const jan1    = new Date(year, 0, 1)
+  const weekNum = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + 1) / 7)
   return `${year}-W${String(weekNum).padStart(2, '0')}`
 }
 
