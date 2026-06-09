@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import InviteButton from '@/components/groups/InviteButton'
+import DeleteGroupButton from '@/components/groups/DeleteGroupButton'
 
 interface Props {
   params: Promise<{ groupId: string }>
@@ -207,6 +208,19 @@ export default async function GroupDetailPage({ params }: Props) {
                 ))}
               </ul>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Danger zone — creator only */}
+      {isCreator && (
+        <Card className="mt-4 border-red-400/20">
+          <CardHeader
+            title="Zona de peligro"
+            description="Eliminar el grupo borra a todos los miembros e invitaciones. No se puede deshacer."
+          />
+          <CardContent className="pt-0">
+            <DeleteGroupButton groupId={group.id} groupName={group.name} />
           </CardContent>
         </Card>
       )}
