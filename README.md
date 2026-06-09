@@ -2,7 +2,7 @@
 
 > **AI-powered fitness companion that turns a user's body, goals and lifestyle into a fully personalized training and nutrition plan.**
 
-FitPrompt is a production-grade web application that combines a personalized AI coach, a structured workout tracker, a gamification layer (XP, badges, streaks) and a social fitness graph (followers, groups, weekly challenges). It is built on a modern serverless stack with a strict TypeScript codebase, a 25-table relational schema and a Groq-powered AI pipeline (Llama 3.3 70B) that grounds every response on the user's real profile.
+FitPrompt is a production-grade web application that combines a personalized AI coach, a structured workout tracker, a gamification layer (XP, badges, streaks) and a social fitness graph (followers, groups, weekly challenges). It is built on a modern serverless stack with a strict TypeScript codebase, a 26-table relational schema and a Groq-powered AI pipeline (Llama 3.3 70B) that grounds every response on the user's real profile.
 
 **Authors:** Joan V. Oliver Rosell & Iván Cucarella Pozo
 **License:** Proprietary — see [LICENSE](LICENSE)
@@ -50,7 +50,7 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 | **Payments** | Stripe Checkout | Subscription upgrades (Free → Premium) |
 | **Email** | Resend | Transactional email — account verification & password reset |
 | **Validation** | Zod v4 | Runtime schema validation at every API boundary |
-| **Sanitization** | isomorphic-dompurify | Strips HTML from all user-supplied text |
+| **Sanitization** | Custom zero-dependency sanitizer (`lib/sanitize.ts`) | Strips HTML/control chars + neutralizes prompt-template punctuation — no native ESM deps to break on Vercel |
 | **PDF** | `@react-pdf/renderer` | Server-rendered PDF export of generated plans |
 | **Deployment** | Vercel (web) + Supabase (DB) | Fully serverless, zero-ops |
 | **Tooling** | ESLint 9, PostCSS, Turbopack | Modern, fast dev loop (`next dev --turbopack`) |
@@ -84,7 +84,7 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
                           ▼                       ▼
             ┌─────────────────────────┐   ┌─────────────────────┐
             │  PostgreSQL (Supabase)  │   │  Groq (Llama 3.3)   │
-            │  25 tables, RLS-ready   │   │  Resend (email)     │
+            │  26 tables, RLS-ready   │   │  Resend (email)     │
             └─────────────────────────┘   └─────────────────────┘
 ```
 
@@ -120,10 +120,11 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 - `WorkoutLog` → `WorkoutExercise` (one row per exercise, with `userId`/`date` denormalized onto the child) so per-exercise progression — e.g. bench-press load over time, or group rankings — is a single indexed query rather than a JSON scan.
 - Routines persist as a normalized 3-table tree (`Routine` → `RoutineDay` → `RoutineExercise`) so they can be edited, reordered and reused across weeks.
 - Weekly streak (`Streak`) tracked by ISO week to avoid timezone ambiguity, with `currentStreak` / `bestStreak` and an idempotent upsert on workout completion.
+- **Self-reported personal records** (`UserPersonalRecord`, unique on `[userId, exercise, mode]`) in two independent modes — `1rep` (pure max load) and `volume` (best `weight × reps` set) — that feed the group ranking boards. Updating one mode never affects the other.
 
 ### Gamification
 - **XP**: `+50` per workout, `+10` per weight log, `+200` per completed week — accumulated in `UserXP.totalXP`. The level (10 tiers, Novato → Superman) is **derived**, never persisted, via `deriveLevel()`.
-- **Badges**: 12 achievements with idempotent unlock (`@@unique([userId, badge])`). Free plan unlocks the first 4; Premium unlocks the rest.
+- **Badges**: 21 achievements with idempotent unlock (`@@unique([userId, badge])`). Free plan unlocks the first 4; Premium unlocks the rest.
 - **Weekly challenges**: a catalog defined in the frontend, accepted and completed per ISO week (`UserChallenge`, unique on `[userId, challengeId, weekStart]`).
 
 ### Social
@@ -146,7 +147,7 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 
 ### Security & hardening
 - **Zod validation** of every request body and route param at the boundary (`lib/schemas.ts`), with per-route body-size caps.
-- **HTML sanitization** (`lib/sanitize.ts`, isomorphic-dompurify) on all user-supplied text before it is stored or sent to the model.
+- **HTML sanitization** (`lib/sanitize.ts`, a custom zero-dependency sanitizer) strips HTML tags/entities and control characters and neutralizes prompt-template punctuation (`` ` ``, `<`, `>`, `{`, `}`) on all user-supplied text before it is stored or sent to the model.
 - **Database-backed rate limiting** (`RateLimit` table, `lib/rate-limit.ts`) keyed per user/IP and route.
 - **Stripe webhook replay protection** via the `StripeEvent` table (the Stripe event id is the primary key, so an event is processed at most once).
 - **Audit logging** (`AuditLog`) for sensitive actions — account deletion, plan changes, admin moderation — with IP and user-agent.
@@ -156,13 +157,13 @@ Generic fitness apps either dump a fixed program on every user or hide their AI 
 
 ## 5. Database design
 
-PostgreSQL on Supabase, 25 tables, organized in six functional domains:
+PostgreSQL on Supabase, 26 tables, organized in six functional domains:
 
 | Domain | Tables |
 |---|---|
 | **Identity & access** | `User`, `UserProfile` |
 | **Chat & AI** | `Chat`, `Message`, `DailyMessageCount`, `WeeklyCheckIn` |
-| **Physical progress** | `WorkoutLog`, `WorkoutExercise`, `WeightLog`, `Streak`, `Routine`, `RoutineDay`, `RoutineExercise` |
+| **Physical progress** | `WorkoutLog`, `WorkoutExercise`, `WeightLog`, `Streak`, `Routine`, `RoutineDay`, `RoutineExercise`, `UserPersonalRecord` |
 | **Gamification** | `Achievement`, `UserXP`, `UserChallenge` |
 | **Social** | `Follow`, `FollowRequest`, `Group`, `GroupMember`, `GroupInvitation`, `Notification` |
 | **Security & infra** | `RateLimit`, `StripeEvent`, `AuditLog` |
@@ -175,6 +176,7 @@ User ──────────────── UserProfile          (1:1)
   ├── Chat ─── Message                     (1:N → 1:N)
   ├── WorkoutLog ─── WorkoutExercise       (1:N → 1:N)
   ├── WeightLog                            (1:N)
+  ├── UserPersonalRecord                   (1:N)
   ├── Achievement                          (1:N)
   ├── DailyMessageCount                    (1:N)
   ├── Streak                               (1:1)
@@ -256,7 +258,7 @@ Beyond the combined plan, the system exposes four targeted prompts — each draw
 | AI model | Groq · Llama 3.3 70B | Groq · Llama 3.3 70B |
 | Progress charts | ✗ | ✓ |
 | Social groups | ✗ | ✓ |
-| Badges | First 4 | All 12 |
+| Badges | First 4 | All 21 |
 | Routine PDF export | ✓ | ✓ |
 | Weekly challenges | ✓ | ✓ (with rewards) |
 
@@ -317,7 +319,7 @@ lib/                    db, auth, ai, ai-profile, prompts, limits, roles,
                         http, logger, email, stripe
 
 prisma/
-├── schema.prisma       single source of truth (25 models, 10 enums)
+├── schema.prisma       single source of truth (26 models, 10 enums)
 └── migrations/         versioned SQL migrations
 
 types/                  shared TS types + next-auth.d.ts augmentation
