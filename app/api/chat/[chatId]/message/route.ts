@@ -8,7 +8,7 @@ import {
   verifyChatOwnership,
 } from '@/lib/chat'
 import { PLAN_LIMITS } from '@/lib/limits'
-import { generarPromptListaCompra, generarSystemPrompt } from '@/lib/prompts'
+import { generarPromptDieta, generarPromptListaCompra, generarSystemPrompt } from '@/lib/prompts'
 import { getLastCheckIn } from '@/lib/checkin'
 import { loadAIProfile } from '@/lib/ai-profile'
 import { stripHtml } from '@/lib/sanitize'
@@ -84,6 +84,24 @@ const SHOPPING_LIST_TRIGGERS = [
 function isShoppingListRequest(content: string): boolean {
   const normalized = content.normalize('NFD').replace(/[̀-ͯ]/g, '')
   return SHOPPING_LIST_TRIGGERS.some((re) => re.test(normalized))
+}
+
+// A full 7-day diet is the single largest generation. Routed through the normal
+// chat flow (system prompt + history + 6k completion) it overflows Groq's
+// per-minute token budget once a routine is already in the history → 413/429 →
+// 502. Detecting the intent lets us serve it from a dedicated, history-free
+// prompt (like the shopping list) so the request stays lean and reliable.
+const DIET_TRIGGERS = [
+  /plan\s+de\s+dieta/i,
+  /plan\s+(?:de\s+)?alimentaci[oó]n/i,
+  /plan\s+nutricional/i,
+  /\bmi\s+dieta\b/i,
+  /(?:dame|genera|gener[ao]|crea|haz|quiero|necesito)\b[^\n]*\bdieta\b/i,
+]
+
+function isDietRequest(content: string): boolean {
+  const normalized = content.normalize('NFD').replace(/[̀-ͯ]/g, '')
+  return DIET_TRIGGERS.some((re) => re.test(normalized))
 }
 
 function parseShoppingList(raw: string): Omit<ShoppingList, 'summary'> | null {
@@ -222,6 +240,35 @@ export const POST = defineHandler(
           content: aiContent,
           ...(isFinite(dailyLimit) && { messagesLeft: Math.max(0, dailyLimit - messagesUsed) }),
         })
+      }
+    }
+
+    // ── Diet intent ──────────────────────────────────────────────────────────
+    // Served from a history-free prompt so the large 7-day generation never
+    // overflows Groq's per-minute token budget. The system prompt is the short
+    // persona (the profile already lives inside generarPromptDieta), keeping the
+    // request lean. Any failure falls through to the normal flow below.
+    if (process.env.GROQ_API_KEY && isDietRequest(userMessage.content)) {
+      const dietProfile = await loadAIProfile(userId)
+      if (dietProfile) {
+        try {
+          const dietContent = await callGroq([
+            { role: 'system', content: FITCOACH_SYSTEM },
+            { role: 'user',   content: generarPromptDieta(dietProfile) },
+          ])
+
+          await saveMessages(chatId, userMessage, { role: 'assistant', content: dietContent })
+          if (isFirstMessage) await autoTitle(chatId, userMessage.content)
+          const messagesUsed = await incrementDailyCount(userId)
+          const dailyLimit = PLAN_LIMITS[plan].dailyMessages
+
+          return NextResponse.json({
+            content: dietContent,
+            ...(isFinite(dailyLimit) && { messagesLeft: Math.max(0, dailyLimit - messagesUsed) }),
+          })
+        } catch {
+          /* fall through to normal AI flow */
+        }
       }
     }
 
