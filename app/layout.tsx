@@ -21,6 +21,11 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
     apple: '/icon.png',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'FitPrompt',
+  },
   openGraph: {
     title: 'FitPrompt — Tu entrenador IA personal',
     description: 'Rutinas y dietas 100% personalizadas generadas por IA.',
@@ -46,7 +51,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             when no preference (or on error) is stored. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var c=document.documentElement.classList;if(localStorage.getItem('fp-theme')==='light')c.remove('dark');else c.add('dark');}catch(e){document.documentElement.classList.add('dark');}`,
+            __html: `try{var c=document.documentElement.classList;if(localStorage.getItem('fp-theme')==='light')c.remove('dark');else c.add('dark');}catch(e){document.documentElement.classList.add('dark');}` +
+              `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')});}`,
           }}
         />
       </head>
