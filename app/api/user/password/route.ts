@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   const pwCheck = strongPassword.safeParse(newPassword)
   if (!pwCheck.success) {
-    return NextResponse.json({ error: pwCheck.error.errors[0]?.message ?? 'Contraseña no válida' }, { status: 400 })
+    return NextResponse.json({ error: pwCheck.error.issues[0]?.message ?? 'Contraseña no válida' }, { status: 400 })
   }
 
   const user = await db.user.findUnique({ where: { id: session.user.id } })
