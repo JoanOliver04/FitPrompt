@@ -56,8 +56,8 @@ function buildCsp(nonce: string, isDev: boolean): string {
     'script-src': [
       "'self'",
       `'nonce-${nonce}'`,
-      "'strict-dynamic'",
-      ...(isDev ? ["'unsafe-eval'"] : []),       // Next.js dev refresh needs eval
+      "'unsafe-inline'", // required: layout nonce not forwarded to Next.js script tags
+      ...(isDev ? ["'unsafe-eval'"] : []),
     ],
     'style-src':              ["'self'", "'unsafe-inline'"], // Tailwind utility classes
     'img-src': [
@@ -80,7 +80,8 @@ function buildCsp(nonce: string, isDev: boolean): string {
     'object-src':             ["'none'"],
     'manifest-src':           ["'self'"],
   }
-  if (!isDev) directives['upgrade-insecure-requests'] = []
+  // upgrade-insecure-requests omitted: breaks HTTP localhost and is only useful
+  // on a production HTTPS host. Vercel enforces HTTPS at the edge instead.
   return Object.entries(directives)
     .map(([k, v]) => v.length ? `${k} ${v.join(' ')}` : k)
     .join('; ')
@@ -161,6 +162,6 @@ function applySecurityHeaders(res: NextResponse, nonce: string, isDev: boolean):
 export const config = {
   matcher: [
     // Everything except Next internals, public assets, and image optimizer.
-    '/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|assets/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|assets/).*)',
   ],
 }

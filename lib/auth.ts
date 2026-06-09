@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
   // 24h JWT; cookie expires alongside it. Sliding refresh every hour.
   session: { strategy: 'jwt', maxAge: 60 * 60 * 24 * 30, updateAge: 60 * 60 },
   jwt:     { maxAge: 60 * 60 * 24 * 30 },
-  useSecureCookies: process.env.NODE_ENV === 'production',
+  useSecureCookies: process.env.NEXTAUTH_URL?.startsWith('https://') ?? false,
 
   providers: [
     GoogleProvider({
@@ -187,17 +187,23 @@ export const authOptions: NextAuthOptions = {
       // On subsequent requests, re-verify sessionVersion against the DB.
       // This is the revocation mechanism (password change, "sign out everywhere").
       if (!user && !account && token.id && token.ver !== undefined) {
-        const row = await db.user.findUnique({
-          where:  { id: token.id as string },
-          select: { sessionVersion: true, plan: true, role: true, username: true },
-        })
-        if (!row || row.sessionVersion !== token.ver) {
-          // Returning an empty token forces NextAuth to treat the session as invalid.
-          return {}
+        try {
+          const row = await db.user.findUnique({
+            where:  { id: token.id as string },
+            select: { sessionVersion: true, plan: true, role: true, username: true },
+          })
+          if (!row || row.sessionVersion !== token.ver) {
+            // Returning an empty token forces NextAuth to treat the session as invalid.
+            return {}
+          }
+          token.plan     = row.plan
+          token.role     = row.role as Role
+          token.username = row.username
+        } catch {
+          // DB temporarily unavailable — keep existing token values rather than
+          // invalidating the session, which would create a middleware redirect loop.
+          logger.warn('jwt_session_check_failed', { userId: token.id })
         }
-        token.plan     = row.plan
-        token.role     = row.role as Role
-        token.username = row.username
       }
 
       return token
