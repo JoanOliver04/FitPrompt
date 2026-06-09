@@ -4,6 +4,7 @@ import { compare, hash } from 'bcryptjs'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { logger } from '@/lib/logger'
+import { strongPassword } from '@/lib/schemas'
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
@@ -24,8 +25,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
   }
 
-  if (newPassword.length < 8) {
-    return NextResponse.json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' }, { status: 400 })
+  const pwCheck = strongPassword.safeParse(newPassword)
+  if (!pwCheck.success) {
+    return NextResponse.json({ error: pwCheck.error.errors[0]?.message ?? 'Contraseña no válida' }, { status: 400 })
   }
 
   const user = await db.user.findUnique({ where: { id: session.user.id } })

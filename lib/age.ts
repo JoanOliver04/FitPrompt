@@ -16,14 +16,14 @@ export function calculateAgeFromString(dateStr: string): number | null {
   return calculateAge(d)
 }
 
-/** Min birth date allowed (user must be at most 100 years old). */
+/** Max birth date allowed (user must be at least 13 years old). */
 export function maxBirthDate(): string {
   const d = new Date()
   d.setFullYear(d.getFullYear() - 13)
   return d.toISOString().split('T')[0]
 }
 
-/** Max birth date allowed (user must be at least 13 years old). */
+/** Min birth date allowed (user must be at most 100 years old). */
 export function minBirthDate(): string {
   const d = new Date()
   d.setFullYear(d.getFullYear() - 100)

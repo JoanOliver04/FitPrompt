@@ -64,7 +64,7 @@ export async function checkMessageLimit(userId: string, plan: Plan): Promise<Lim
     return {
       allowed: false,
       status: 429,
-      message: `Has alcanzado el límite de ${limit} mensajes diarios del plan Free. Se restablece a medianoche (UTC).`,
+      message: `Has alcanzado el límite de ${limit} mensajes diarios del plan ${plan.charAt(0).toUpperCase() + plan.slice(1)}. Se restablece a medianoche (UTC).`,
       code: 'DAILY_MESSAGE_LIMIT',
     }
   }
@@ -81,7 +81,7 @@ export async function checkChatLimit(userId: string, plan: Plan): Promise<LimitR
     return {
       allowed: false,
       status: 403,
-      message: `Has alcanzado el límite de ${limit} chats del plan Free.`,
+      message: `Has alcanzado el límite de ${limit} chats del plan ${plan.charAt(0).toUpperCase() + plan.slice(1)}.`,
       code: 'CHAT_LIMIT',
     }
   }

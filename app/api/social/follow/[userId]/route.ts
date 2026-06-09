@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { notifyNewFollower } from '@/lib/notifications'
 import { checkAndAwardSocialBadges } from '@/lib/badges'
 import { cuidString } from '@/lib/schemas'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -36,8 +37,8 @@ export const POST = defineHandler(
         update: {},
       })
       await db.followRequest.deleteMany({ where: { fromUserId: followerId, toUserId: followingId } })
-      notifyNewFollower(followerId, followingId).catch(() => undefined)
-      checkAndAwardSocialBadges(followingId).catch(() => undefined)
+      notifyNewFollower(followerId, followingId).catch((err) => logger.warn('notify_follow_failed', { followerId, followingId, err: String(err) }))
+      checkAndAwardSocialBadges(followingId).catch((err) => logger.warn('badge_social_failed', { userId: followingId, err: String(err) }))
       return NextResponse.json({ ok: true, status: 'following' })
     }
 

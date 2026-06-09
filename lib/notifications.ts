@@ -33,24 +33,17 @@ async function prefEnabled(userId: string, type: NotificationType): Promise<bool
 export async function notifyNewFollower(followerId: string, followingId: string) {
   if (!(await prefEnabled(followingId, 'new_follower'))) return
 
-  const existing = await db.notification.findFirst({
-    where: { userId: followingId, type: 'new_follower', fromUserId: followerId },
-  })
-  if (existing) return
-
   const follower = await db.user.findUnique({
     where:  { id: followerId },
     select: { name: true },
   })
   const name = follower?.name ?? 'Alguien'
 
-  await createNotification({
-    userId:     followingId,
-    type:       'new_follower',
-    title:      `${name} ha empezado a seguirte`,
-    href:       '/social',
-    fromUserId: followerId,
-  })
+  await db.notification.upsert({
+    where:  { userId_type_fromUserId: { userId: followingId, type: 'new_follower', fromUserId: followerId } },
+    create: { userId: followingId, type: 'new_follower', title: `${name} ha empezado a seguirte`, href: '/social', fromUserId: followerId },
+    update: { read: false, title: `${name} ha empezado a seguirte`, createdAt: new Date() },
+  }).catch(() => null)
 }
 
 // ─── rank_surpassed ───────────────────────────────────────────────────────────

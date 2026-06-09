@@ -374,6 +374,7 @@ model Notification {
   read       Boolean          @default(false)
   createdAt  DateTime         @default(now())
 
+  @@unique([userId, type, fromUserId])
   @@index([userId, createdAt])
   @@index([userId, read])
 }

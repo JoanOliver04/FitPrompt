@@ -3,6 +3,7 @@ import { defineHandler } from '@/lib/api-handler'
 import { db } from '@/lib/db'
 import { groupCreateSchema } from '@/lib/schemas'
 import { checkAndAwardGroupFounder } from '@/lib/badges'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -23,7 +24,7 @@ export const POST = defineHandler(
       },
       select: { id: true, name: true, createdBy: true, createdAt: true },
     })
-    checkAndAwardGroupFounder(session.user.id).catch(() => undefined)
+    checkAndAwardGroupFounder(session.user.id).catch((err) => logger.warn('badge_group_failed', { userId: session.user.id, err: String(err) }))
     return NextResponse.json(group, { status: 201 })
   },
 )

@@ -13,6 +13,7 @@ import {
 } from '@/lib/badges'
 import { notifyRankSurpassed } from '@/lib/notifications'
 import { workoutLogSchema } from '@/lib/schemas'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -81,8 +82,8 @@ export const POST = defineHandler(
 
     if (body.completed) {
       levelUp = await addXP(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => null)
-      updateStreakIfWeekComplete(session.user.id).catch(() => undefined)
-      notifyRankSurpassed(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch(() => undefined)
+      updateStreakIfWeekComplete(session.user.id).catch((err) => logger.warn('streak_update_failed', { userId: session.user.id, err: String(err) }))
+      notifyRankSurpassed(session.user.id, XP_REWARDS.WORKOUT_COMPLETE).catch((err) => logger.warn('notify_rank_failed', { userId: session.user.id, err: String(err) }))
 
       // Badge checks — first match wins for the response (all run regardless)
       const [consistency, milestones, volume, level5] = await Promise.all([
