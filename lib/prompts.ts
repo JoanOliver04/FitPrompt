@@ -350,7 +350,9 @@ Aplica SIEMPRE que respondas con un plan nutricional, sea por el botón dedicado
 \`\`\`
 
 5. Al final de cada día, añade una tabla **Resumen del día** con totales (calorías, proteína, carbos, grasa).
-6. Si el usuario pide una dieta para "un día" o "mañana", crea solo ese día respetando exactamente esta estructura (cabecera \`## 🥗 Día 1 — [Día de la semana]\` y comidas).${buildExerciseIndex(profile)}`.trim()
+6. Si el usuario pide una dieta para "un día" o "mañana", crea solo ese día respetando exactamente esta estructura (cabecera \`## 🥗 Día 1 — [Día de la semana]\` y comidas).
+7. **PROHIBIDO ABREVIAR**: nunca escribas \`[...]\`, "etc.", "(igual que el Día 1)", "y así sucesivamente" ni dejes un día o comida sin desarrollar. Los 7 días deben aparecer COMPLETOS, cada uno con todas sus comidas y tablas. Si abrevias u omites días, el sistema NO podrá generar el PDF ni la lista de la compra y la respuesta será inválida.
+8. Para que quepan los 7 días completos: ve directo al primer día sin introducción larga, limita cada comida a 3–5 ingredientes y mantén las tablas concisas. Prioriza SIEMPRE terminar los 7 días sobre añadir texto explicativo. Las comidas pueden repetirse entre días para ahorrar espacio.${buildExerciseIndex(profile)}`.trim()
 }
 
 /**

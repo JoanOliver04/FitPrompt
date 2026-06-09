@@ -132,7 +132,7 @@ export function ShoppingListCard({ content }: Props) {
     <div className="w-72 rounded-2xl overflow-hidden border border-border-default rounded-tl-sm shadow-sm">
 
       {/* Header */}
-      <div className="bg-[#1a1a1a] px-4 py-3 flex items-center justify-between gap-3">
+      <div className="bg-bg-tertiary px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="text-base shrink-0" aria-hidden="true">🛒</span>
           <div className="min-w-0">
@@ -173,7 +173,7 @@ export function ShoppingListCard({ content }: Props) {
       </div>
 
       {/* Action buttons */}
-      <div className="bg-[#161616] border-t border-border-default px-4 py-3 flex gap-2">
+      <div className="bg-bg-tertiary border-t border-border-default px-4 py-3 flex gap-2">
         <button
           onClick={handleCopy}
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium border rounded-lg transition-all duration-200 active:scale-95 ${

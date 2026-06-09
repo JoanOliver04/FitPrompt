@@ -173,12 +173,15 @@ export const BADGE_CATEGORIES: Array<{ id: BadgeCategory; label: string }> = [
 // ─── Core award ───────────────────────────────────────────────────────────────
 
 export async function awardBadge(userId: string, badge: BadgeId): Promise<boolean> {
-  try {
-    await db.achievement.create({ data: { userId, badge } })
-    return true
-  } catch {
-    return false
-  }
+  // createMany + skipDuplicates is idempotent and, unlike create(), does NOT
+  // throw (or log a prisma:error) when the badge is already owned. count is 1
+  // when newly awarded, 0 when it already existed — preserving the "is new?"
+  // semantics callers rely on to surface a badge toast.
+  const { count } = await db.achievement.createMany({
+    data:           [{ userId, badge }],
+    skipDuplicates: true,
+  })
+  return count > 0
 }
 
 // ─── Day helpers ──────────────────────────────────────────────────────────────

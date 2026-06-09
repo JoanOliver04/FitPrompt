@@ -98,6 +98,11 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
     if (activeChatId === chat.id) {
       router.push('/chat')
     }
+    // Invalidate the cached RSC payload so a later navigation/refresh doesn't
+    // restore the just-deleted chat from stale server data — the initialChats
+    // effect would otherwise sync that stale list back into local state, making
+    // deleted chats reappear until a full reload.
+    router.refresh()
   }, [activeChatId, router])
 
   const createChat = useCallback(async () => {

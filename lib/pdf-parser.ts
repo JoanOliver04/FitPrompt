@@ -182,10 +182,12 @@ export interface DietDay {
  * dieta en PDF" button on an assistant message.
  */
 export function hasDietStructure(content: string): boolean {
-  // Matches "## 🥗 Día N" or "## 🥗 Plan de Alimentación"
-  return /##[^\n]{0,25}🥗/.test(content) ||
-         /##\s*Plan de Alimentaci/i.test(content) ||
-         /####\s*🕗?\s*\d{1,2}:\d{2}\s*—\s*(?:Desayuno|Almuerzo|Comida|Cena|Pre-entreno|Post-entreno|Merienda)/i.test(content)
+  // The markdown markers (##, ####) are OPTIONAL: free-form diets often render
+  // the day/meal headers as bold or plain lines, so we match on the 🥗 + day/plan
+  // signal and on meal-time lines regardless of heading level.
+  return /🥗[^\n]{0,30}(?:Plan de Alimentaci|D[ií]a\s+\d+)/i.test(content) ||
+         /Plan de Alimentaci[óo]n\s+Semanal/i.test(content) ||
+         /(?:\d{1,2}:\d{2})\s*[—–:-]\s*(?:Desayuno|Almuerzo|Comida|Cena|Pre-?\s*entreno|Post-?\s*entreno|Merienda|Snack)/i.test(content)
 }
 
 /**
@@ -195,8 +197,11 @@ export function hasDietStructure(content: string): boolean {
 export function parseDietDays(dieta: string): DietDay[] {
   if (!dieta) return []
 
-  // Try splitting by "## 🥗 Día N — Lunes/Martes/..." headers first.
-  const dayRegex = /##[^\n]{0,15}D[ií]a\s+\d+\s*[—\-:][^\n]+/g
+  // Split by "Día N" headers. The markdown hashes, the 🥗 emoji, the separator
+  // and the weekday are ALL optional so free-form diets ("### Día 1", "🥗 Día 1",
+  // "Día 1 Lunes") still split into per-day blocks. Anchored to line start so a
+  // stray "día 1" inside prose isn't mistaken for a day header.
+  const dayRegex = /^[ \t]*(?:#{1,4}[ \t]*)?(?:\*\*)?[ \t]*🥗?[ \t]*D[ií]a\s+\d+\b[^\n]*/gim
   const dayMatches = [...dieta.matchAll(dayRegex)]
 
   if (dayMatches.length === 0) {
@@ -211,7 +216,7 @@ export function parseDietDays(dieta: string): DietDay[] {
     const end   = dayMatches[i + 1]?.index ?? dieta.length
     const block = dieta.slice(start, end)
 
-    const name  = cleanText(dayMatches[i][0].replace(/^##\s*/, ''))
+    const name  = cleanText(dayMatches[i][0].replace(/^[ \t]*#{1,4}\s*/, ''))
     const meals = parseMeals(block)
     if (meals.length > 0) days.push({ name, meals })
   }
@@ -268,27 +273,55 @@ export function parseDietIngredients(dieta: string): DietIngredient[] {
  *   #### 🕗 07:30 — Desayuno
  *   #### Desayuno
  */
+const MEAL_KW =
+  'Desayuno|Almuerzo|Comida|Media\\s*ma[ñn]ana|Merienda|Cena|Recena|Pre-?\\s*entreno|Post-?\\s*entreno|Snack|Tentempi[ée]|Brunch|Colaci[óo]n'
+
+// A meal header line in ANY decoration: optional ####, optional **bold**, optional
+// clock emoji (🕐–🕧 / ⏰), optional "HH:MM" + separator, then a meal keyword. This
+// lets us pick up meals whether the model used "#### 🕗 07:30 — Desayuno", a bold
+// "**🕗 7:00 — Desayuno**", or a plain "🕗 7:00 — Desayuno" line.
+const MEAL_HEADER_BODY =
+  '[ \\t]*(?:#{2,4}[ \\t]*)?(?:\\*\\*)?[ \\t]*' +
+  '(?:[\\u{1F550}-\\u{1F567}\\u{23F0}\\u{1F37D}]\\u{FE0F}?[ \\t]*)?' +
+  '(?:\\d{1,2}:\\d{2}[ \\t]*[—–:\\-]?[ \\t]*)?(?:' + MEAL_KW + ')'
+// Lookahead used to split the text right before each meal header line.
+const MEAL_START = new RegExp('(?=^' + MEAL_HEADER_BODY + ')', 'imu')
+// Anchored test: true only when a line STARTS with a meal header (so prose that
+// merely mentions "comidas" mid-sentence isn't treated as a meal).
+const MEAL_HEADER_LINE = new RegExp('^' + MEAL_HEADER_BODY, 'iu')
+
 export function parseMeals(dieta: string): Meal[] {
   if (!dieta) return []
 
   const meals: Meal[] = []
 
-  // Split on each meal-level heading
-  const mealBlocks = dieta.split(
-    /(?=####\s*🕗?\s*\d{1,2}:\d{2}\s*—|####\s*(?:Desayuno|Almuerzo|Comida|Merienda|Cena|Pre-entreno|Post-entreno|Snack))/i,
-  )
+  // Split right before every meal-header line (any decoration). Each resulting
+  // block is one meal's content until the next meal/section header.
+  const blocks = dieta.split(MEAL_START)
 
-  for (const block of mealBlocks) {
-    const headerMatch = block.match(
-      /####\s*🕗?\s*(\d{1,2}:\d{2})?\s*—?\s*([^\n]+)/,
+  for (const block of blocks) {
+    const firstLine = block.split('\n')[0]
+    // Only blocks whose first line IS a meal header — keeps "Resumen del día",
+    // "Notas", day headers ("Día N") and prose mentioning food out of the result.
+    if (!MEAL_HEADER_LINE.test(firstLine)) continue
+
+    const timeMatch = firstLine.match(/(\d{1,2}:\d{2})/)
+    const time      = timeMatch ? timeMatch[1] : ''
+
+    // Build the name: drop leading hashes/bold markers and the time, strip emojis
+    // (cleanText), then trim leftover separators ("—", ":", "-").
+    const name = cleanText(
+      firstLine
+        .replace(/^[ \t]*#{2,4}[ \t]*/, '')
+        .replace(/\*\*/g, '')
+        .replace(/\d{1,2}:\d{2}/, ''),
     )
-    if (!headerMatch) continue
+      .replace(/^[\s—–:-]+/, '')
+      .replace(/[\s—–:-]+$/, '')
+      .trim()
 
-    const time  = headerMatch[1] ?? ''
-    const name  = cleanText(headerMatch[2])
-    if (!name) continue
+    const plateMatch = block.match(/\*\*Plato\*\*:\s*([^\n]+)/i)
 
-    const plateMatch = block.match(/\*\*Plato\*\*:\s*([^\n]+)/)
     const plate = plateMatch ? cleanText(plateMatch[1]) : ''
 
     // Extract kcal from the "Total" row of the ingredient table
@@ -299,7 +332,7 @@ export function parseMeals(dieta: string): Meal[] {
 
     const kcal = kcalMatch ? `${kcalMatch[1].replace(/\s/g, '')} kcal` : ''
 
-    meals.push({ name, time, plate, kcal })
+    meals.push({ name: name || (time ? `Comida ${time}` : 'Comida'), time, plate, kcal })
   }
 
   return meals

@@ -37,15 +37,29 @@ interface GroqResponse {
 async function callGroq(
   messages: { role: string; content: string }[],
   temperature = 0.7,
+  // 6000 fits a full 7-day diet (≈5–5.5k tokens) while keeping prompt + max_tokens
+  // under Groq's per-minute token budget for llama-3.3-70b (≈12k on the free tier).
+  // Going higher (e.g. 8192) makes a request with long history hit 413 "too large".
+  maxTokens = 6000,
 ): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) return MOCK_REPLY
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: GROQ_MODEL, messages, temperature, max_tokens: 4096 }),
-  })
+  const call = (max_tokens: number) =>
+    fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: GROQ_MODEL, messages, temperature, max_tokens }),
+    })
+
+  let res = await call(maxTokens)
+
+  // 413 = prompt + max_tokens exceeds the model's per-minute token budget. Retry
+  // once asking for a smaller completion so the user still gets a (shorter) reply
+  // instead of a hard failure.
+  if (res.status === 413 && maxTokens > 3000) {
+    res = await call(3000)
+  }
 
   if (!res.ok) {
     // Avoid logging the raw response body — it may contain headers / token hints.
@@ -132,8 +146,8 @@ function sanitizeForGroq(
 
 function trimHistory(
   messages: Array<{ role: string; content: string }>,
-  maxMessages = 10,
-  maxCharsPerMessage = 1200,
+  maxMessages = 8,
+  maxCharsPerMessage = 1000,
 ): Array<{ role: string; content: string }> {
   return messages.slice(-maxMessages).map((m) =>
     m.content.length > maxCharsPerMessage

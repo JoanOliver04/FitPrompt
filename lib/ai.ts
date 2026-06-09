@@ -39,7 +39,9 @@ async function callGroq(messages: GroqMessage[]): Promise<string> {
       model: 'llama-3.3-70b-versatile',
       messages,
       temperature: 0.7,
-      max_tokens: 4096,
+      // 6000 keeps prompt + max_tokens under Groq's per-minute token budget for
+      // llama-3.3-70b (≈12k free tier); higher values trip a 413 "request too large".
+      max_tokens: 6000,
     }),
   })
 

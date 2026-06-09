@@ -19,11 +19,11 @@ function hasRoutineStructure(content: string): boolean {
 }
 
 function hasDietStructure(content: string): boolean {
-  // Day-level diet header (## 🥗 Día N ...) OR plan-level header OR at least
-  // one meal-time block. Matches the heuristic in lib/pdf-parser.ts.
-  return /##[^\n]{0,25}🥗/.test(content) ||
-         /##\s*Plan de Alimentaci/i.test(content) ||
-         /####\s*🕗?\s*\d{1,2}:\d{2}\s*—\s*(?:Desayuno|Almuerzo|Comida|Cena|Pre-entreno|Post-entreno|Merienda)/i.test(content)
+  // Markdown markers (##, ####) are OPTIONAL — free-form diets render the headers
+  // as bold/plain lines. Must stay in sync with hasDietStructure in lib/pdf-parser.ts.
+  return /🥗[^\n]{0,30}(?:Plan de Alimentaci|D[ií]a\s+\d+)/i.test(content) ||
+         /Plan de Alimentaci[óo]n\s+Semanal/i.test(content) ||
+         /(?:\d{1,2}:\d{2})\s*[—–:-]\s*(?:Desayuno|Almuerzo|Comida|Cena|Pre-?\s*entreno|Post-?\s*entreno|Merienda|Snack)/i.test(content)
 }
 
 // Allowlist of node renderers — anything not listed renders as plain text.

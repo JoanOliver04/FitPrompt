@@ -36,12 +36,17 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="dark" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <head>
+        {/* No-flash theme: the script is the single source of truth for the
+            `dark` class. We deliberately do NOT hardcode className="dark" on
+            <html> — the App Router re-applies the server shell's attributes to
+            the singleton <html>/<body> on router.refresh()/navigation, which
+            would otherwise wipe a client switch to light mode. Defaults to dark
+            when no preference (or on error) is stored. */}
         <script
-          suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `try{const t=localStorage.getItem('fp-theme');if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}catch(e){}`,
+            __html: `try{var c=document.documentElement.classList;if(localStorage.getItem('fp-theme')==='light')c.remove('dark');else c.add('dark');}catch(e){document.documentElement.classList.add('dark');}`,
           }}
         />
       </head>
