@@ -25,11 +25,12 @@ export default function Logo({ variant = 'full', height = 44, className }: LogoP
   }
 
   return (
+    // Static import provides the intrinsic width/height, so we only pin the
+    // rendered height and let width scale automatically — avoids the aspect-ratio
+    // mismatch warning a guessed width prop would trigger.
     <Image
       src={logoFull}
       alt="FitPrompt"
-      height={height}
-      width={height * 5}
       style={{ height: `${height}px`, width: 'auto' }}
       className={className}
       priority

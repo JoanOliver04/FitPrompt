@@ -109,7 +109,11 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
     if (!canCreateChat || isCreating) return
     setIsCreating(true)
     try {
-      const res = await fetch('/api/chat/create', { method: 'POST' })
+      const res = await fetch('/api/chat/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
       if (!res.ok) throw new Error()
       const { chat } = (await res.json()) as { chat: ChatListItem }
 

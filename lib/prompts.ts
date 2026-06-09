@@ -457,132 +457,58 @@ Genera la rutina completa AHORA. Sé específico, coherente con el nivel **${LEV
 }
 
 /**
- * Prompt to generate a full daily nutrition plan with exact gramages and macros.
- * Includes meal timing around training, allergy handling, and a day summary.
+ * Prompt to generate a concise single-day nutrition plan with exact gramages and
+ * macros. Deliberately compact: one representative day (4 meals) instead of a full
+ * 7-day plan, so the completion stays small (~1–1.5k tokens) and never overflows
+ * Groq's per-minute/day token budget. Allergy handling and macro targets retained.
  */
 export function generarPromptDieta(profile: UserProfile): string {
   const macros = calcMacros(profile)
-  const tdee = calcTDEE(profile)
-
-  const goalNutritionContext: Record<UserProfile['goal'], string> = {
-    volume: `El objetivo es VOLUMEN — ganar masa muscular con mínima grasa. Superávit calórico limpio de **+300 kcal** sobre el TDEE (${tdee} kcal). Prioridad: proteína de alta biodisponibilidad + carbohidratos complejos peri-entrenamiento + grasas saludables. El timing de nutrientes impacta en la síntesis proteica.`,
-    definition: `El objetivo es DEFINICIÓN — perder grasa preservando músculo. Déficit moderado de **-400 kcal** sobre el TDEE (${tdee} kcal). Proteína muy alta para maximizar la retención de masa magra en déficit. Considera carbohidratos más altos en días de entrenamiento y más bajos en días de descanso (carb cycling básico).`,
-    weight_loss: `El objetivo es PÉRDIDA DE PESO — déficit sostenible de **-600 kcal** sobre el TDEE (${tdee} kcal). Enfatiza alimentos de alta saciedad (fibra, proteína, volumen sin calorías), bajo índice glucémico, y evitar picos de insulina innecesarios. No bajar de 1.200 kcal para no comprometer el metabolismo basal.`,
-    maintenance: `El objetivo es MANTENIMIENTO — equilibrio calórico con el TDEE (${tdee} kcal). Plan variado, nutritivo y sostenible a largo plazo. Énfasis en calidad de los alimentos, diversidad de micronutrientes y hábitos saludables más que en restricciones.`,
-  }
-
-  const timingBySchedule: Record<UserProfile['schedule'], string> = {
-    morning: `Entrenamiento matutino. Diseña: (1) pre-entreno 30–60 min antes: carbohidratos de fácil digestión + proteína ligera (o entrenamiento en ayunas si el objetivo lo permite); (2) post-entreno completo con proteína de rápida absorción + carbohidratos de índice glucémico alto-medio.`,
-    midday: `Entrenamiento al mediodía. Diseña: (1) desayuno completo; (2) pre-entreno ligero 1–2h antes (carbos + proteína sin grasa); (3) comida principal post-entreno como almuerzo completo.`,
-    afternoon: `Entrenamiento vespertino. Diseña: (1) almuerzo como pre-entreno 2–3h antes con proteína + carbohidratos complejos; (2) merienda/snack post-entreno con proteína rápida + carbohidratos; (3) cena equilibrada.`,
-    night: `Entrenamiento nocturno. Diseña: (1) cena pre-entreno si hay 2h de margen, o post-entreno si se entrena justo antes de dormir; (2) prioriza proteína de digestión lenta post-entreno (caseína, cottage cheese, huevos) y minimiza carbohidratos simples; (3) incluye proteína de caseína antes de dormir para síntesis nocturna.`,
-  }
 
   const safeAllergiesText = safeField(profile.allergies)
   const safePrefsList = profile.foodPreferences.map((x) => safeField(x, 40)).filter(Boolean)
 
   const allergyBlock = safeAllergiesText
-    ? `\n⚠️ **ALÉRGENOS — CRÍTICO**: "${safeAllergiesText}". NUNCA incluyas estos alimentos ni sus derivados en ninguna comida del plan.`
-    : '\n✅ Sin alergias ni intolerancias reportadas.'
+    ? `⚠️ ALÉRGENOS — CRÍTICO: "${safeAllergiesText}". NUNCA incluyas estos alimentos ni derivados.`
+    : 'Sin alergias reportadas.'
 
   const foodPrefBlock = safePrefsList.length > 0
-    ? `**Preferencias alimentarias**: ${safePrefsList.join(', ')}. Adapta completamente el plan a estas preferencias.`
-    : '**Preferencias**: sin restricciones adicionales (dieta omnívora por defecto).'
+    ? `Preferencias: ${safePrefsList.join(', ')} — respétalas.`
+    : 'Preferencias: dieta omnívora, sin restricciones.'
 
-  const proteinPct = Math.round((macros.protein * 4 / macros.calories) * 100)
-  const carbsPct   = Math.round((macros.carbs * 4 / macros.calories) * 100)
-  const fatPct     = Math.round((macros.fat * 9 / macros.calories) * 100)
+  return `Eres nutricionista deportivo. Diseña un plan de alimentación de **UN día representativo** (4 comidas) para: ${GOAL_LABEL[profile.goal]}, entreno por la ${SCHEDULE_LABEL[profile.schedule]}.
 
-  return `Actúa como un nutricionista deportivo experto. Diseña un **plan de alimentación diario completo, detallado y personalizado** para el siguiente usuario.
-
-${buildUserContext(profile)}
-
----
-
-## Contexto nutricional
-
-${goalNutritionContext[profile.goal]}
-
-**Timing nutricional** (horario de entrenamiento: ${SCHEDULE_LABEL[profile.schedule]}):
-${timingBySchedule[profile.schedule]}
+Targets del día: **${macros.calories} kcal** · Proteína ${macros.protein}g · Carbos ${macros.carbs}g · Grasa ${macros.fat}g.
 ${allergyBlock}
 ${foodPrefBlock}
 
-### Targets de macronutrientes objetivo
+Reglas: 4 comidas con timing acorde al entreno; gramajes exactos; alimentos reales y económicos; macros cuadran con los targets (±5%). Sé conciso — sin introducción ni texto de relleno, ve directo al plan.
 
-| Macronutriente | Gramos/día | Calorías | % total |
-|----------------|-----------|----------|---------|
-| Proteína | **${macros.protein} g** | ${Math.round(macros.protein * 4)} kcal | ${proteinPct}% |
-| Carbohidratos | **${macros.carbs} g** | ${Math.round(macros.carbs * 4)} kcal | ${carbsPct}% |
-| Grasa | **${macros.fat} g** | ${Math.round(macros.fat * 9)} kcal | ${fatPct}% |
-| **TOTAL** | — | **${macros.calories} kcal** | 100% |
+Formato EXACTO:
 
----
+## 🥗 Plan de Alimentación Diario
+**Objetivo**: ${GOAL_LABEL[profile.goal]}
+**Target**: ${macros.calories} kcal | P ${macros.protein}g · C ${macros.carbs}g · G ${macros.fat}g
 
-## Instrucciones de generación
-
-1. Diseña un **plan semanal completo (7 días: Lunes → Domingo)** — uno por día, todos con sus comidas detalladas. No te limites a un solo día.
-2. En cada día, diseña **4–6 comidas** distribuidas a lo largo del día (adaptadas al horario de entrenamiento)
-3. Para cada comida: nombre del plato, lista de ingredientes con **gramajes exactos**, y tabla de macros + kcal de esa comida
-4. Los ingredientes deben ser **alimentos reales, accesibles y de mercado** (no suplementos como base, excepto proteína en polvo si el perfil lo justifica)
-5. Al terminar las comidas de cada día, incluye una **tabla resumen del día** comparando totales reales vs targets
-6. Varía los platos entre días para que la semana no sea monótona (no repitas el mismo desayuno 7 veces)
-7. Después de los 7 días, añade una sección **"Suplementación básica"** si el perfil lo justifica (proteína en polvo, creatina, vitamina D, etc.) con dosis y timing
-8. Añade un **"Meal prep semanal (30 min)"** — qué preparar el domingo para tener la semana controlada
-
----
-
-## Formato de salida — SIGUE ESTA ESTRUCTURA EXACTAMENTE
-
-\`\`\`markdown
-## 🥗 Plan de Alimentación Semanal
-**Objetivo**: [objetivo del usuario]
-**Target diario**: ${macros.calories} kcal | Proteína: ${macros.protein}g | Carbos: ${macros.carbs}g | Grasa: ${macros.fat}g
-
----
-
-## 🥗 Día 1 — Lunes
-
-#### 🕗 [HH:MM] — [Nombre de la comida]
-
-**Plato**: [Nombre del plato]
+#### 🕗 [HH:MM] — [Comida]
+**Plato**: [nombre]
 
 | Ingrediente | Cantidad | Proteína (g) | Carbos (g) | Grasa (g) | kcal |
 |-------------|----------|--------------|------------|-----------|------|
-| [Ingrediente 1] | 150 g | X | X | X | X |
-| [Ingrediente 2] |  30 g | X | X | X | X |
-| **Total comida** | | **Xg** | **Xg** | **Xg** | **X kcal** |
+| [Ingrediente] | 150 g | X | X | X | X |
+| **Total** | | **Xg** | **Xg** | **Xg** | **X kcal** |
 
-[Repetir para cada comida del día]
+[Repite para las 4 comidas]
 
-#### 📊 Resumen Día 1
-
+#### 📊 Resumen del día
 | Métrica | Real | Objetivo |
 |---------|------|----------|
-| Calorías | X kcal | ${macros.calories} kcal |
+| Calorías | X | ${macros.calories} kcal |
 | Proteína | Xg | ${macros.protein}g |
-| Carbohidratos | Xg | ${macros.carbs}g |
+| Carbos | Xg | ${macros.carbs}g |
 | Grasa | Xg | ${macros.fat}g |
 
----
-
-## 🥗 Día 2 — Martes
-[Mismo formato: comidas + resumen]
-
-[Continuar con Día 3 – Miércoles, Día 4 – Jueves, Día 5 – Viernes, Día 6 – Sábado, Día 7 – Domingo]
-
----
-
-## 💊 Suplementación (si aplica)
-[Producto | Dosis | Cuándo tomarlo | Justificación]
-
-## ⏱️ Meal prep semanal (30 min el domingo)
-[Qué cocinar en batch para tener la semana lista]
-\`\`\`
-
----
-
-Genera el plan **completo de los 7 días AHORA**. Los gramajes deben ser precisos, los macros deben cuadrar con los targets (±5%), los platos deben variar entre días, y los alimentos deben ser reales, económicos y fáciles de preparar.`.trim()
+Genera el plan AHORA, sin texto adicional.`.trim()
 }
 
 /**

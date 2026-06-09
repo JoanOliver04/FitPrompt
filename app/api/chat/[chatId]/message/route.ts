@@ -252,10 +252,16 @@ export const POST = defineHandler(
       const dietProfile = await loadAIProfile(userId)
       if (dietProfile) {
         try {
-          const dietContent = await callGroq([
-            { role: 'system', content: FITCOACH_SYSTEM },
-            { role: 'user',   content: generarPromptDieta(dietProfile) },
-          ])
+          const dietContent = await callGroq(
+            [
+              { role: 'system', content: FITCOACH_SYSTEM },
+              { role: 'user',   content: generarPromptDieta(dietProfile) },
+            ],
+            0.7,
+            // Single-day diet ≈ 1–1.5k tokens; cap low so the request stays well
+            // under Groq's per-minute/day budget and never trips a 413/429.
+            2500,
+          )
 
           await saveMessages(chatId, userMessage, { role: 'assistant', content: dietContent })
           if (isFirstMessage) await autoTitle(chatId, userMessage.content)
