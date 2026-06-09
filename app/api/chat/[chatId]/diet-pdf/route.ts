@@ -22,8 +22,11 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const messageId = req.nextUrl.searchParams.get('messageId') ?? undefined
 
-  // Resolve the source message: either the explicit one, or the latest
-  // assistant message in this chat that looks like a diet.
+  // Resolve the source message: try the explicit id first, then fall back to the
+  // latest assistant message in this chat that looks like a diet. The fallback is
+  // important because the chat UI assigns client-side temp ids (`ai-<ts>`) to
+  // freshly streamed messages — those never match a DB row, so without the
+  // fallback the download fails right after generating the diet.
   let content: string | null = null
   if (messageId) {
     const msg = await db.message.findFirst({
@@ -31,14 +34,15 @@ export async function GET(req: NextRequest, { params }: Params) {
       select: { content: true },
     })
     content = msg?.content ?? null
-  } else {
+  }
+  if (!content || !hasDietStructure(content)) {
     const rows = await db.message.findMany({
       where:   { chatId, role: 'assistant' },
       orderBy: { createdAt: 'desc' },
       take:    20,
       select:  { content: true },
     })
-    content = rows.find((r) => hasDietStructure(r.content))?.content ?? null
+    content = rows.find((r) => hasDietStructure(r.content))?.content ?? content
   }
 
   if (!content || !hasDietStructure(content)) {

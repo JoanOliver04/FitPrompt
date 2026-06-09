@@ -232,7 +232,7 @@ export default function ChatSidebar({ initialChats, canCreateChat }: Props) {
                       {chat.title}
                     </p>
                   )}
-                  <p className="text-[10px] text-text-muted mt-0.5 tabular-nums">
+                  <p className="text-[10px] text-text-muted mt-0.5 tabular-nums" suppressHydrationWarning>
                     {timeAgo(chat.updatedAt)}
                   </p>
                 </div>

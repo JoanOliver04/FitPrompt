@@ -64,6 +64,7 @@ function buildCsp(nonce: string, isDev: boolean): string {
       "'self'", 'data:', 'blob:',
       'https://lh3.googleusercontent.com',
       'https://*.stripe.com',
+      'https://api.dicebear.com',                 // generated avatars (social/profile)
     ],
     'font-src':               ["'self'", 'data:'],
     'connect-src': [
