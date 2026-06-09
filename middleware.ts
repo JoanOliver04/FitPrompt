@@ -56,8 +56,8 @@ function buildCsp(nonce: string, isDev: boolean): string {
     'script-src': [
       "'self'",
       `'nonce-${nonce}'`,
-      "'unsafe-inline'", // required: layout nonce not forwarded to Next.js script tags
-      ...(isDev ? ["'unsafe-eval'"] : []),
+      "'strict-dynamic'",
+      ...(isDev ? ["'unsafe-eval'"] : []),       // Next.js dev refresh needs eval
     ],
     'style-src':              ["'self'", "'unsafe-inline'"], // Tailwind utility classes
     'img-src': [
@@ -101,6 +101,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   // Per-request CSP nonce. The same nonce is exposed via the response header so
   // App Router pages can read it from `headers()` and pass to <Script nonce={…}>.
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64')
+  const csp = buildCsp(nonce, isDev)
 
   // ── API surface ────────────────────────────────────────────────────────────
   if (pathname.startsWith('/api/')) {
@@ -121,13 +122,17 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   if (PUBLIC_PAGES.has(pathname)) {
     if (token && (pathname === '/login' || pathname === '/register')) {
       const res = NextResponse.redirect(new URL('/dashboard', request.url))
-      applySecurityHeaders(res, nonce, isDev)
+      res.headers.set('Content-Security-Policy', csp)
       return res
     }
     const reqHeaders = new Headers(request.headers)
     reqHeaders.set('x-nonce', nonce)
+    // Next.js reads the nonce from the CSP on the REQUEST headers and injects it
+    // into its own inline bootstrap scripts. Without this they get blocked.
+    reqHeaders.set('Content-Security-Policy', csp)
     const res = NextResponse.next({ request: { headers: reqHeaders } })
-    applySecurityHeaders(res, nonce, isDev)
+    res.headers.set('x-nonce', nonce)
+    res.headers.set('Content-Security-Policy', csp)
     return res
   }
 
@@ -136,27 +141,25 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('callbackUrl', cb)
     const res = NextResponse.redirect(loginUrl)
-    applySecurityHeaders(res, nonce, isDev)
+    res.headers.set('Content-Security-Policy', csp)
     return res
   }
 
   if (pathname.startsWith('/admin') && token.role !== 'ADMIN') {
     const res = NextResponse.redirect(new URL('/403', request.url))
-    applySecurityHeaders(res, nonce, isDev)
+    res.headers.set('Content-Security-Policy', csp)
     return res
   }
 
-  // Forward the nonce to the route so server components can use it.
+  // Forward the nonce to the route so server components can use it. Next.js reads
+  // the CSP from the request headers and injects the nonce into its inline scripts.
   const reqHeaders = new Headers(request.headers)
   reqHeaders.set('x-nonce', nonce)
+  reqHeaders.set('Content-Security-Policy', csp)
   const res = NextResponse.next({ request: { headers: reqHeaders } })
-  applySecurityHeaders(res, nonce, isDev)
-  return res
-}
-
-function applySecurityHeaders(res: NextResponse, nonce: string, isDev: boolean): void {
   res.headers.set('x-nonce', nonce)
-  res.headers.set('Content-Security-Policy', buildCsp(nonce, isDev))
+  res.headers.set('Content-Security-Policy', csp)
+  return res
 }
 
 export const config = {

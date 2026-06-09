@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { headers } from 'next/headers'
 import Providers from '@/components/layout/Providers'
 import './globals.css'
 
@@ -39,7 +40,8 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
@@ -50,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             would otherwise wipe a client switch to light mode. Defaults to dark
             when no preference (or on error) is stored. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `try{var c=document.documentElement.classList;if(localStorage.getItem('fp-theme')==='light')c.remove('dark');else c.add('dark');}catch(e){document.documentElement.classList.add('dark');}` +
               `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')});}`,
