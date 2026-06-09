@@ -44,9 +44,13 @@ self.addEventListener('fetch', (event) => {
   // Network-first for page navigations; serve offline fallback on failure
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() =>
-        caches.match(OFFLINE_URL).then((r) => r ?? Response.error()),
-      ),
+      fetch(request).catch(async () => {
+        const cached = await caches.match(OFFLINE_URL)
+        return cached ?? new Response(
+          '<!DOCTYPE html><html lang="es"><body style="background:#101010;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;flex-direction:column;gap:16px"><h1>Sin conexión</h1><button onclick="location.reload()" style="background:#FF471A;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Reintentar</button></body></html>',
+          { status: 503, headers: { 'Content-Type': 'text/html;charset=utf-8' } },
+        )
+      }),
     )
   }
 })

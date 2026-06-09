@@ -7,7 +7,15 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error('DATABASE_URL is not set')
   }
-  const pool = new Pool({ connectionString, max: 2 })
+  // Strip Prisma-specific params that pg.Pool doesn't understand
+  const url = new URL(connectionString)
+  url.searchParams.delete('pgbouncer')
+  url.searchParams.delete('connection_limit')
+  const pool = new Pool({
+    connectionString: url.toString(),
+    max: 2,
+    ssl: { rejectUnauthorized: false }, // required for Supabase TLS
+  })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({
     adapter,
