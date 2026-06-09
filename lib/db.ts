@@ -13,8 +13,8 @@ function createPrismaClient() {
   url.searchParams.delete('connection_limit')
   const pool = new Pool({
     connectionString: url.toString(),
-    max: 2,
-    ssl: { rejectUnauthorized: false }, // required for Supabase TLS
+    max: 1, // serverless: one connection per function instance
+    ssl: { rejectUnauthorized: false },
   })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({
