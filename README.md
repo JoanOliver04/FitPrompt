@@ -1,6 +1,25 @@
-# FitPrompt
+<div align="center">
 
-> **AI-powered fitness companion that turns a user's body, goals and lifestyle into a fully personalized training and nutrition plan.**
+# 🏋️ FitPrompt
+
+### **AI-powered fitness companion that turns a user's body, goals and lifestyle into a fully personalized training and nutrition plan.**
+
+[![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind_v3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Prisma](https://img.shields.io/badge/Prisma_7-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Groq](https://img.shields.io/badge/Groq_·_Llama_3.3_70B-F55036?style=for-the-badge&logo=meta&logoColor=white)](https://groq.com/)
+[![Stripe](https://img.shields.io/badge/Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
+[![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
+
+<br/>
+
+<img src="docs/screenshots/pantalla-principal.png" alt="FitPrompt landing page" width="100%"/>
+
+</div>
+
+---
 
 FitPrompt is a production-grade web application that combines a personalized AI coach, a structured workout tracker, a gamification layer (XP, badges, streaks) and a social fitness graph (followers, groups, weekly challenges). It is built on a modern serverless stack with a strict TypeScript codebase, a 26-table relational schema and a Groq-powered AI pipeline (Llama 3.3 70B) that grounds every response on the user's real profile.
 
@@ -9,8 +28,148 @@ FitPrompt is a production-grade web application that combines a personalized AI 
 
 ---
 
+## 📸 Screenshots
+
+> A dark-first, brand-tokenized UI (`#101010` / `#FF471A`) with a built-in light theme. Below: the core surfaces — expand the galleries for the full tour.
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="100%"/>
+      <br/><sub><b>Dashboard</b> — streak, today's workout, week calendar & XP</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/chat-ia-rutina.png" alt="AI chat — routine" width="100%"/>
+      <br/><sub><b>AI Chat</b> — profile-grounded routines as structured plans</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/tracking.png" alt="Workout tracking" width="100%"/>
+      <br/><sub><b>Tracking</b> — log workouts manually or straight from a routine</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/social.png" alt="Social graph" width="100%"/>
+      <br/><sub><b>Social</b> — followers, levels, XP & ranking</sub>
+    </td>
+  </tr>
+</table>
+
+<details>
+<summary><b>🤖 AI Chat — routines, diet & shopping list</b></summary>
+<br/>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/chat-ia-rutina.png" alt="AI routine" width="100%"/><br/><sub>Training routine</sub></td>
+    <td align="center"><img src="docs/screenshots/chat-ia-dieta.png" alt="AI diet" width="100%"/><br/><sub>Meal plan</sub></td>
+    <td align="center"><img src="docs/screenshots/chat-ia-lista-compra.png" alt="AI shopping list" width="100%"/><br/><sub>Shopping list</sub></td>
+  </tr>
+</table>
+</details>
+
+<details>
+<summary><b>📊 Dashboard, Tracking & Progress</b></summary>
+<br/>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/dashboard.png" alt="Dashboard" width="100%"/><br/><sub>Dashboard</sub></td>
+    <td align="center"><img src="docs/screenshots/dashboard-parte2.png" alt="Dashboard stats" width="100%"/><br/><sub>Dashboard — stats</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/tracking.png" alt="Tracking" width="100%"/><br/><sub>Workout log</sub></td>
+    <td align="center"><img src="docs/screenshots/tracking-parte2.png" alt="Tracking history" width="100%"/><br/><sub>Training history</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/comparativa.png" alt="Comparison" width="100%"/><br/><sub>Progress comparison</sub></td>
+    <td align="center"><img src="docs/screenshots/comparativa-parte2.png" alt="Comparison detail" width="100%"/><br/><sub>Progress comparison</sub></td>
+  </tr>
+</table>
+</details>
+
+<details>
+<summary><b>💪 Routines & Exercise Library</b></summary>
+<br/>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/rutinas.png" alt="Routines" width="100%"/><br/><sub>Saved routines</sub></td>
+    <td align="center"><img src="docs/screenshots/biblioteca-ejercicios.png" alt="Exercise library (light)" width="100%"/><br/><sub>Exercise library (light theme)</sub></td>
+    <td align="center"><img src="docs/screenshots/apartado-ejercicios-parte2.png" alt="Exercise detail" width="100%"/><br/><sub>Exercise detail</sub></td>
+  </tr>
+</table>
+</details>
+
+<details>
+<summary><b>🏆 Gamification — achievements & weekly challenges</b></summary>
+<br/>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/logros.png" alt="Achievements" width="100%"/><br/><sub>Badges / achievements</sub></td>
+    <td align="center"><img src="docs/screenshots/retos-semanales.png" alt="Weekly challenges" width="100%"/><br/><sub>Weekly challenges</sub></td>
+  </tr>
+</table>
+</details>
+
+<details>
+<summary><b>👥 Social & Groups</b></summary>
+<br/>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/social.png" alt="Social" width="100%"/><br/><sub>Social graph</sub></td>
+    <td align="center"><img src="docs/screenshots/grupos.png" alt="Groups" width="100%"/><br/><sub>Groups</sub></td>
+    <td align="center"><img src="docs/screenshots/rankings-grupos.png" alt="Group rankings" width="100%"/><br/><sub>Group rankings</sub></td>
+  </tr>
+</table>
+</details>
+
+<details>
+<summary><b>👤 Profile & Settings</b></summary>
+<br/>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/perfil.png" alt="Profile" width="100%"/><br/><sub>Profile</sub></td>
+    <td align="center"><img src="docs/screenshots/perfil-parte2.png" alt="Profile detail" width="100%"/><br/><sub>Profile</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/perfil-parte3.png" alt="Profile detail" width="100%"/><br/><sub>Profile</sub></td>
+    <td align="center"><img src="docs/screenshots/configuracion.png" alt="Settings" width="100%"/><br/><sub>Settings</sub></td>
+  </tr>
+</table>
+</details>
+
+<details>
+<summary><b>🔐 Auth & Onboarding</b></summary>
+<br/>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/login.png" alt="Login" width="100%"/><br/><sub>Login</sub></td>
+    <td align="center"><img src="docs/screenshots/creacion-cuenta.png" alt="Onboarding step 1" width="100%"/><br/><sub>Onboarding 1/5</sub></td>
+    <td align="center"><img src="docs/screenshots/creacion-cuenta-parte2.png" alt="Onboarding step 2" width="100%"/><br/><sub>Onboarding 2/5</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/creacion-cuenta-parte3.png" alt="Onboarding step 3" width="100%"/><br/><sub>Onboarding 3/5</sub></td>
+    <td align="center"><img src="docs/screenshots/creacion-cuenta-parte4.png" alt="Onboarding step 4" width="100%"/><br/><sub>Onboarding 4/5</sub></td>
+    <td align="center"><img src="docs/screenshots/creacion-cuenta-parte5.png" alt="Onboarding step 5" width="100%"/><br/><sub>Onboarding 5/5</sub></td>
+  </tr>
+</table>
+</details>
+
+<details>
+<summary><b>🏠 Landing page</b></summary>
+<br/>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/pantalla-principal.png" alt="Landing hero" width="100%"/><br/><sub>Hero</sub></td>
+    <td align="center"><img src="docs/screenshots/pantalla-principal-parte2.png" alt="Landing features" width="100%"/><br/><sub>Features</sub></td>
+    <td align="center"><img src="docs/screenshots/pantalla-principal-parte3.png" alt="Landing pricing" width="100%"/><br/><sub>Pricing</sub></td>
+  </tr>
+</table>
+</details>
+
+---
+
 ## Table of contents
 
+- 📸 [Screenshots](#-screenshots)
 1. [What problem it solves](#1-what-problem-it-solves)
 2. [Tech stack at a glance](#2-tech-stack-at-a-glance)
 3. [System architecture](#3-system-architecture)
